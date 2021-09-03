@@ -1,0 +1,12 @@
+{
+  "name": "hellotext.js",
+  "version": "1.0.0",
+  "description": "HelloText javascript client",
+  "main": "index.js",
+  "author": "Hellotext",
+  "license": "MIT",
+  "homepage": "https://github.com/hellotext/hellotext.js",
+  "dependencies": {
+    "axios": "^0.21.1"
+  }
+}
