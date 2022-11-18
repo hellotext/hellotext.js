@@ -1,38 +1,75 @@
-### HelloText JavaScript client
+# Hellotext.js
 
-### Installation 
+Track events happening on your site in real-time with this library. 
 
-- Using NPM
+## Installation 
+
+### Using NPM
+
 ```bash
 npm install hellotext
 ```
 
-- Using yarn
+### Using yarn
+
 ```bash
 yarn add hellotext
 ```
 
-### Usage
+### Configure
 
-- import the class
+Import the library into your app.
+
 ```javascript
-import HelloText from "hellotext"
-```
-- call `initialize` to set up the class
-```javascript
-HelloText.initialize();
+import Hellotext from "hellotext"
 ```
 
-### Available APIs
+Initialize the library passing the public `HELLOTEXT_BUSINESS_ID` identifier that represents the business.
 
-- `trackConversion`: used to track conversion upon a successful operation
+You can find it from the Business's settings page.
+
 ```javascript
-HelloText.trackConversion({
-    clickId,
-    title,
-    amount,
-    metadata // an object containing any information you might need,
+Hellotext.initialize("HELLOTEXT_BUSINESS_ID");
+```
+
+
+## Usage
+
+Tracking the events of visitors coming from campaign *shortlinks* is very easy, typically simply passing the action name is enough.
+
+```javascript
+Hellotext.track("product.purchased")
+```
+
+It is possible to pass additional data to track.
+
+```javascript
+Hellotext.track("product.purchased", {
+    title: "Awesome page",
+    amount: 29.99,
+    currency: "USD",
+    metadata: {
+        custom_property: "custom value"
+    }
 })
 ```
 
+Learn more about the **[list of actions](https://help.hellotext.com/tracking-events)**.
+
+
+
+## Understanding sessions
+
+*Shortlinks* clicked on messages attaches a parameter `hellotext_session_id` to the destination url including a session identifier created by Hellotext.
+
+Hellotext.js automatically sets a cookie with the session when the parameter is present and the session is automatically sent to Hellotext any time the `Hellotext.track` method is called. 
+
+### Get session
+
+It is possible to obtain the current session by simply calling `Hellotext.session`.
+
+```javascript
+Hellotext.session
+// Returns c7a42761-f34d-41a2-b078-6a8172690350
+```
 
