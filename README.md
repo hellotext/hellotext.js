@@ -90,7 +90,7 @@ The following is a complete list of built-in actions and their required associat
 | **refund.requested** | A customer requested a refund. | `refund_id` or [refund object](https://www.hellotext.com/api#refunds)
 | **refund.received** | A refund was issued by you to your customer. | `refund_id` or [refund object](https://www.hellotext.com/api#refunds)
 
-You can also create your **[own defined actions](https://help.hellotext.com/actions)**.
+You can also create your **[own defined actions](https://www.hellotext.com/api#actions)**.
 
 ## Additional Properties
 
@@ -132,4 +132,4 @@ Hellotext.session
 // Returns c7a42761-f34d-41a2-b078-6a8172690350
 ```
 
-You may want to store the session on your backend when customers are unidentified so you can later [attach it to a profile](http://localhost:3000/api#attach_session) when it becomes known.
+You may want to store the session on your backend when customers are unidentified so you can later [attach it to a profile](https://www.hellotext.com/api#attach_session) when it becomes known.
