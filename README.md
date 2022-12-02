@@ -77,6 +77,7 @@ The following is a complete list of built-in actions and their required associat
 | **app.install** | An app was installed. | `app_id` or [app object](https://www.hellotext.com/api#app)
 | **app.remove** | An app was removed. | `app_id` or [app object](https://www.hellotext.com/api#app)
 | **app.spent** | A customer spent on an app. | `app_id` or [app object](https://www.hellotext.com/api#app)
+| **cart.added** | Added an item to the cart. | `product_id` or [product object](https://www.hellotext.com/api#products)
 | **cart.removed** | Removed an item from the cart. | `product_id` or [product object](https://www.hellotext.com/api#products)
 | **coupon.redeemed** | A coupon was redeem by a customer. | `coupon_id` or [coupon object](https://www.hellotext.com/api#coupons)
 | **form.completed** | A form was completed by the customer. | `form_id` or [form object](https://www.hellotext.com/api#forms)
