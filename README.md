@@ -32,7 +32,6 @@ You can find it from the business's settings page.
 Hellotext.initialize("HELLOTEXT_BUSINESS_ID");
 ```
 
-
 ## Usage
 
 Tracking events is straightforward and perhaps the simplest example is tracking a page view:
@@ -52,19 +51,20 @@ Hellotext.track("order.placed", {
     amount: 395.00, 
     currency: "USD",
     order: {
-        "amount": "395.00"
+        "amount": "395.00",
         "reference": "654321",
     }
 });
 ```
 
-If you want to reuse existing objects, you must pass the identifier of an existing associated object. For example, to track an item added to a cart you must pass the identifier of an previously created product object as the `product_id`.
+If you want to reuse existing objects, you must pass the identifier of an existing associated object. For example, to track a product purchase the identifier of a previously created product object as the `product`. 
+For more information about identifiers, view the [Tracking API](https://www.hellotext.com/api#tracking)
 
 ```javascript
-Hellotext.track("cart.added", {
+Hellotext.track("product.purchased", {
     amount: 395.00, 
     currency: "USD",
-    product_id: "erA2RAXE"
+    product: "erA2RAXE"
 });
 ```
 
@@ -72,33 +72,33 @@ Hellotext.track("cart.added", {
 
 The following is a complete list of built-in actions and their required associated objects. 
 
-| Action | Description | Required Parameter |
-| --- | --- | --- |
-| **app.install** | An app was installed. | `app_id` or [app object](https://www.hellotext.com/api#app)
-| **app.remove** | An app was removed. | `app_id` or [app object](https://www.hellotext.com/api#app)
-| **app.spent** | A customer spent on an app. | `app_id` or [app object](https://www.hellotext.com/api#app)
-| **cart.added** | Added an item to the cart. | `product_id` or [product object](https://www.hellotext.com/api#products)
-| **cart.removed** | Removed an item from the cart. | `product_id` or [product object](https://www.hellotext.com/api#products)
-| **coupon.redeemed** | A coupon was redeem by a customer. | `coupon_id` or [coupon object](https://www.hellotext.com/api#coupons)
-| **form.completed** | A form was completed by the customer. | `form_id` or [form object](https://www.hellotext.com/api#forms)
-| **order.placed** | Order has been placed. | `order_id` or [order object](https://www.hellotext.com/api#orders)
-| **order.confirmed** | Order has been confirmed by you. | `order_id` or [order object](https://www.hellotext.com/api#orders)
-| **order.cancelled** | Order has been cancelled either by you or your customer. | `order_id` or [order object](https://www.hellotext.com/api#orders)
-| **order.shipped** | Order has been shipped to your customer. | `order_id` or [order object](https://www.hellotext.com/api#orders)
-| **page.viewed** |  A page was viewed by a customer. | `url`
-| **product.purchased** | A product has been purchased. | `product_id` or [product object](https://www.hellotext.com/api#products)
-| **product.viewed** | A product page has been viewed. | `product_id` or [product object](https://www.hellotext.com/api#products)
-| **refund.requested** | A customer requested a refund. | `refund_id` or [refund object](https://www.hellotext.com/api#refunds)
-| **refund.received** | A refund was issued by you to your customer. | `refund_id` or [refund object](https://www.hellotext.com/api#refunds)
+| Action                | Description | Required Parameter |
+|-----------------------| --- | --- |
+| **app.installed**     | An app was installed. | `app` or [app_attributes](https://www.hellotext.com/api#app)
+| **app.removed**       | An app was removed. | `app` or [app_attributes](https://www.hellotext.com/api#app)
+| **app.spent**         | A customer spent on an app. | `app` or [app_attributes](https://www.hellotext.com/api#app)
+| **cart.added**        | Added an item to the cart. | `product` or [product_attributes](https://www.hellotext.com/api#products)
+| **cart.removed**      | Removed an item from the cart. | `product` or [product_attributes](https://www.hellotext.com/api#products)
+| **coupon.redeemed**   | A coupon was redeem by a customer. | `coupon` or [coupon_attributes](https://www.hellotext.com/api#coupons)
+| **form.completed**    | A form was completed by the customer. | `form` or [form_attributes](https://www.hellotext.com/api#forms)
+| **order.placed**      | Order has been placed. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
+| **order.confirmed**   | Order has been confirmed by you. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
+| **order.cancelled**   | Order has been cancelled either by you or your customer. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
+| **order.shipped**     | Order has been shipped to your customer. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
+| **page.viewed**       |  A page was viewed by a customer. | `url`
+| **product.purchased** | A product has been purchased. | `product` or [product_attributes](https://www.hellotext.com/api#products)
+| **product.viewed**    | A product page has been viewed. | `product` or [product_attributes](https://www.hellotext.com/api#products)
+| **refund.requested**  | A customer requested a refund. | `refund` or [refund_attributes](https://www.hellotext.com/api#refunds)
+| **refund.received**   | A refund was issued by you to your customer. | `refund` or [refund_attributes](https://www.hellotext.com/api#refunds)
 
 You can also create your **[own defined actions](https://www.hellotext.com/api#actions)**.
 
 ## Additional Properties
 
-You can include additional attributes to the tracked event:
+You can include additional attributes to the tracked event, additional properties must be included inside the `metadata` object:
 
 ```javascript
-Hellotext.track("page.visited", {
+Hellotext.track("product.purchased", {
     amount: 0.20, 
     currency: "USD",
     metadata: {
