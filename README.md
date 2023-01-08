@@ -40,7 +40,10 @@ Tracking events is straightforward and perhaps the simplest example is tracking 
 Hellotext.track("page.viewed");
 ```
 
-In the example above only the name of the action is required. The library takes care of handling the `url` parameter with the current URL automatically and is not required to specify it explicitly.
+In the example above only the name of the action is required. 
+The library takes care of handling the `url` parameter with the current URL automatically and is not required to specify it explicitly.
+You can pass another url as the third argument to the `Hellotext.track` method.
+
 
 Generally, most actions also require an associated object. These can be of type [`app`](https://www.hellotext.com/api#apps), [`coupon`](https://www.hellotext.com/api#coupons), [`form`](https://www.hellotext.com/api#forms), [`order`](https://www.hellotext.com/api#orders), [`product`](https://www.hellotext.com/api#products) and [`refund`](https://www.hellotext.com/api#refunds).
 
