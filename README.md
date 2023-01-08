@@ -37,7 +37,7 @@ Hellotext.initialize("HELLOTEXT_BUSINESS_ID");
 Tracking events is straightforward and perhaps the simplest example is tracking a page view:
 
 ```javascript
-Hellotext.track("page.visited");
+Hellotext.track("page.viewed");
 ```
 
 In the example above only the name of the action is required. The library takes care of handling the `url` parameter with the current URL automatically and is not required to specify it explicitly.
