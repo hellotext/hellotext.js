@@ -7,6 +7,10 @@
   "license": "MIT",
   "homepage": "https://github.com/hellotext/hellotext.js",
   "dependencies": {
+    "@rails/actioncable": "^7.0.4",
     "axios": "^0.21.1"
+  },
+  "devDependencies": {
+    "prettier": "2.8.2"
   }
 }
