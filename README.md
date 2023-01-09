@@ -23,7 +23,7 @@ yarn add @hellotext/hellotext
 Import the library into your app.
 
 ```javascript
-import Hellotext from "hellotext";
+import Hellotext from "@hellotext/hellotext";
 ```
 
 Initialize the library passing the public `HELLOTEXT_BUSINESS_ID` identifier that represents the business.
