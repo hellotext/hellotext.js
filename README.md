@@ -1,4 +1,4 @@
-# Hellotext
+# Hellotext.js
 
 [![npm version](https://badge.fury.io/js/@hellotext%2Fhellotext.svg)](https://badge.fury.io/js/@hellotext%2Fhellotext)
 
