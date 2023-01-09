@@ -1,5 +1,5 @@
 {
-  "name": "hellotext",
+  "name": "@hellotext/hellotext",
   "version": "1.0.0",
   "description": "Hellotext javascript client",
   "main": "index.js",
