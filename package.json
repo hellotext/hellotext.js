@@ -1,7 +1,7 @@
 {
-  "name": "hellotext.js",
+  "name": "hellotext",
   "version": "1.0.0",
-  "description": "HelloText javascript client",
+  "description": "Hellotext javascript client",
   "main": "index.js",
   "author": "Hellotext",
   "license": "MIT",
