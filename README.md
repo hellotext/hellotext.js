@@ -1,4 +1,4 @@
-# Hellotext.js
+# Hellotext
 
 Track the events happening on your site to [Hellotext](https://www.hellotext.com) in real-time with this library. 
 
@@ -7,13 +7,13 @@ Track the events happening on your site to [Hellotext](https://www.hellotext.com
 ### Using NPM
 
 ```bash
-npm i @hellotext/hellotext.js
+npm i @hellotext/hellotext
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @hellotext/hellotext.js
+yarn add @hellotext/hellotext
 ```
 
 ### Configure
