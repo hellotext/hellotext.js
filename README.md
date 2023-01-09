@@ -125,9 +125,9 @@ Hellotext.track("product.purchased", {
 
 ## Understanding Sessions
 
-The library looks for a session identifier present on the `hellotext_session_id` parameter. If the session is not present as a cookie neither it will create a new random session identifier. The session is automatically sent to Hellotext any time the `Hellotext.track` method is called. 
+The library looks for a session identifier present on the `hellotext_session` parameter. If the session is not present as a cookie neither it will create a new random session identifier. The session is automatically sent to Hellotext any time the `Hellotext.track` method is called. 
 
-Short links redirections attaches a session identifier to the destination url as `hellotext_session_id` parameter. This will identify all the events back to the customer who opened the link.
+Short links redirections attaches a session identifier to the destination url as `hellotext_session` parameter. This will identify all the events back to the customer who opened the link.
 
 ### Get session
 
