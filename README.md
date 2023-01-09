@@ -1,5 +1,7 @@
 # Hellotext
 
+[![npm version](https://badge.fury.io/js/@hellotext%2Fhellotext.svg)](https://badge.fury.io/js/@hellotext%2Fhellotext)
+
 Track the events happening on your site to [Hellotext](https://www.hellotext.com) in real-time with this library. 
 
 ## Installation 
