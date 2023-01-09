@@ -7,13 +7,13 @@ Track the events happening on your site to [Hellotext](https://www.hellotext.com
 ### Using NPM
 
 ```bash
-npm install hellotext
+npm i @hellotext/hellotext
 ```
 
 ### Using yarn
 
 ```bash
-yarn add hellotext
+yarn add @hellotext/hellotext
 ```
 
 ### Configure
