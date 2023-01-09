@@ -12,5 +12,19 @@
   },
   "devDependencies": {
     "prettier": "2.8.2"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hellotext/hellotext.js.git"
+  },
+  "keywords": [
+    "hellotext",
+    "javascript"
+  ],
+  "bugs": {
+    "url": "https://github.com/hellotext/hellotext.js/issues"
   }
 }
