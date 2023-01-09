@@ -135,7 +135,7 @@ It is possible to obtain the current session by simply calling `Hellotext.sessio
 
 ```javascript
 Hellotext.session
-// Returns c7a42761-f34d-41a2-b078-6a8172690350
+// Returns EMNvKYmaXJWp7Oy901pe53kB
 ```
 
 You may want to store the session on your backend when customers are unidentified so you can later [attach it to a profile](https://www.hellotext.com/api#attach_session) when it becomes known.
