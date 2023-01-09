@@ -55,7 +55,7 @@ You can create the associated object directly by defining its attributes in a ha
 Hellotext.track("order.placed", {
     amount: 395.00, 
     currency: "USD",
-    order: {
+    order_attributes: {
         "amount": "395.00",
         "reference": "654321",
     }
