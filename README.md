@@ -34,6 +34,8 @@ You can find it from the business's settings page.
 Hellotext.initialize("HELLOTEXT_BUSINESS_ID");
 ```
 
+Failing to initialize the class before calling any other method will throw a `NotInitializedError`.
+
 ## Usage
 
 Tracking events is straightforward and perhaps the simplest example is tracking a page view:
