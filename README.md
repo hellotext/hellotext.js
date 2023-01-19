@@ -44,7 +44,13 @@ Hellotext.track("page.viewed");
 
 In the example above only the name of the action is required.
 The library takes care of handling the `url` parameter with the current URL automatically and is not required to specify it explicitly.
-You can pass another url as the third argument to the `Hellotext.track` method.
+If you want to provide another url, you can pass a `url` key in the params object when tracking an event.
+
+```javascript
+Hellotext.track("page.viewed", {
+  url: "www.example.org"
+});
+```
 
 The `track` method returns a Promise that can be `await`ed using the async/await syntax. Or using `.then` on the returned Promise
 
