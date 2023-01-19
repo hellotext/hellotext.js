@@ -42,10 +42,19 @@ Tracking events is straightforward and perhaps the simplest example is tracking 
 Hellotext.track("page.viewed");
 ```
 
-In the example above only the name of the action is required. 
+In the example above only the name of the action is required.
 The library takes care of handling the `url` parameter with the current URL automatically and is not required to specify it explicitly.
 You can pass another url as the third argument to the `Hellotext.track` method.
 
+The `track` method returns a Promise that can be `await`ed using the async/await syntax. Or using `.then` on the returned Promise
+
+```javascript
+const response = await Hellotext.track("page.viewed");
+// {status: "received"}
+```
+
+The parameters passed to the action must be a valid set of parameters as described in
+[Tracking Actions](https://www.hellotext.com/api#tracking).
 
 Generally, most actions also require an associated object. These can be of type [`app`](https://www.hellotext.com/api#apps), [`coupon`](https://www.hellotext.com/api#coupons), [`form`](https://www.hellotext.com/api#forms), [`order`](https://www.hellotext.com/api#orders), [`product`](https://www.hellotext.com/api#products) and [`refund`](https://www.hellotext.com/api#refunds).
 
@@ -117,7 +126,7 @@ Hellotext.track("product.purchased", {
 
 | Property | Description | Type | Default |
 | --- | --- | --- | --- |
-| **amount** | Monetary amount that represents the revenue associated to this tracked event. | float | `null`
+| **amount** | Monetary amount that represents the revenue associated to this tracked event. | float | `0`
 | **currency** | Currency for the `amount` given in ISO 4217 format.  | currency | `USD`
 | **metadata** | Set of key-value pairs that you can attach to an event. This can be useful for storing additional information about the object in a structured format. | hash | `{}`
 | **tracked_at** | Original date when the event happened. This is useful if you want to record an event that happened in the past. If no value is provided its value will be the same from `created_at`. | epoch | `null`
@@ -125,17 +134,21 @@ Hellotext.track("product.purchased", {
 
 ## Understanding Sessions
 
-The library looks for a session identifier present on the `hellotext_session` parameter. If the session is not present as a cookie neither it will create a new random session identifier. The session is automatically sent to Hellotext any time the `Hellotext.track` method is called. 
+The library looks for a session identifier present on the `hellotext_session` query parameter. If the session is not present as a cookie neither it will create a new random session identifier. 
+The session is automatically sent to Hellotext any time the `Hellotext.track` method is called. 
 
-Short links redirections attaches a session identifier to the destination url as `hellotext_session` parameter. This will identify all the events back to the customer who opened the link.
+Short links redirections attaches a session identifier to the destination url as `hellotext_session` query parameter. This will identify all the events back to the customer who opened the link.
 
 ### Get session
 
 It is possible to obtain the current session by simply calling `Hellotext.session`. 
 
 ```javascript
-Hellotext.session
+await Hellotext.session
 // Returns bBJn9vR15yPaYkWmR2QK0jopMeNxrA6l
 ```
+Calling the `Hellotext.session` for the first time will send a request to Hellotext to create a session,
+then the class stores the value in the `hello_session` cookie. Subsequent calls would not result in requests made to the server,
+because the class stores the value. 
 
 You may want to store the session on your backend when customers are unidentified so you can later [attach it to a profile](https://www.hellotext.com/api#attach_session) when it becomes known.
