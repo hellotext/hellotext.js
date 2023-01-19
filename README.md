@@ -50,11 +50,30 @@ The `track` method returns a Promise that can be `await`ed using the async/await
 
 ```javascript
 const response = await Hellotext.track("page.viewed");
-// {status: "received"}
+// {status: "received", success: true}
 ```
 
 The parameters passed to the action must be a valid set of parameters as described in
 [Tracking Actions](https://www.hellotext.com/api#tracking).
+
+Failing to provide valid set of parameters will result in an error object being returned, describing the parameters that did not satisfy the rules.
+
+```javascript
+const response = await Hellotext.track("app.installed", { app_attributes: { name: "My App" }})
+{
+  errors: [
+    {
+      type: 'parameter_not_unique',
+      parameter: 'name',
+      description: 'The value must be unique and it is already present in another object of the same type.'
+    },
+  ], 
+  success: false
+}
+```
+
+You can use `success` key present in the response object to run code conditionally.
+For a complete list of errors types. See [Error Types](https://www.hellotext.com/api#errors)
 
 Generally, most actions also require an associated object. These can be of type [`app`](https://www.hellotext.com/api#apps), [`coupon`](https://www.hellotext.com/api#coupons), [`form`](https://www.hellotext.com/api#forms), [`order`](https://www.hellotext.com/api#orders), [`product`](https://www.hellotext.com/api#products) and [`refund`](https://www.hellotext.com/api#refunds).
 
