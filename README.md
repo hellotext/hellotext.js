@@ -157,6 +157,27 @@ Hellotext.track("product.purchased", {
 | **tracked_at** | Original date when the event happened. This is useful if you want to record an event that happened in the past. If no value is provided its value will be the same from `created_at`. | epoch | `null`
 
 
+## Events
+
+This library emits events that you can listen to and perform specific action when the event happens.
+Think of it like `addEventListener` for HTML elements. You can listen for events, and remove events as well.
+
+To listen to an event, you can call the `on` method, like so
+
+```javascript
+Hellotext.on(eventName, callback)
+```
+
+To stop listening for an event, you can call the `off` method, like so
+
+```javascript
+Hellotext.off(eventName, callback)
+```
+
+### List of events
+
+- `hello:session-set`: This event is fired when the session value for `Hellotext.session` is set. Either through an API request, or if the session was found in the cookie.
+
 ## Understanding Sessions
 
 The library looks for a session identifier present on the `hellotext_session` query parameter. If the session is not present as a cookie neither it will create a new random session identifier. 
@@ -172,8 +193,15 @@ It is possible to obtain the current session by simply calling `Hellotext.sessio
 await Hellotext.session
 // Returns bBJn9vR15yPaYkWmR2QK0jopMeNxrA6l
 ```
-Calling the `Hellotext.session` for the first time will send a request to Hellotext to create a session,
-then the class stores the value in the `hello_session` cookie. Subsequent calls would not result in requests made to the server,
-because the class stores the value. 
+
+If the session has not been set yet, the result returned will be `undefined`. 
+You can check whether the session has been set or not by calling `Hellotext.isInitialized`.
+Moreover, you can hook in and listen for the session being set, such that when it's set, you're notified about the change, like so
+
+```javascript
+Hellotext.on("hello:session-set", (session) => {
+  console.log("session is: ", session)
+})
+```
 
 You may want to store the session on your backend when customers are unidentified so you can later [attach it to a profile](https://www.hellotext.com/api#attach_session) when it becomes known.
