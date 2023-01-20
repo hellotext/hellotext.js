@@ -171,7 +171,7 @@ Hellotext.on(eventName, callback)
 To stop listening for an event, you can call the `off` method, like so
 
 ```javascript
-Hellotext.off(eventName, callback)
+Hellotext.detach(eventName, callback)
 ```
 
 ### List of events

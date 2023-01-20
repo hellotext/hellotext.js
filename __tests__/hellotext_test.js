@@ -129,7 +129,7 @@ describe(".on", () => {
   });
 });
 
-describe(".off", () => {
+describe(".detach", () => {
   const business_id = "xy76ks"
 
   beforeAll(() => {
@@ -141,7 +141,7 @@ describe(".off", () => {
 
   it("throws an error when event is invalid", () => {
     expect(
-      () => Hellotext.off("undefined-event", () => {})
+      () => Hellotext.detach("undefined-event", () => {})
     ).toThrowError()
   });
 
@@ -149,7 +149,7 @@ describe(".off", () => {
     const callback = jest.fn()
 
     Hellotext.on("session-set", callback)
-    Hellotext.off("session-set", callback)
+    Hellotext.detach("session-set", callback)
 
     expect(callback).toHaveBeenCalledTimes(0)
   });
