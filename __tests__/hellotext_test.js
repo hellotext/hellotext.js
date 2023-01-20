@@ -46,7 +46,7 @@ describe("when the class is initialized successfully", () => {
 
         const response = await Hellotext.track("page.viewed")
 
-        expect(response.success).toEqual(true)
+        expect(response.succeeded).toEqual(true)
       });
 
       it("success attribute is false when response from the server is rejected", async () => {
@@ -57,7 +57,7 @@ describe("when the class is initialized successfully", () => {
 
         const response = await Hellotext.track("page.viewed")
 
-        expect(response.success).toEqual(false)
+        expect(response.failed).toEqual(true)
       });
     });
   });

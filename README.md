@@ -56,7 +56,19 @@ The `track` method returns a Promise that can be `await`ed using the async/await
 
 ```javascript
 const response = await Hellotext.track("page.viewed");
-// {status: "received", success: true}
+```
+
+The return of the `Hellotext.track` method is an instance of a `Response` object that ships with the package. You can check the status of the response via methods, like
+
+```javascript
+if(response.failed) {
+  console.log("failed because", response.data)
+}
+
+if(response.succeeded) {
+  console.log("success")
+  console.log(response.data) // { status: "received" }
+}
 ```
 
 The parameters passed to the action must be a valid set of parameters as described in
@@ -66,6 +78,13 @@ Failing to provide valid set of parameters will result in an error object being 
 
 ```javascript
 const response = await Hellotext.track("app.installed", { app_attributes: { name: "My App" }})
+
+console.log(response.data)
+```
+
+yields
+
+```javascript
 {
   errors: [
     {
