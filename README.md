@@ -176,7 +176,7 @@ Hellotext.off(eventName, callback)
 
 ### List of events
 
-- `hello:session-set`: This event is fired when the session value for `Hellotext.session` is set. Either through an API request, or if the session was found in the cookie.
+- `session-set`: This event is fired when the session value for `Hellotext.session` is set. Either through an API request, or if the session was found in the cookie.
 
 ## Understanding Sessions
 
@@ -199,7 +199,7 @@ You can check whether the session has been set or not by calling `Hellotext.isIn
 Moreover, you can hook in and listen for the session being set, such that when it's set, you're notified about the change, like so
 
 ```javascript
-Hellotext.on("hello:session-set", (session) => {
+Hellotext.on("session-set", (session) => {
   console.log("session is: ", session)
 })
 ```

@@ -116,7 +116,7 @@ describe(".on", () => {
 
     const callback = jest.fn()
 
-    Hellotext.on("hello:session-set", callback)
+    Hellotext.on("session-set", callback)
     Hellotext.initialize(business_id)
 
     expect(callback).toHaveBeenCalledTimes(1)
@@ -148,8 +148,8 @@ describe(".off", () => {
   it("removes the callback from the subscribers and will not be notified again", () => {
     const callback = jest.fn()
 
-    Hellotext.on("hello:session-set", callback)
-    Hellotext.off("hello:session-set", callback)
+    Hellotext.on("session-set", callback)
+    Hellotext.off("session-set", callback)
 
     expect(callback).toHaveBeenCalledTimes(0)
   });
