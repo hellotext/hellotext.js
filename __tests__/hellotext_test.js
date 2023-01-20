@@ -85,3 +85,29 @@ describe("when the class is initialized successfully", () => {
     });
   });
 });
+
+describe(".isInitialized", () => {
+  describe("when session is not set", function () {
+    beforeAll(() => {
+      const windowMock = {location: { search: "" }}
+      jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+      Hellotext.initialize("123")
+    })
+
+    it("is false when the session is not set yet", () => {
+      expect(Hellotext.isInitialized).toEqual(false)
+    });
+  });
+
+  describe("when session is set", () => {
+    beforeAll(() => {
+      const windowMock = {location: { search: "?hello_session=session" }}
+      jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+      Hellotext.initialize("123")
+    })
+
+    it("is true", () => {
+      expect(Hellotext.isInitialized).toEqual(true)
+    });
+  });
+});
