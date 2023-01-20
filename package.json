@@ -7,6 +7,10 @@
   "license": "MIT",
   "homepage": "https://github.com/hellotext/hellotext.js",
   "devDependencies": {
+    "@babel/preset-env": "^7.20.2",
+    "@testing-library/jest-dom": "^5.16.5",
+    "jest": "^29.3.1",
+    "jest-environment-jsdom": "^29.3.1",
     "prettier": "2.8.2"
   },
   "directories": {
@@ -20,6 +24,9 @@
     "hellotext",
     "javascript"
   ],
+  "scripts": {
+    "test": "NODE_ENV=test jest"
+  },
   "bugs": {
     "url": "https://github.com/hellotext/hellotext.js/issues"
   }
