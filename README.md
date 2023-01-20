@@ -92,15 +92,15 @@ yields
       parameter: 'name',
       description: 'The value must be unique and it is already present in another object of the same type.'
     },
-  ], 
-  success: false
+  ]
 }
 ```
 
-You can use `success` key present in the response object to run code conditionally.
 For a complete list of errors types. See [Error Types](https://www.hellotext.com/api#errors)
 
 Generally, most actions also require an associated object. These can be of type [`app`](https://www.hellotext.com/api#apps), [`coupon`](https://www.hellotext.com/api#coupons), [`form`](https://www.hellotext.com/api#forms), [`order`](https://www.hellotext.com/api#orders), [`product`](https://www.hellotext.com/api#products) and [`refund`](https://www.hellotext.com/api#refunds).
+Aside from [Custom Actions](https://www.hellotext.com/api#create_an_action), which don't require the trackable to be present.
+
 
 You can create the associated object directly by defining its attributes in a hash:
 
@@ -187,7 +187,7 @@ To listen to an event, you can call the `on` method, like so
 Hellotext.on(eventName, callback)
 ```
 
-To stop listening for an event, you can call the `off` method, like so
+To stop listening for an event, you can call the `detach` method, like so
 
 ```javascript
 Hellotext.detach(eventName, callback)
