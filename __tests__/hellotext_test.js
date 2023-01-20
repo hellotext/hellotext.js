@@ -135,6 +135,8 @@ describe(".off", () => {
   beforeAll(() => {
     const windowMock = {location: { search: "?hello_session=123" },}
     jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+
+    Hellotext.initialize(123)
   })
 
   it("throws an error when event is invalid", () => {
@@ -148,8 +150,6 @@ describe(".off", () => {
 
     Hellotext.on("hello:session-set", callback)
     Hellotext.off("hello:session-set", callback)
-
-    Hellotext.initialize(123)
 
     expect(callback).toHaveBeenCalledTimes(0)
   });
