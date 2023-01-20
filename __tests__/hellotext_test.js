@@ -87,18 +87,6 @@ describe("when the class is initialized successfully", () => {
 });
 
 describe(".isInitialized", () => {
-  describe("when session is not set", function () {
-    beforeAll(() => {
-      const windowMock = {location: { search: "" }}
-      jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
-      Hellotext.initialize("123")
-    })
-
-    it("is false when the session is not set yet", () => {
-      expect(Hellotext.isInitialized).toEqual(false)
-    });
-  });
-
   describe("when session is set", () => {
     beforeAll(() => {
       const windowMock = {location: { search: "?hello_session=session" }}
@@ -111,3 +99,58 @@ describe(".isInitialized", () => {
     });
   });
 });
+
+describe(".on", () => {
+  const business_id = "xy76ks"
+
+  beforeAll(() => {
+    const windowMock = {location: { search: "" },}
+    jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+  })
+
+  it("registers a callback that is called when the session is set", function () {
+    global.fetch = jest.fn().mockResolvedValue({
+      json: jest.fn().mockResolvedValue({id: "generated_token"}),
+      status: 200
+    })
+
+    const callback = jest.fn()
+
+    Hellotext.on("hello:session-set", callback)
+    Hellotext.initialize(business_id)
+
+    expect(callback).toHaveBeenCalledTimes(1)
+  });
+
+  it("throws an error when event is invalid", () => {
+    expect(
+      () => Hellotext.on("undefined-event", () => {})
+    ).toThrowError()
+  });
+});
+
+describe(".off", () => {
+  const business_id = "xy76ks"
+
+  beforeAll(() => {
+    const windowMock = {location: { search: "?hello_session=123" },}
+    jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+  })
+
+  it("throws an error when event is invalid", () => {
+    expect(
+      () => Hellotext.off("undefined-event", () => {})
+    ).toThrowError()
+  });
+
+  it("removes the callback from the subscribers and will not be notified again", () => {
+    const callback = jest.fn()
+
+    Hellotext.on("hello:session-set", callback)
+    Hellotext.off("hello:session-set", callback)
+
+    Hellotext.initialize(123)
+
+    expect(callback).toHaveBeenCalledTimes(0)
+  });
+})
