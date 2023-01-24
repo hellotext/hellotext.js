@@ -43,6 +43,7 @@ Hellotext.track("page.viewed");
 ```
 
 In the example above only the name of the action is required.
+
 The library takes care of handling the `url` parameter with the current URL automatically and is not required to specify it explicitly.
 If you want to provide another url, you can pass a `url` key in the params object when tracking an event.
 
@@ -187,10 +188,10 @@ To listen to an event, you can call the `on` method, like so
 Hellotext.on(eventName, callback)
 ```
 
-To stop listening for an event, you can call the `detach` method, like so
+To disconnect an event listener, you can call `disconnect`
 
 ```javascript
-Hellotext.detach(eventName, callback)
+Hellotext.disconnect(eventName, callback)
 ```
 
 ### List of events
@@ -215,6 +216,15 @@ await Hellotext.session
 
 If the session has not been set yet, the result returned will be `undefined`. 
 You can check whether the session has been set or not by calling `Hellotext.isInitialized`.
+
+```javascript
+if(Hellotext.isInitialized) {
+  console.log("session is present")
+} else {
+  console.log("session has not been set")
+}
+```
+
 Moreover, you can hook in and listen for the session being set, such that when it's set, you're notified about the change, like so
 
 ```javascript
