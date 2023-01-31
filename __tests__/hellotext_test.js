@@ -129,6 +129,18 @@ describe(".on", () => {
   });
 });
 
+describe("when session is stored in the cookie", function () {
+  beforeAll(() => {
+    document.cookie = `hello_session=12345`
+    Hellotext.initialize(123)
+  })
+
+  it("Assigns session from cookie", function () {
+    expect(Hellotext.session).toEqual("12345")
+  });
+});
+
+
 describe(".disconnect", () => {
   const business_id = "xy76ks"
 
