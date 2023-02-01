@@ -141,7 +141,7 @@ describe("when session is stored in the cookie", function () {
 });
 
 
-describe(".disconnect", () => {
+describe(".removeEventListener", () => {
   const business_id = "xy76ks"
 
   beforeAll(() => {
@@ -153,7 +153,7 @@ describe(".disconnect", () => {
 
   it("throws an error when event is invalid", () => {
     expect(
-      () => Hellotext.disconnect("undefined-event", () => {})
+      () => Hellotext.removeEventListener("undefined-event", () => {})
     ).toThrowError()
   });
 
@@ -161,7 +161,7 @@ describe(".disconnect", () => {
     const callback = jest.fn()
 
     Hellotext.on("session-set", callback)
-    Hellotext.disconnect("session-set", callback)
+    Hellotext.removeEventListener("session-set", callback)
 
     expect(callback).toHaveBeenCalledTimes(0)
   });

@@ -188,10 +188,10 @@ To listen to an event, you can call the `on` method, like so
 Hellotext.on(eventName, callback)
 ```
 
-To disconnect an event listener, you can call `disconnect`
+To remove an event listener, you can call `removeEventListener`
 
 ```javascript
-Hellotext.disconnect(eventName, callback)
+Hellotext.removeEventListener(eventName, callback)
 ```
 
 ### List of events
