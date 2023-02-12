@@ -6,6 +6,14 @@ import Hellotext from "../lib/hellotext";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
+const expireSession = () => {
+  document.cookie = "hello_session=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+}
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
 describe("when trying to call methods before initializing the class", () => {
   it("raises an error when Hellotext.session is called",  () => {
     expect(() => Hellotext.session).toThrowError()
@@ -142,8 +150,6 @@ describe("when session is stored in the cookie", function () {
 
 
 describe(".removeEventListener", () => {
-  const business_id = "xy76ks"
-
   beforeAll(() => {
     const windowMock = {location: { search: "?hello_session=123" },}
     jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
@@ -165,4 +171,27 @@ describe(".removeEventListener", () => {
 
     expect(callback).toHaveBeenCalledTimes(0)
   });
+})
+
+describe("when hello_preview query parameter is present", () => {
+  beforeAll(() => {
+    const windowMock = {location: { search: "?hello_preview" },}
+    jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+
+    expireSession()
+    Hellotext.initialize(123)
+  })
+
+  describe(".initialize", () => {
+    it("does not attempt to set the session", () => {
+      expect(getCookieValue("hello_session")).toEqual(undefined)
+    });
+  })
+
+  describe(".track", () => {
+    it("returns a success response without interacting with the API", async () => {
+      const response = await Hellotext.track("page.viewed")
+      expect(response.succeeded).toEqual(true)
+    });
+  })
 })
