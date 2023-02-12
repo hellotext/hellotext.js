@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import Query from "../lib/query";
+import Query from "../src/query";
 
 describe("#toHellotextParameter", () => {
   it("prefixes the argument with hello_", () => {

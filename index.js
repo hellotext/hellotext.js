@@ -1,3 +1,3 @@
-import Hellotext from './lib/hellotext';
+import Hellotext from './src/hellotext';
 
 export default Hellotext;

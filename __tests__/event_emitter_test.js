@@ -1,4 +1,4 @@
-import EventEmitter from "../lib/eventEmitter"
+import EventEmitter from "../src/eventEmitter"
 
 describe("#addSubscriber", function () {
   const instance = new EventEmitter()
