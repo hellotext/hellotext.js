@@ -2,7 +2,7 @@
   "name": "@hellotext/hellotext",
   "version": "1.2.0",
   "description": "Hellotext JavaScript Client",
-  "main": "index.js",
+  "main": "src/index.js",
   "author": "Hellotext",
   "license": "MIT",
   "homepage": "https://github.com/hellotext/hellotext.js",
