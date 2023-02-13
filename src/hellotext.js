@@ -50,10 +50,7 @@ class Hellotext {
     if (this.#notInitialized) { throw new NotInitializedError() }
 
     if(this.#query.has("preview")) {
-      return Promise.resolve()
-        .then(() => {
-          return new Response(true, { received: true })
-        })
+      return new Response(true, { received: true })
     }
 
     const response = await fetch(apiUrl + 'track/events', {
