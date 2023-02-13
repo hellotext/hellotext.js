@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import Hellotext from "../lib/hellotext";
+import Hellotext from "../src/hellotext";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 

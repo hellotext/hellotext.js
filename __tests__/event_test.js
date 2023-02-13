@@ -1,4 +1,4 @@
-import Event from "../lib/event"
+import Event from "../src/event"
 
 describe(".valid", function () {
   it("is true when event name is a valid defined name", () => {
