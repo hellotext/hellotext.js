@@ -1,5 +1,5 @@
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   entry: ['whatwg-fetch', './lib/hellotext.js'],
   output: {
     filename: 'hellotext.js'
