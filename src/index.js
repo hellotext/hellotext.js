@@ -1,3 +1,3 @@
-import Hellotext from './hellotext';
+import Hellotext from './hellotext'
 
-export default Hellotext;
+export default Hellotext
