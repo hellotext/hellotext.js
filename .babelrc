@@ -7,5 +7,6 @@
         "corejs": 3
       }
     ]
-  ]
+  ],
+  "plugins": ["@babel/plugin-proposal-private-methods"]
 }
