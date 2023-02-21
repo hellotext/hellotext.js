@@ -46,13 +46,13 @@ In the example above only the name of the action is required.
 
 ### Handling Responses
 
-The `track` method returns a Promise that can be `await`ed using the async/await syntax. Or using `.then` on the returned Promise
+The `track` method returns a Promise that can be `await`ed using the async/await syntax. Or using `.then` on the returned Promise.
 
 ```javascript
 const response = await Hellotext.track("page.viewed");
 ```
 
-The return of the `Hellotext.track` method is an instance of a `Response` object that ships with the package. You can check the status of the response via methods, like
+The return of the `Hellotext.track` method is an instance of a `Response` object that ships with the package. You can check the status of the response via methods, like:
 
 ```javascript
 if(response.failed) {
