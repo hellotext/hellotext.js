@@ -44,14 +44,7 @@ Hellotext.track("page.viewed");
 
 In the example above only the name of the action is required.
 
-The library takes care of handling the `url` parameter with the current URL automatically and is not required to specify it explicitly.
-If you want to provide another url, you can pass a `url` key in the params object when tracking an event.
-
-```javascript
-Hellotext.track("page.viewed", {
-  url: "www.example.org"
-});
-```
+### Handling Responses
 
 The `track` method returns a Promise that can be `await`ed using the async/await syntax. Or using `.then` on the returned Promise
 
@@ -72,8 +65,23 @@ if(response.succeeded) {
 }
 ```
 
+### Parameters
+
 The parameters passed to the action must be a valid set of parameters as described in
 [Tracking Actions](https://www.hellotext.com/api#tracking).
+
+#### URL Parameter
+
+The library takes care of handling the `url` parameter with the current URL automatically and is not required to specify it explicitly.
+If you want to provide another url, you can pass a `url` key in the params object when tracking an event.
+
+```javascript
+Hellotext.track("page.viewed", {
+  url: "www.example.org"
+});
+```
+
+### Errors
 
 Failing to provide valid set of parameters will result in an error object being returned, describing the parameters that did not satisfy the rules.
 
@@ -98,6 +106,8 @@ yields
 ```
 
 For a complete list of errors types. See [Error Types](https://www.hellotext.com/api#errors)
+
+### Associated objects
 
 Generally, most actions also require an associated object. These can be of type [`app`](https://www.hellotext.com/api#apps), [`coupon`](https://www.hellotext.com/api#coupons), [`form`](https://www.hellotext.com/api#forms), [`order`](https://www.hellotext.com/api#orders), [`product`](https://www.hellotext.com/api#products) and [`refund`](https://www.hellotext.com/api#refunds).
 Aside from [Custom Actions](https://www.hellotext.com/api#create_an_action), which don't require the trackable to be present.
