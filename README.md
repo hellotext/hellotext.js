@@ -154,6 +154,7 @@ The following is a complete list of built-in actions and their required associat
 | **order.confirmed**   | Order has been confirmed by you. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
 | **order.cancelled**   | Order has been cancelled either by you or your customer. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
 | **order.shipped**     | Order has been shipped to your customer. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
+| **order.delivered**     | Order has been delivered to your customer. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
 | **page.viewed**       |  A page was viewed by a customer. | `url`
 | **product.purchased** | A product has been purchased. | `product` or [product_attributes](https://www.hellotext.com/api#products)
 | **product.viewed**    | A product page has been viewed. | `product` or [product_attributes](https://www.hellotext.com/api#products)
