@@ -86,7 +86,7 @@ Hellotext.track("page.viewed", {
 Failing to provide valid set of parameters will result in an error object being returned, describing the parameters that did not satisfy the rules.
 
 ```javascript
-const response = await Hellotext.track("app.installed", { app_attributes: { name: "My App" }})
+const response = await Hellotext.track("app.installed", { app_parameters: { name: "My App" }})
 
 console.log(response.data)
 ```
@@ -113,13 +113,13 @@ Generally, most actions also require an associated object. These can be of type 
 Aside from [Custom Actions](https://www.hellotext.com/api#create_an_action), which don't require the trackable to be present.
 
 
-You can create the associated object directly by defining its attributes in a hash:
+You can create the associated object directly by defining its parameters in a hash:
 
 ```javascript
 Hellotext.track("order.placed", {
     amount: 395.00, 
     currency: "USD",
-    order_attributes: {
+    order_parameters: {
         "amount": "395.00",
         "reference": "654321",
     }
@@ -143,24 +143,24 @@ The following is a complete list of built-in actions and their required associat
 
 | Action                | Description                                              | Required Parameter |
 |-----------------------|----------------------------------------------------------| --- |
-| **app.installed**     | An app was installed.                                    | `app` or [app_attributes](https://www.hellotext.com/api#app)
-| **app.removed**       | An app was removed.                                      | `app` or [app_attributes](https://www.hellotext.com/api#app)
-| **app.spent**         | A customer spent on an app.                              | `app` or [app_attributes](https://www.hellotext.com/api#app)
-| **cart.abandoned**    | A cart was abandoned.                                    | `product` or [product_attributes](https://www.hellotext.com/api#products)
-| **cart.added**        | Added an item to the cart.                               | `product` or [product_attributes](https://www.hellotext.com/api#products)
-| **cart.removed**      | Removed an item from the cart.                           | `product` or [product_attributes](https://www.hellotext.com/api#products)
-| **coupon.redeemed**   | A coupon was redeem by a customer.                       | `coupon` or [coupon_attributes](https://www.hellotext.com/api#coupons)
-| **form.completed**    | A form was completed by the customer.                    | `form` or [form_attributes](https://www.hellotext.com/api#forms)
-| **order.placed**      | Order has been placed.                                   | `order` or [order_attributes](https://www.hellotext.com/api#orders)
-| **order.confirmed**   | Order has been confirmed by you.                         | `order` or [order_attributes](https://www.hellotext.com/api#orders)
-| **order.cancelled**   | Order has been cancelled either by you or your customer. | `order` or [order_attributes](https://www.hellotext.com/api#orders)
-| **order.shipped**     | Order has been shipped to your customer.                 | `order` or [order_attributes](https://www.hellotext.com/api#orders)
-| **order.delivered**   | Order has been delivered to your customer.               | `order` or [order_attributes](https://www.hellotext.com/api#orders)
+| **app.installed**     | An app was installed.                                    | `app` or [app_parameters](https://www.hellotext.com/api#app)
+| **app.removed**       | An app was removed.                                      | `app` or [app_parameters](https://www.hellotext.com/api#app)
+| **app.spent**         | A customer spent on an app.                              | `app` or [app_parameters](https://www.hellotext.com/api#app)
+| **cart.abandoned**    | A cart was abandoned.                                    | `product` or [product_parameters](https://www.hellotext.com/api#products)
+| **cart.added**        | Added an item to the cart.                               | `product` or [product_parameters](https://www.hellotext.com/api#products)
+| **cart.removed**      | Removed an item from the cart.                           | `product` or [product_parameters](https://www.hellotext.com/api#products)
+| **coupon.redeemed**   | A coupon was redeem by a customer.                       | `coupon` or [coupon_parameters](https://www.hellotext.com/api#coupons)
+| **form.completed**    | A form was completed by the customer.                    | `form` or [form_parameters](https://www.hellotext.com/api#forms)
+| **order.placed**      | Order has been placed.                                   | `order` or [order_parameters](https://www.hellotext.com/api#orders)
+| **order.confirmed**   | Order has been confirmed by you.                         | `order` or [order_parameters](https://www.hellotext.com/api#orders)
+| **order.cancelled**   | Order has been cancelled either by you or your customer. | `order` or [order_parameters](https://www.hellotext.com/api#orders)
+| **order.shipped**     | Order has been shipped to your customer.                 | `order` or [order_parameters](https://www.hellotext.com/api#orders)
+| **order.delivered**   | Order has been delivered to your customer.               | `order` or [order_parameters](https://www.hellotext.com/api#orders)
 | **page.viewed**       | A page was viewed by a customer.                         | `url`
-| **product.purchased** | A product has been purchased.                            | `product` or [product_attributes](https://www.hellotext.com/api#products)
-| **product.viewed**    | A product page has been viewed.                          | `product` or [product_attributes](https://www.hellotext.com/api#products)
-| **refund.requested**  | A customer requested a refund.                           | `refund` or [refund_attributes](https://www.hellotext.com/api#refunds)
-| **refund.received**   | A refund was issued by you to your customer.             | `refund` or [refund_attributes](https://www.hellotext.com/api#refunds)
+| **product.purchased** | A product has been purchased.                            | `product` or [product_parameters](https://www.hellotext.com/api#products)
+| **product.viewed**    | A product page has been viewed.                          | `product` or [product_parameters](https://www.hellotext.com/api#products)
+| **refund.requested**  | A customer requested a refund.                           | `refund` or [refund_parameters](https://www.hellotext.com/api#refunds)
+| **refund.received**   | A refund was issued by you to your customer.             | `refund` or [refund_parameters](https://www.hellotext.com/api#refunds)
 
 You can also create your **[own defined actions](https://www.hellotext.com/api#actions)**.
 
