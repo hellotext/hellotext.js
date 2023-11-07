@@ -6,13 +6,13 @@ import Query from "./query";
 import { NotInitializedError } from './errors/notInitializedError'
 import { InvalidEvent } from "./errors/invalidEvent"
 
-const apiUrl = 'https://api.hellotext.com/v1/'
-
 class Hellotext {
+  static __apiURL = 'https://api.hellotext.com/v1/'
+
   static #session
   static #business
   static #eventEmitter = new EventEmitter()
-  static #query;
+  static #query
 
   /**
    * initialize the module.
@@ -53,7 +53,7 @@ class Hellotext {
       return new Response(true, { received: true })
     }
 
-    const response = await fetch(apiUrl + 'track/events', {
+    const response = await fetch(this.__apiURL + 'track/events', {
       headers: this.#headers,
       method: 'post',
       body: JSON.stringify({
@@ -116,7 +116,7 @@ class Hellotext {
   static async #mintAnonymousSession() {
     if (this.#notInitialized) { throw new NotInitializedError() }
 
-    const trackingUrl = apiUrl + 'track/sessions'
+    const trackingUrl = this.__apiURL + 'track/sessions'
 
     this.mintingPromise = await fetch(trackingUrl, {
       method: 'post',
