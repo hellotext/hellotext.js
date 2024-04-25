@@ -91,6 +91,15 @@ describe("when the class is initialized successfully", () => {
         expect(Hellotext.session).toEqual("generated_token")
       }, 1000)
     });
+
+    it("does not mint a new session token when autogenerateSession is set to false", () => {
+      Hellotext.initialize(business_id, { autogenerateSession: false })
+
+      setTimeout(() => {
+        expect(getCookieValue("hello_session")).toEqual(undefined)
+        expect(Hellotext.session).toEqual(undefined)
+      }, 1000)
+    })
   });
 });
 

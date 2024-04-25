@@ -212,7 +212,7 @@ Hellotext.removeEventListener(eventName, callback)
 
 ## Understanding Sessions
 
-The library looks for a session identifier present on the `hellotext_session` query parameter. If the session is not present as a cookie neither it will create a new random session identifier. 
+The library looks for a session identifier present on the `hellotext_session` query parameter. If the session is not present as a cookie neither it will create a new random session identifier, you can disable this default behaviour via the configuration, see [Configuration Options](#configuration-options) for more information. 
 The session is automatically sent to Hellotext any time the `Hellotext.track` method is called. 
 
 Short links redirections attaches a session identifier to the destination url as `hellotext_session` query parameter. This will identify all the events back to the customer who opened the link.
@@ -246,3 +246,17 @@ Hellotext.on("session-set", (session) => {
 ```
 
 You may want to store the session on your backend when customers are unidentified so you can later [attach it to a profile](https://www.hellotext.com/api#attach_session) when it becomes known.
+
+### Configuration 
+
+When initializing the library, you may pass an optional configuration object as the second argument. 
+
+```javascript
+Hellotext.initialize("HELLOTEXT_BUSINESS_ID", configurationOptions);
+```
+
+#### Configuration Options
+
+| Property            | Description                                                                                                      | Type    | Default |
+|---------------------|------------------------------------------------------------------------------------------------------------------|---------| --- |
+| autogenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies | Boolean | true

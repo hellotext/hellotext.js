@@ -6,20 +6,29 @@ import Query from "./query";
 import { NotInitializedError } from './errors/notInitializedError'
 import { InvalidEvent } from "./errors/invalidEvent"
 
+/**
+ * @typedef {Object} Config
+ * @property {Boolean} autogenerateSession
+ */
+
+
 class Hellotext {
   static __apiURL = 'https://api.hellotext.com/v1/'
 
   static #session
   static #business
+  static #config
   static #eventEmitter = new EventEmitter()
   static #query
 
   /**
    * initialize the module.
    * @param business public business id
+   * @param { Config } config
    */
-  static initialize(business) {
+  static initialize(business, config = { autogenerateSession: true }) {
     this.#business = business
+    this.#config = config
 
     this.#query = new Query(window.location.search)
 
@@ -30,7 +39,7 @@ class Hellotext {
     if (session && session !== "undefined" && session !== "null") {
       this.#session = session
       this.#setSessionCookie()
-    } else {
+    } else if(config.autogenerateSession) {
       this.#mintAnonymousSession()
         .then(response => {
           this.#session = response.id
