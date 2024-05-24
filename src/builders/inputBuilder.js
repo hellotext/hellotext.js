@@ -13,9 +13,11 @@ class InputBuilder {
     if(['first_name', 'last_name'].includes(data.kind)) {
       input.kind = 'text'
       input.name = data.kind
+      label.setAttribute('for', data.kind)
     } else {
       input.kind = data.kind
       input.name = `property_by_id[${data.property}]`
+      label.setAttribute('for', `property_by_id[${data.property}]`)
     }
 
     article.appendChild(label)

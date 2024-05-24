@@ -19,6 +19,7 @@ describe('when the input is first_name', () => {
     const input = article.querySelector('input')
 
     expect(label.innerText).toEqual('First Name')
+    expect(label.getAttribute('for')).toEqual('first_name')
 
     expect(input.type).toEqual('text')
     expect(input.required).toEqual(true)
@@ -42,6 +43,7 @@ describe('when the input is last_name', () => {
     const input = article.querySelector('input')
 
     expect(label.innerText).toEqual('Last Name')
+    expect(label.getAttribute('for')).toEqual('last_name')
 
     expect(input.type).toEqual('text')
     expect(input.required).toEqual(false)
@@ -66,6 +68,7 @@ describe('when the input belongs to a property', () => {
     const input = article.querySelector('input')
 
     expect(label.innerText).toEqual('Email')
+    expect(label.getAttribute('for')).toEqual('property_by_id[xybz]')
 
     expect(input.type).toEqual('email')
     expect(input.required).toEqual(true)
