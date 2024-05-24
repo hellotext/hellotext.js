@@ -1,4 +1,5 @@
 import Hellotext from './hellotext.js'
+import { Form } from './models'
 
 class Forms {
   constructor() {
@@ -27,9 +28,9 @@ class Forms {
       .then(() => Hellotext.eventEmitter.emit('forms:collected', this))
   }
 
-  add(form) {
-    if(this.includes(form.id)) return
-    this.forms.push(form)
+  add(data) {
+    if(this.includes(data.id)) return
+    this.forms.push(new Form(data))
   }
 
   includes(formId) {
