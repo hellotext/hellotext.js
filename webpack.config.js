@@ -1,6 +1,6 @@
 module.exports = {
   mode: 'production',
-  entry: ['whatwg-fetch', './lib/hellotext.js'],
+  entry: ['whatwg-fetch', '@hotwired/stimulus', './lib/hellotext.js'],
   output: {
     filename: 'hellotext.js'
   },

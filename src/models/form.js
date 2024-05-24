@@ -13,6 +13,8 @@ class Form {
       this.buildButton(step.button)
       this.buildFooter(step.footer)
     })
+
+    this.element.setAttribute('data-controller', 'hellotext--form')
   }
 
   buildHeader(header) {

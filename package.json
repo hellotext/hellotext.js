@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "core-js": "3.27.2",
-    "whatwg-fetch": "^3.6.2"
+    "whatwg-fetch": "^3.6.2",
+    "@hotwired/stimulus": "^3.0.0"
   }
 }
