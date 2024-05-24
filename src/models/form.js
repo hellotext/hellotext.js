@@ -72,7 +72,7 @@ class Form {
   }
 
   #findOrCreateComponent(selector, tag) {
-    return this.element.querySelector(selector).cloneNode(true) || document.createElement(tag)
+    return this.element.querySelector(selector)?.cloneNode(true) || document.createElement(tag)
   }
 }
 
