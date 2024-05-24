@@ -6,6 +6,8 @@ import Query from "./query";
 import { NotInitializedError } from './errors/notInitializedError'
 import { InvalidEvent } from "./errors/invalidEvent"
 
+import { Forms } from './forms'
+
 /**
  * @typedef {Object} Config
  * @property {Boolean} autogenerateSession
@@ -46,6 +48,12 @@ class Hellotext {
           this.#setSessionCookie()
         })
     }
+
+    this.forms = new Forms()
+
+    window.addEventListener('load', () => {
+      this.forms.collect()
+    })
   }
 
   /**
