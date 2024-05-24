@@ -23,7 +23,7 @@ class Hellotext {
   static #eventEmitter = new EventEmitter()
   static #query
 
-  static forms
+  static forms = new Forms()
 
   /**
    * initialize the module.
@@ -35,6 +35,10 @@ class Hellotext {
     this.#config = config
 
     this.#query = new Query(window.location.search)
+
+    window.addEventListener('load', () => {
+      this.forms.collect()
+    })
 
     if(this.#query.has("preview")) return
 
@@ -50,12 +54,6 @@ class Hellotext {
           this.#setSessionCookie()
         })
     }
-
-    this.forms = new Forms()
-
-    window.addEventListener('load', () => {
-      this.forms.collect()
-    })
   }
 
   /**
