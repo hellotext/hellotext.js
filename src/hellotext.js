@@ -15,7 +15,7 @@ import { Forms } from './forms'
 
 
 class Hellotext {
-  static __apiURL = 'https://api.hellotext.com/v1/'
+  static __apiURL = 'http://api.lvh.me:3000/v1/'
 
   static #session
   static #business

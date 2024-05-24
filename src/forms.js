@@ -9,7 +9,7 @@ class Forms {
     Array.from(document.querySelectorAll('[data-hello-form]'))
       .map(form => form.dataset.helloForm)
       .forEach(id => {
-        fetch(Hellotext.__apiURL + '/public/forms/' + id, { headers: Hellotext.headers })
+        fetch(Hellotext.__apiURL + 'public/forms/' + id, { headers: Hellotext.headers })
           .then(response => response.json())
           .then(data => this.add(data))
       })
