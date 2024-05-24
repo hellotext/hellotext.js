@@ -72,7 +72,16 @@ class Form {
   }
 
   #findOrCreateComponent(selector, tag) {
-    return this.element.querySelector(selector)?.cloneNode(true) || document.createElement(tag)
+    const existingElement = this.element.querySelector(selector)
+
+    if(existingElement) {
+      return existingElement.cloneNode(true)
+    }
+
+    const createdElement = document.createElement(tag)
+    createdElement.setAttribute(selector.replace('[', '').replace(']', ''), '')
+
+    return createdElement
   }
 }
 
