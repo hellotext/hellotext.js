@@ -20,10 +20,10 @@ class Hellotext {
   static #session
   static #business
   static #config
-  static #eventEmitter = new EventEmitter()
   static #query
 
-  static forms = new Forms()
+  static eventEmitter = new EventEmitter()
+  static forms
 
   /**
    * initialize the module.
@@ -36,7 +36,9 @@ class Hellotext {
 
     this.#query = new Query(window.location.search)
 
-    window.addEventListener('load', () => {
+    this.forms = new Forms()
+
+    addEventListener('load', () => {
       this.forms.collect()
     })
 
@@ -92,7 +94,7 @@ class Hellotext {
   static on(event, callback) {
     if(Event.invalid(event)) { throw new InvalidEvent(event) }
 
-    this.#eventEmitter.addSubscriber(event, callback)
+    this.eventEmitter.addSubscriber(event, callback)
   }
 
   /**
@@ -103,7 +105,7 @@ class Hellotext {
   static removeEventListener(event, callback) {
     if(Event.invalid(event)) { throw new InvalidEvent(event) }
 
-    this.#eventEmitter.removeSubscriber(event, callback)
+    this.eventEmitter.removeSubscriber(event, callback)
   }
 
   /**
@@ -156,8 +158,8 @@ class Hellotext {
   static #setSessionCookie() {
     if (this.#notInitialized) { throw new NotInitializedError() }
 
-    if(this.#eventEmitter.listeners) {
-      this.#eventEmitter.emit("session-set", this.#session)
+    if(this.eventEmitter.listeners) {
+      this.eventEmitter.emit("session-set", this.#session)
     }
 
     document.cookie = `hello_session=${this.#session}`
