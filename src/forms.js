@@ -5,7 +5,7 @@ class Forms {
     const forms = new Forms()
 
     window.addEventListener('load', () => {
-      Array.from(document.querySelectorAll('data-hello-form'))
+      Array.from(document.querySelectorAll('[data-hello-form]'))
         .map(form => form.dataset.helloForm)
         .forEach(id => {
           fetch(Hellotext.__apiURL + '/public/forms/' + id, { headers: Hellotext.headers })
