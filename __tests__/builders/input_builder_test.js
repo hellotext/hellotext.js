@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { InputBuilder} from '../../src/builders/inputBuilder'
+import { InputBuilder } from '../../src/builders/inputBuilder'
 
 describe('when the input is first_name', () => {
   const data = {
@@ -21,6 +21,7 @@ describe('when the input is first_name', () => {
     expect(label.innerText).toEqual('First Name')
     expect(label.getAttribute('for')).toEqual('first_name')
 
+    expect(input.id).toEqual('first_name')
     expect(input.type).toEqual('text')
     expect(input.required).toEqual(true)
     expect(input.placeholder).toEqual('Enter your first name')
@@ -45,6 +46,7 @@ describe('when the input is last_name', () => {
     expect(label.innerText).toEqual('Last Name')
     expect(label.getAttribute('for')).toEqual('last_name')
 
+    expect(input.id).toEqual('last_name')
     expect(input.type).toEqual('text')
     expect(input.required).toEqual(false)
     expect(input.placeholder).toEqual('Enter your last name')
@@ -70,6 +72,7 @@ describe('when the input belongs to a property', () => {
     expect(label.innerText).toEqual('Email')
     expect(label.getAttribute('for')).toEqual('property_by_id[xybz]')
 
+    expect(input.id).toEqual('property_by_id[xybz]')
     expect(input.type).toEqual('email')
     expect(input.required).toEqual(true)
     expect(input.placeholder).toEqual('Enter your email')
