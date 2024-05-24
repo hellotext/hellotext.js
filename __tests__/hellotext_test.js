@@ -3,12 +3,17 @@
  */
 
 import Hellotext from "../src/hellotext";
+import { Business } from "../src/models/business"
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
 const expireSession = () => {
   document.cookie = "hello_session=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
 }
+
+beforeEach(() => {
+  Business.prototype.fetchPublicData = jest.fn().mockResolvedValue({ whitelist: 'disabled' })
+})
 
 afterEach(() => {
   jest.clearAllMocks();

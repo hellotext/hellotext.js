@@ -8,6 +8,8 @@ import { InvalidEvent } from "./errors/invalidEvent"
 
 import { Forms } from './forms'
 
+import { Business } from './models'
+
 /**
  * @typedef {Object} Config
  * @property {Boolean} autogenerateSession
@@ -18,12 +20,12 @@ class Hellotext {
   static __apiURL = 'http://api.lvh.me:3000/v1/'
 
   static #session
-  static #business
   static #config
   static #query
 
   static eventEmitter = new EventEmitter()
   static forms
+  static business
 
   /**
    * initialize the module.
@@ -31,12 +33,11 @@ class Hellotext {
    * @param { Config } config
    */
   static initialize(business, config = { autogenerateSession: true }) {
-    this.#business = business
-    this.#config = config
-
-    this.#query = new Query(window.location.search)
-
+    this.business = new Business(business)
     this.forms = new Forms()
+
+    this.#config = config
+    this.#query = new Query(window.location.search)
 
     addEventListener('load', () => {
       this.forms.collect()
@@ -129,7 +130,7 @@ class Hellotext {
   // private
 
   static get #notInitialized() {
-    return this.#business === undefined
+    return this.business.id === undefined
   }
 
   static async #mintAnonymousSession() {
@@ -139,7 +140,7 @@ class Hellotext {
 
     this.mintingPromise = await fetch(trackingUrl, {
       method: 'post',
-      headers: { Authorization: `Bearer ${this.#business}` },
+      headers: { Authorization: `Bearer ${this.business.id}` },
     })
 
     return this.mintingPromise.json()
@@ -149,7 +150,7 @@ class Hellotext {
     if (this.#notInitialized) { throw new NotInitializedError() }
 
     return {
-      Authorization: `Bearer ${this.#business}`,
+      Authorization: `Bearer ${this.business.id}`,
       Accept: 'application.json',
       'Content-Type': 'application/json',
     }

@@ -2,10 +2,13 @@
  * @jest-environment jsdom
  */
 
+import { Business } from '../src/models'
 import { Forms } from '../src/forms'
 import Hellotext from '../src/hellotext'
 
 beforeEach(() => {
+  Business.prototype.fetchPublicData = jest.fn().mockResolvedValue({ whitelist: 'disabled' })
+
   Hellotext.initialize('M01az53K', {
     autogenerateSession: false
   })

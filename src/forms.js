@@ -17,6 +17,10 @@ class Forms {
         .then(response => response.json())
     })
 
+    if(!Hellotext.business.enabledWhitelist) {
+      console.warn('No whitelist has been configured. It is advised to whitelist the domain to avoid bots from submitting forms.')
+    }
+
     Promise
       .all(promises)
       .then(forms => forms.forEach(form => this.add(form)))
