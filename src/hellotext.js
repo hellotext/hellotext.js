@@ -23,6 +23,8 @@ class Hellotext {
   static #eventEmitter = new EventEmitter()
   static #query
 
+  static forms
+
   /**
    * initialize the module.
    * @param business public business id
