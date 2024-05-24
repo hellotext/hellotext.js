@@ -63,7 +63,7 @@ class Hellotext {
     }
 
     const response = await fetch(this.__apiURL + 'track/events', {
-      headers: this.#headers,
+      headers: this.headers,
       method: 'post',
       body: JSON.stringify({
         session: this.session,
@@ -135,7 +135,7 @@ class Hellotext {
     return this.mintingPromise.json()
   }
 
-  static get #headers() {
+  static get headers() {
     if (this.#notInitialized) { throw new NotInitializedError() }
 
     return {
