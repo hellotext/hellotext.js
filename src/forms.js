@@ -1,7 +1,7 @@
 import Hellotext from './hellotext.js'
 
 class Forms {
-  static collect() {
+  static async collect() {
     const forms = new Forms()
 
     window.addEventListener('load', () => {
@@ -13,6 +13,8 @@ class Forms {
             .then(data => forms.add(data))
         })
     })
+
+    return forms
   }
 
   constructor() {
