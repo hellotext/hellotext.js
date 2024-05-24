@@ -39,7 +39,7 @@ class Form {
     } else {
       this.element
         .querySelector('[data-form-header]')
-        .insertAdjacentHTML('afterend', this.element.querySelector('[data-form-header]'))
+        .insertAdjacentHTML('afterend', inputsContainerElement.outerHTML)
     }
   }
 
@@ -52,7 +52,7 @@ class Form {
     } else {
       this.element
         .querySelector('[data-form-inputs]')
-        .insertAdjacentHTML('afterend', buttonElement)
+        .insertAdjacentHTML('afterend', buttonElement.outerHTML)
     }
   }
 
