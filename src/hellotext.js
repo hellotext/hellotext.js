@@ -1,13 +1,10 @@
-import Event from "./event"
 import EventEmitter from "./eventEmitter"
 import Response from "./response";
 import Query from "./query";
 
 import { NotInitializedError } from './errors/notInitializedError'
-import { InvalidEvent } from "./errors/invalidEvent"
 
 import { Forms } from './forms'
-
 import { Business } from './models'
 
 /**
@@ -93,8 +90,6 @@ class Hellotext {
    * @param callback the callback. This method will be called with the payload
    */
   static on(event, callback) {
-    if(Event.invalid(event)) { throw new InvalidEvent(event) }
-
     this.eventEmitter.addSubscriber(event, callback)
   }
 
@@ -104,8 +99,6 @@ class Hellotext {
    * @param callback the callback to remove
    */
   static removeEventListener(event, callback) {
-    if(Event.invalid(event)) { throw new InvalidEvent(event) }
-
     this.eventEmitter.removeSubscriber(event, callback)
   }
 
