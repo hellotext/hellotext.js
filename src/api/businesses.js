@@ -1,7 +1,5 @@
-import API from '../api'
-
-export default class extends API {
-  static root = super.root + '/v1/public/businesses'
+export default class BusinessesAPI {
+  static root = 'http://api.lvh.me:3000/v1/public/businesses'
 
   static async get(id) {
     return fetch(`${this.root}/${id}`, {

@@ -1,5 +1,5 @@
 export default class SessionsAPI {
-  static root = 'https://api.lvh.me:3000/v1/track/sessions'
+  static root = 'http://api.lvh.me:3000/v1/track/sessions'
 
   constructor(businessId) {
     this.businessId = businessId
