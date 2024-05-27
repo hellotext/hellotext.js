@@ -27,8 +27,12 @@ export default class extends Controller {
     }
   }
 
-  handleSubmit(e) {
-    console.log('submitting')
+  submit(e) {
+    e.preventDefault()
+
+    if(this.element.checkValidity()) {
+      console.log('should submit to backend')
+    }
   }
 
   // private
