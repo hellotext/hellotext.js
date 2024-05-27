@@ -1,4 +1,4 @@
-import Hellotext from '../hellotext'
+import API from '../api/businesses'
 
 class Business {
   constructor(id) {
@@ -15,18 +15,10 @@ class Business {
     return this.data.whitelist !== 'disabled'
   }
 
-  fetchPublicData() {
-    fetch(Hellotext.__apiURL + 'public/businesses/' + this.id, { headers: this.headers })
-      .then(response => response.json())
-      .then(data => this.data = data)
-  }
+  // private
 
-  get headers() {
-    return {
-      Authorization: `Bearer ${this.id}`,
-      Accept: 'application.json',
-      'Content-Type': 'application/json',
-    }
+  fetchPublicData() {
+    API.get(this.id).then(response => response.json()).then(data => this.data = data)
   }
 }
 

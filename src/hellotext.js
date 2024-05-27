@@ -7,17 +7,14 @@ import { NotInitializedError } from './errors/notInitializedError'
 import { Forms } from './forms'
 import { Business } from './models'
 
-import '../styles/index.css'
+import API from './api'
 
 /**
  * @typedef {Object} Config
  * @property {Boolean} autogenerateSession
  */
 
-
 class Hellotext {
-  static __apiURL = 'http://api.lvh.me:3000/v1/'
-
   static #session
   static #config
   static #query
@@ -130,15 +127,7 @@ class Hellotext {
 
   static async #mintAnonymousSession() {
     if (this.#notInitialized) { throw new NotInitializedError() }
-
-    const trackingUrl = this.__apiURL + 'track/sessions'
-
-    this.mintingPromise = await fetch(trackingUrl, {
-      method: 'post',
-      headers: { Authorization: `Bearer ${this.business.id}` },
-    })
-
-    return this.mintingPromise.json()
+    return API.sessions(this.business.id).create()
   }
 
   static get headers() {
