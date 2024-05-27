@@ -1,10 +1,9 @@
 import EventEmitter from "./eventEmitter"
-import Query from "./query";
 
 import { NotInitializedError } from './errors/notInitializedError'
 
 import { Forms } from './forms'
-import { Business } from './models'
+import { Business, Query, Cookies } from './models'
 
 import API, { Response } from './api'
 
@@ -32,24 +31,23 @@ class Hellotext {
     this.forms = new Forms()
 
     this.#config = config
-    this.#query = new Query(window.location.search)
+    this.#query = new Query()
 
     addEventListener('load', () => {
       this.forms.collect()
     })
 
-    if(this.#query.has("preview")) return
+    if(this.#query.inPreviewMode) return
 
-    const session = this.#query.get("session") || this.#cookie
+    const session = this.#query.session
 
-    if (session && session !== "undefined" && session !== "null") {
+    if (session) {
       this.#session = session
-      this.#setSessionCookie()
+      Cookies.set('hello_session', session)
     } else if(config.autogenerateSession) {
       this.#mintAnonymousSession()
         .then(response => {
-          this.#session = response.id
-          this.#setSessionCookie()
+          this.#session = Cookies.set('hello_session', response.id)
         })
     }
   }
@@ -63,10 +61,6 @@ class Hellotext {
    */
   static async track(action, params = {}) {
     if (this.#notInitialized) { throw new NotInitializedError() }
-
-    if(this.#query.has("preview")) {
-      return new Response(true, { received: true })
-    }
 
     return await API.events.create({
       headers: this.headers,
@@ -134,20 +128,6 @@ class Hellotext {
       Accept: 'application.json',
       'Content-Type': 'application/json',
     }
-  }
-
-  static #setSessionCookie() {
-    if (this.#notInitialized) { throw new NotInitializedError() }
-
-    if(this.eventEmitter.listeners) {
-      this.eventEmitter.emit("session-set", this.#session)
-    }
-
-    document.cookie = `hello_session=${this.#session}`
-  }
-
-  static get #cookie() {
-    return document.cookie.match('(^|;)\\s*' + 'hello_session' + '\\s*=\\s*([^;]+)')?.pop()
   }
 }
 
