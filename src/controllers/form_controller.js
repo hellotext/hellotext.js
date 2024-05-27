@@ -20,7 +20,7 @@ export default class extends Controller {
 
   connect() {
     super.connect()
-    this.element.addEventListener('submit', this.handleSubmit.bind(this))
+    this.element.addEventListener('submit', this.submit.bind(this))
 
     if(this.currentStep.hasRequiredInputs) {
       this.buttonTarget.setAttribute('disabled', 'disabled')
