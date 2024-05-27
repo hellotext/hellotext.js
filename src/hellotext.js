@@ -7,6 +7,8 @@ import { NotInitializedError } from './errors/notInitializedError'
 import { Forms } from './forms'
 import { Business } from './models'
 
+import '../styles/index.css'
+
 /**
  * @typedef {Object} Config
  * @property {Boolean} autogenerateSession
