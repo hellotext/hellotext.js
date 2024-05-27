@@ -1,9 +1,8 @@
-import SessionsAPI from './api/sessions'
-import BusinessesAPI from './api/businesses'
-import EventsAPI from './api/events'
+import SessionsAPI from './sessions'
+import BusinessesAPI from './businesses'
+import EventsAPI from './events'
 
 export default class API {
-
   static sessions(businessId) {
     return new SessionsAPI(businessId)
   }
@@ -16,3 +15,5 @@ export default class API {
     return EventsAPI
   }
 }
+
+export { default as Response } from './response'

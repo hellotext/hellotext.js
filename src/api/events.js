@@ -1,4 +1,4 @@
-import Response from '../response'
+import Response from './response'
 
 export default class EventsAPI {
   static endpoint = 'http://api.lvh.me:3000/v1/track/events'
@@ -9,7 +9,6 @@ export default class EventsAPI {
       headers,
       body: JSON.stringify(body),
     })
-
 
     return new Response(response.status === 200, await response.json())
   }

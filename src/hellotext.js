@@ -1,5 +1,4 @@
 import EventEmitter from "./eventEmitter"
-import Response from "./response";
 import Query from "./query";
 
 import { NotInitializedError } from './errors/notInitializedError'
@@ -7,7 +6,7 @@ import { NotInitializedError } from './errors/notInitializedError'
 import { Forms } from './forms'
 import { Business } from './models'
 
-import API from './api'
+import API, { Response } from './api'
 
 /**
  * @typedef {Object} Config
