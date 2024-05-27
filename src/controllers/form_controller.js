@@ -21,10 +21,6 @@ export default class extends Controller {
   connect() {
     super.connect()
     this.element.addEventListener('submit', this.submit.bind(this))
-
-    if(this.currentStep.hasRequiredInputs) {
-      this.buttonTarget.setAttribute('disabled', 'disabled')
-    }
   }
 
   submit(e) {
@@ -38,7 +34,6 @@ export default class extends Controller {
   // private
 
   inputTargetConnected(target) {
-    target.setAttribute('data-action', 'input->hellotext--form#onInputValueChange')
   }
 
   get currentStep() {
