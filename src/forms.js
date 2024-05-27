@@ -1,6 +1,6 @@
 import Hellotext from './hellotext.js'
 import { Form } from './models'
-import API from "./api";
+import API from "./api/forms";
 
 class Forms {
   constructor() {
@@ -15,8 +15,7 @@ class Forms {
     if (formsIdsToFetch.length === 0) return
 
     const promises = formsIdsToFetch.map(id => {
-      return fetch(API.root + '/public/forms/' + id, { headers: Hellotext.headers })
-        .then(response => response.json())
+      return API.get(id).then(response => response.json())
     })
 
     if(!Hellotext.business.enabledWhitelist) {
