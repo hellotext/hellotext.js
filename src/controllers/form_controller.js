@@ -27,7 +27,17 @@ export default class extends Controller {
     e.preventDefault()
 
     if(this.element.checkValidity()) {
-      console.log('should submit to backend')
+      this.element.querySelectorAll('input').forEach(input => {
+        const parent = input.closest('article')
+        parent.querySelector('small').innerText = ''
+        parent.querySelector('small').style.display = 'none'
+      })
+    } else {
+      this.element.querySelectorAll('input:invalid').forEach(input => {
+        const parent = input.closest('article')
+        parent.querySelector('small').innerText = input.validationMessage
+        parent.querySelector('small').style.display = 'block'
+      })
     }
   }
 

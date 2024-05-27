@@ -20,11 +20,20 @@ class InputBuilder {
       label.setAttribute('for', `property_by_id[${data.property}]`)
     }
 
-    article.appendChild(label)
-    article.appendChild(input)
+    const main = document.createElement('main')
+
+    main.appendChild(label)
+    main.appendChild(input)
+
+    article.appendChild(main)
 
     article.setAttribute('data-hellotext--form-target', 'inputContainer')
     input.setAttribute('data-hellotext--form-target', 'input')
+
+    const errorContainer = document.createElement('small')
+    errorContainer.style.display = 'none'
+
+    article.appendChild(errorContainer)
 
     return article
   }
