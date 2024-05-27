@@ -1,0 +1,13 @@
+form[data-hello-form] {
+    article {
+        [data-error-container] {
+            display: none;
+        }
+
+        &:has(input:invalid) {
+            [data-error-container] {
+                display: block;
+            }
+         }
+    }
+}

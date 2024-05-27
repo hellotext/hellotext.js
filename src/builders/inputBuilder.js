@@ -30,8 +30,8 @@ class InputBuilder {
     article.setAttribute('data-hellotext--form-target', 'inputContainer')
     input.setAttribute('data-hellotext--form-target', 'input')
 
-    const errorContainer = document.createElement('small')
-    errorContainer.style.display = 'none'
+    const errorContainer = document.createElement('div')
+    errorContainer.setAttribute('data-error-container', '')
 
     article.appendChild(errorContainer)
 

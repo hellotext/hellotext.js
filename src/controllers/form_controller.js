@@ -29,14 +29,12 @@ export default class extends Controller {
     if(this.element.checkValidity()) {
       this.element.querySelectorAll('input').forEach(input => {
         const parent = input.closest('article')
-        parent.querySelector('small').innerText = ''
-        parent.querySelector('small').style.display = 'none'
+        parent.querySelector('[data-error-container]').innerText = ''
       })
     } else {
       this.element.querySelectorAll('input:invalid').forEach(input => {
         const parent = input.closest('article')
-        parent.querySelector('small').innerText = input.validationMessage
-        parent.querySelector('small').style.display = 'block'
+        parent.querySelector('[data-error-container]').innerText = input.validationMessage
       })
     }
   }
