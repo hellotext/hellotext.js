@@ -1,5 +1,6 @@
 import Hellotext from './hellotext.js'
 import { Form } from './models'
+import API from "./api";
 
 class Forms {
   constructor() {
@@ -14,7 +15,7 @@ class Forms {
     if (formsIdsToFetch.length === 0) return
 
     const promises = formsIdsToFetch.map(id => {
-      return fetch(Hellotext.__apiURL + 'public/forms/' + id, { headers: Hellotext.headers })
+      return fetch(API.root + '/public/forms/' + id, { headers: Hellotext.headers })
         .then(response => response.json())
     })
 

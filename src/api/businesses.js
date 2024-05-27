@@ -1,7 +1,7 @@
 import API from '../api'
 
 export default class extends API {
-  static root = API.root + '/v1/public/businesses'
+  static root = super.root + '/v1/public/businesses'
 
   static async get(id) {
     return fetch(`${this.root}/${id}`, {
