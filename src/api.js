@@ -1,5 +1,6 @@
 import SessionsAPI from './api/sessions'
 import BusinessesAPI from './api/businesses'
+import EventsAPI from './api/events'
 
 export default class API {
 
@@ -9,5 +10,9 @@ export default class API {
 
   static get businesses() {
     return BusinessesAPI
+  }
+
+  static get events() {
+    return EventsAPI
   }
 }

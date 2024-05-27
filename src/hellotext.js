@@ -69,18 +69,15 @@ class Hellotext {
       return new Response(true, { received: true })
     }
 
-    const response = await fetch(this.__apiURL + 'track/events', {
+    return await API.events.create({
       headers: this.headers,
-      method: 'post',
-      body: JSON.stringify({
+      body: {
         session: this.session,
         action,
         ...params,
         url: (params && params.url) || window.location.href
-      }),
+      }
     })
-
-    return new Response(response.status === 200, await response.json())
   }
 
   /**
