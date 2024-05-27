@@ -23,6 +23,9 @@ class InputBuilder {
     article.appendChild(label)
     article.appendChild(input)
 
+    article.setAttribute('data-hellotext--form-target', 'inputContainer')
+    input.setAttribute('data-hellotext--form-target', 'input')
+
     return article
   }
 }

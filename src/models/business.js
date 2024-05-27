@@ -7,6 +7,10 @@ class Business {
     this.fetchPublicData()
   }
 
+  get subscription() {
+    return this.data.subscription
+  }
+
   get enabledWhitelist() {
     return this.data.whitelist !== 'disabled'
   }

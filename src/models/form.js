@@ -1,20 +1,22 @@
 import { InputBuilder } from '../builders/inputBuilder'
 
 class Form {
-  constructor(data) {
+  constructor(data, element = null) {
     this.data = data
-    this.element = document.querySelector(`[data-hello-form="${this.id}"]`) || document.createElement('form')
+    this.element = element || document.querySelector(`[data-hello-form="${this.id}"]`) || document.createElement('form')
   }
 
   build() {
-    this.data.steps.forEach((step) => {
-      this.buildHeader(step.header)
-      this.buildInputs(step.inputs)
-      this.buildButton(step.button)
-      this.buildFooter(step.footer)
-    })
+    const firstStep = this.data.steps[0]
+
+    this.buildHeader(firstStep.header)
+    this.buildInputs(firstStep.inputs)
+    this.buildButton(firstStep.button)
+    this.buildFooter(firstStep.footer)
 
     this.element.setAttribute('data-controller', 'hellotext--form')
+    this.element.setAttribute('data-hello-form', this.id)
+    this.element.setAttribute('data-hellotext--form-data-value', JSON.stringify(this.data))
   }
 
   buildHeader(header) {
@@ -46,8 +48,11 @@ class Form {
   }
 
   buildButton(button) {
-    const buttonElement = this.#findOrCreateComponent('[data-form-button]', 'section')
+    const buttonElement = this.#findOrCreateComponent('[data-form-button]', 'button')
     buttonElement.innerText = button.text
+
+    buttonElement.setAttribute('data-action', 'click->hellotext--form#submit')
+    buttonElement.setAttribute('data-hellotext--form-target', 'button')
 
     if(this.element.querySelector('[data-form-button]')) {
       this.element.querySelector('[data-form-button]').replaceWith(buttonElement)
