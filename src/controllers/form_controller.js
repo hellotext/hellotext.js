@@ -1,6 +1,6 @@
 import { Controller } from '@hotwired/stimulus'
 
-import { Form } from '../models'
+import { Form, Step } from '../models'
 
 export default class extends Controller {
   static values = {
@@ -10,7 +10,8 @@ export default class extends Controller {
 
   static targets = [
     'inputContainer',
-    'input'
+    'input',
+    'button',
   ]
 
   initialize() {
@@ -20,5 +21,27 @@ export default class extends Controller {
   connect() {
     super.connect()
     this.element.addEventListener('submit', this.handleSubmit.bind(this))
+
+    if(this.currentStep.hasRequiredInputs) {
+      this.buttonTarget.setAttribute('disabled', 'disabled')
+    }
+  }
+
+  handleSubmit(e) {
+    console.log('submitting')
+  }
+
+  // private
+
+  inputTargetConnected(target) {
+    target.setAttribute('data-action', 'input->hellotext--form#onInputValueChange')
+  }
+
+  get currentStep() {
+    return new Step(this.dataValue.steps.find(step => step.position === this.stepValue))
+  }
+
+  get requiredInputs() {
+    return this.inputTargets.filter(input => input.required)
   }
 }
