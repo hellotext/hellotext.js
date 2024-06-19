@@ -20,23 +20,45 @@ export default class extends Controller {
 
   connect() {
     super.connect()
+
+    this.element.setAttribute('action', this.form.submissionUrl)
+    this.element.setAttribute('method', 'post')
+
     this.element.addEventListener('submit', this.submit.bind(this))
   }
 
   submit(e) {
     e.preventDefault()
 
-    if(this.element.checkValidity()) {
-      this.element.querySelectorAll('input').forEach(input => {
-        const parent = input.closest('article')
-        parent.querySelector('[data-error-container]').innerText = ''
-      })
-    } else {
+    if(!this.element.checkValidity()) {
       this.element.querySelectorAll('input:invalid').forEach(input => {
         const parent = input.closest('article')
         parent.querySelector('[data-error-container]').innerText = input.validationMessage
       })
+
+      return
     }
+
+    this.element.querySelectorAll('input').forEach(input => {
+      const parent = input.closest('article')
+      parent.querySelector('[data-error-container]').innerText = ''
+    })
+
+    // this.revealOTPContainer()
+  }
+
+  revealOTPContainer() {
+    const paragraph = document.createElement('p')
+
+    if(this.requiredInputs.find(input => input.name === 'email')) {
+      paragraph.innerText = 'An OTP has been sent to your email address'
+    } else {
+      paragraph.innerText = 'An OTP has been sent to your phone number'
+    }
+
+    const otpInput = document.createElement('input')
+    otpInput.type = 'text'
+    otpInput.name = 'otp'
   }
 
   // private

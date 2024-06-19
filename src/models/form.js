@@ -1,4 +1,5 @@
 import { InputBuilder } from '../builders/inputBuilder'
+import { SubmissionsAPI } from '../api/forms'
 
 class Form {
   constructor(data, element = null) {
@@ -76,6 +77,10 @@ class Form {
 
   get id() {
     return this.data.id
+  }
+
+  get submissionUrl() {
+    return SubmissionsAPI.endpoint.replace(':form_id', this.id)
   }
 
   #findOrCreateComponent(selector, tag) {

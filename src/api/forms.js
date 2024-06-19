@@ -10,3 +10,9 @@ export default class FormsAPI {
     })
   }
 }
+
+class SubmissionsAPI {
+  static endpoint = `http://api.lvh.me:3000/v1/public/forms/:form_id/submissions`
+}
+
+export { SubmissionsAPI }
