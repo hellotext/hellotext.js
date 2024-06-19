@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus'
 
+import Hellotext from '../hellotext'
 import { Form, Step } from '../models'
 
 export default class extends Controller {
@@ -21,15 +22,13 @@ export default class extends Controller {
   connect() {
     super.connect()
 
-    this.element.setAttribute('action', this.form.submissionUrl)
-    this.element.setAttribute('method', 'post')
-
     this.element.addEventListener('submit', this.submit.bind(this))
   }
 
   submit(e) {
+    e.preventDefault()
+
     if(!this.element.checkValidity()) {
-      e.preventDefault()
 
       this.element.querySelectorAll('input:invalid').forEach(input => {
         const parent = input.closest('article')
@@ -44,7 +43,13 @@ export default class extends Controller {
       parent.querySelector('[data-error-container]').innerText = ''
     })
 
-    // this.revealOTPContainer()
+    const formData = new FormData(this.element)
+
+    fetch(this.form.submissionUrl, {
+      method: 'POST',
+      headers: Hellotext.headers,
+      body: JSON.stringify(Object.fromEntries(formData))
+    })
   }
 
   revealOTPContainer() {

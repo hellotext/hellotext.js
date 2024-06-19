@@ -10,12 +10,12 @@ class InputBuilder {
     input.required = data.required
     input.placeholder = data.placeholder
 
-    if(['first_name', 'last_name'].includes(data.kind)) {
-      input.kind = 'text'
-      input.id = input.name = data.kind
-      label.setAttribute('for', data.kind)
+    if(['first_name', 'last_name'].includes(data.type)) {
+      input.type = 'text'
+      input.id = input.name = data.type
+      label.setAttribute('for', data.type)
     } else {
-      input.kind = data.kind
+      input.type = data.type
       input.name = input.id = `property_by_id[${data.property}]`
       label.setAttribute('for', `property_by_id[${data.property}]`)
     }
