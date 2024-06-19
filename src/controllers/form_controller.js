@@ -28,9 +28,9 @@ export default class extends Controller {
   }
 
   submit(e) {
-    e.preventDefault()
-
     if(!this.element.checkValidity()) {
+      e.preventDefault()
+
       this.element.querySelectorAll('input:invalid').forEach(input => {
         const parent = input.closest('article')
         parent.querySelector('[data-error-container]').innerText = input.validationMessage
