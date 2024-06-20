@@ -51,9 +51,8 @@ export default class extends Controller {
 
     console.log(this.form.id, Object.fromEntries(formData))
     const response = await FormsAPI.submit(this.form.id, Object.fromEntries(formData))
-    const data = await response.json()
 
-    console.log(data, response)
+    console.log(response)
     this.buttonTarget.disabled = false
   }
 
