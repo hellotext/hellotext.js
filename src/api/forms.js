@@ -9,6 +9,14 @@ export default class FormsAPI {
       headers: Hellotext.headers
     })
   }
+
+  static async submit(id, data) {
+    return fetch(`${this.endpoint}/${id}/submissions`, {
+      method: 'POST',
+      headers: Hellotext.headers,
+      body: JSON.stringify(data)
+    })
+  }
 }
 
 class SubmissionsAPI {

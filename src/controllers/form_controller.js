@@ -3,6 +3,8 @@ import { Controller } from '@hotwired/stimulus'
 import Hellotext from '../hellotext'
 import { Form, Step } from '../models'
 
+import API from '../api'
+
 export default class extends Controller {
   static values = {
     data: Object,
@@ -21,11 +23,10 @@ export default class extends Controller {
 
   connect() {
     super.connect()
-
     this.element.addEventListener('submit', this.submit.bind(this))
   }
 
-  submit(e) {
+  async submit(e) {
     e.preventDefault()
 
     if(!this.element.checkValidity()) {
@@ -44,12 +45,13 @@ export default class extends Controller {
     })
 
     const formData = new FormData(this.element)
+    this.buttonTarget.disabled = true
 
-    fetch(this.form.submissionUrl, {
-      method: 'POST',
-      headers: Hellotext.headers,
-      body: JSON.stringify(Object.fromEntries(formData))
-    })
+
+    const response = await API.forms.submit(this.form.id, Object.fromEntries(formData))
+    console.log(response, await response.json())
+
+    this.buttonTarget.disabled = false
   }
 
   revealOTPContainer() {

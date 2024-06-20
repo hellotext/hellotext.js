@@ -1,6 +1,7 @@
 import SessionsAPI from './sessions'
 import BusinessesAPI from './businesses'
 import EventsAPI from './events'
+import FormsAPI from "./forms"
 
 export default class API {
   static sessions(businessId) {
@@ -13,6 +14,10 @@ export default class API {
 
   static get events() {
     return EventsAPI
+  }
+
+  static get forms() {
+    return FormsAPI
   }
 }
 
