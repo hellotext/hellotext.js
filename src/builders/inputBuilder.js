@@ -16,8 +16,17 @@ class InputBuilder {
       label.setAttribute('for', data.type)
     } else {
       input.type = data.type
-      input.name = input.id = `property_by_id[${data.property}]`
-      label.setAttribute('for', `property_by_id[${data.property}]`)
+
+      if(data.type === 'email') {
+        input.id = input.name = 'email'
+        label.setAttribute('for', 'email')
+      } else if(input.type === 'tel') {
+        input.id = input.name = 'phone'
+        label.setAttribute('for', 'phone')
+      } else {
+        input.name = input.id = `property_by_id[${data.property}]`
+        label.setAttribute('for', `property_by_id[${data.property}]`)
+      }
     }
 
     const main = document.createElement('main')
