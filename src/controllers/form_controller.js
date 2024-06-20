@@ -52,8 +52,11 @@ export default class extends Controller {
     console.log(this.form.id, Object.fromEntries(formData))
     const response = await FormsAPI.submit(this.form.id, Object.fromEntries(formData))
 
-    console.log(response)
     this.buttonTarget.disabled = false
+
+    if(response.succeeded) {
+      this.revealOTPContainer()
+    }
   }
 
   revealOTPContainer() {
@@ -68,6 +71,15 @@ export default class extends Controller {
     const otpInput = document.createElement('input')
     otpInput.type = 'text'
     otpInput.name = 'otp'
+
+    const article = document.createElement('article')
+
+    article.setAttribute('data-hello-form-otp', '')
+
+    article.appendChild(paragraph)
+    article.appendChild(otpInput)
+
+    this.element.appendChild(article)
   }
 
   // private

@@ -1,14 +1,13 @@
 export default class Response {
   #success
-  #response
 
   constructor(success, response) {
+    this.response = response
     this.#success = success
-    this.#response = response
   }
 
   get data() {
-    return this.#response
+    return this.response
   }
 
   get failed() {
