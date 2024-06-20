@@ -70,12 +70,12 @@ describe('when the input belongs to a property', () => {
     const input = article.querySelector('input')
 
     expect(label.innerText).toEqual('Email')
-    expect(label.getAttribute('for')).toEqual('property_by_id[xybz]')
+    expect(label.getAttribute('for')).toEqual('email')
 
-    expect(input.id).toEqual('property_by_id[xybz]')
+    expect(input.id).toEqual('email')
     expect(input.type).toEqual('email')
     expect(input.required).toEqual(true)
     expect(input.placeholder).toEqual('Enter your email')
-    expect(input.name).toEqual('property_by_id[xybz]')
+    expect(input.name).toEqual('email')
   })
 })

@@ -4,6 +4,7 @@ import Hellotext from '../hellotext'
 import { Form, Step } from '../models'
 
 import API from '../api'
+import FormsAPI from '../api/forms'
 
 export default class extends Controller {
   static values = {
@@ -48,7 +49,8 @@ export default class extends Controller {
     this.buttonTarget.disabled = true
 
 
-    const response = await API.forms.submit(this.form.id, Object.fromEntries(formData))
+    console.log(FormsAPI)
+    const response = await FormsAPI.submit(this.form.id, Object.fromEntries(formData))
     console.log(response, await response.json())
 
     this.buttonTarget.disabled = false

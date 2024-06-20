@@ -10,10 +10,10 @@ class InputBuilder {
     input.required = data.required
     input.placeholder = data.placeholder
 
-    if(['first_name', 'last_name'].includes(data.type)) {
+    if(['first_name', 'last_name'].includes(data.kind)) {
       input.type = 'text'
-      input.id = input.name = data.type
-      label.setAttribute('for', data.type)
+      input.id = input.name = data.kind
+      label.setAttribute('for', data.kind)
     } else {
       input.type = data.type
 
