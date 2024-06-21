@@ -10,9 +10,4 @@ form[data-hello-form] {
             }
          }
     }
-
-    [data-otp-header] {
-        display: flex;
-        align-items: center;
-    }
 }

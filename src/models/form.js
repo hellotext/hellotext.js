@@ -100,19 +100,12 @@ class Form {
     const footer = document.createElement('footer')
     footer.setAttribute('data-otp-footer', '')
 
-    const verifyOTPButton = document.createElement('button')
-    verifyOTPButton.innerText = 'Verify OTP'
-
-    verifyOTPButton.setAttribute('data-action', 'click->hellotext--form#verifyOTP')
-    verifyOTPButton.setAttribute('data-hellotext--form-target', 'verifyOTPButton')
-
     const resendOTPButton = document.createElement('button')
     resendOTPButton.innerText = 'Resend OTP'
 
     resendOTPButton.setAttribute('data-action', 'click->hellotext--form#resendOTP')
     resendOTPButton.setAttribute('data-hellotext--form-target', 'resendOTPButton')
 
-    footer.appendChild(verifyOTPButton)
     footer.appendChild(resendOTPButton)
 
     article.appendChild(footer)
