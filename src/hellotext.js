@@ -49,6 +49,10 @@ class Hellotext {
     }
   }
 
+  static setSession(value) {
+    this.#session = Cookies.set('hello_session', value)
+  }
+
   /**
    * Tracks an action that has happened on the page
    *

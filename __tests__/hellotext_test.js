@@ -209,3 +209,10 @@ describe("when hello_preview query parameter is present", () => {
     });
   })
 })
+
+describe('setSession', () => {
+  it('sets the session', () => {
+    Hellotext.setSession("12345")
+    expect(Hellotext.session).toEqual("12345")
+  })
+})

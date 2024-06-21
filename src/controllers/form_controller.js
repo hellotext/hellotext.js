@@ -68,12 +68,10 @@ export default class extends Controller {
   }
 
   completed({ detail }) {
-    this.form.save()
+    this.form.markAsCompleted()
+    Hellotext.setSession(detail.sessionId)
+
     this.element.remove()
-
-    Hellotext.eventEmitter.emit('form:completed', { id: this.form.id })
-
-    console.log(detail)
   }
 
   // private

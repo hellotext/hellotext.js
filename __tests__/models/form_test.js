@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 
+import Hellotext from '../../src/hellotext'
 import { Form } from '../../src/models'
 
 describe('id', () => {
@@ -11,9 +12,18 @@ describe('id', () => {
   })
 })
 
-describe('submissionUrl', () => {
-  it('is the submission url for the form', () => {
+describe('markAsCompleted', () => {
+  it('saves the form as completed in localStorage', () => {
     const form = new Form({ id: 1 })
-    expect(form.submissionUrl.endsWith('/public/forms/1/submissions')).toEqual(true)
+    form.markAsCompleted()
+    expect(localStorage.getItem('hello-form-1')).toEqual('completed')
+  })
+
+  it('emits a form:completed event', () => {
+    const form = new Form({ id: 1 })
+    const emit = jest.spyOn(Hellotext.eventEmitter, 'emit')
+
+    form.markAsCompleted()
+    expect(emit).toHaveBeenCalledWith('form:completed', { id: 1 })
   })
 })

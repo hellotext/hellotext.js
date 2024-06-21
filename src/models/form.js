@@ -1,5 +1,6 @@
+import Hellotext from '../hellotext'
+
 import { InputBuilder } from '../builders/inputBuilder'
-import { SubmissionsAPI } from '../api/forms'
 
 class Form {
   constructor(data, element = null) {
@@ -84,8 +85,9 @@ class Form {
     return container.firstElementChild
   }
 
-  save() {
+  markAsCompleted() {
     localStorage.setItem(`hello-form-${this.id}`, 'completed')
+    Hellotext.eventEmitter.emit('form:completed', { id: this.id })
   }
 
   otpTemplate(submissionId, paragraph) {
@@ -116,10 +118,6 @@ class Form {
 
   get id() {
     return this.data.id
-  }
-
-  get submissionUrl() {
-    return SubmissionsAPI.endpoint.replace(':form_id', this.id)
   }
 
   #findOrCreateComponent(selector, tag) {
