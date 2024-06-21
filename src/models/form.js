@@ -75,6 +75,41 @@ class Form {
     }
   }
 
+  buildOTPContainer(label) {
+    const paragraph = document.createElement('p')
+    paragraph.innerText = label
+
+    const otpInput = document.createElement('input')
+    otpInput.type = 'text'
+    otpInput.name = 'otp'
+
+    const article = document.createElement('article')
+    article.setAttribute('data-form-otp', '')
+    article.setAttribute('data-hellotext--form-target', 'otpContainer')
+
+    const header = document.createElement('header')
+
+    header.setAttribute('data-otp-header', '')
+    header.appendChild(paragraph)
+    header.appendChild(otpInput)
+
+    article.appendChild(header)
+
+    const footer = document.createElement('footer')
+    footer.setAttribute('data-otp-footer', '')
+
+    const button = document.createElement('button')
+    button.innerText = 'Verify OTP'
+
+    button.setAttribute('data-action', 'click->hellotext--form#verifyOTP')
+    button.setAttribute('data-hellotext--form-target', 'otpButton')
+
+    footer.appendChild(button)
+    article.appendChild(footer)
+
+    return article
+  }
+
   get id() {
     return this.data.id
   }

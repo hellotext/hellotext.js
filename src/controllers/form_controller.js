@@ -16,6 +16,7 @@ export default class extends Controller {
     'inputContainer',
     'input',
     'button',
+    'otpContainer',
   ]
 
   initialize() {
@@ -31,7 +32,6 @@ export default class extends Controller {
     e.preventDefault()
 
     if(!this.element.checkValidity()) {
-
       this.element.querySelectorAll('input:invalid').forEach(input => {
         const parent = input.closest('article')
         parent.querySelector('[data-error-container]').innerText = input.validationMessage
@@ -48,38 +48,22 @@ export default class extends Controller {
     const formData = new FormData(this.element)
     this.buttonTarget.disabled = true
 
-
-    console.log(this.form.id, Object.fromEntries(formData))
     const response = await FormsAPI.submit(this.form.id, Object.fromEntries(formData))
-
     this.buttonTarget.disabled = false
 
     if(response.succeeded) {
       this.revealOTPContainer()
+
+      this.buttonTarget.classList.add('hidden')
+      this.element.querySelectorAll('input').forEach(input => input.disabled = true)
     }
   }
 
   revealOTPContainer() {
-    const paragraph = document.createElement('p')
+    const paragraph = this.requiredInputs.find(input => input.name === 'email') ? 'An OTP has been sent to your email address' : 'An OTP has been sent to your phone number'
+    const otpContainer = this.form.buildOTPContainer(paragraph)
 
-    if(this.requiredInputs.find(input => input.name === 'email')) {
-      paragraph.innerText = 'An OTP has been sent to your email address'
-    } else {
-      paragraph.innerText = 'An OTP has been sent to your phone number'
-    }
-
-    const otpInput = document.createElement('input')
-    otpInput.type = 'text'
-    otpInput.name = 'otp'
-
-    const article = document.createElement('article')
-
-    article.setAttribute('data-hello-form-otp', '')
-
-    article.appendChild(paragraph)
-    article.appendChild(otpInput)
-
-    this.element.appendChild(article)
+    this.element.appendChild(otpContainer)
   }
 
   // private
