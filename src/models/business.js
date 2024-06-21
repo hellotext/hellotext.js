@@ -1,5 +1,7 @@
 import API from '../api/businesses'
 
+import locales from '../locales'
+
 class Business {
   constructor(id) {
     this.id = id
@@ -13,6 +15,10 @@ class Business {
 
   get enabledWhitelist() {
     return this.data.whitelist !== 'disabled'
+  }
+
+  get locale() {
+    return locales[this.data.locale]
   }
 
   // private

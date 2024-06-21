@@ -61,9 +61,11 @@ export default class extends Controller {
   }
 
   revealOTPContainer(submissionId) {
-    const paragraph = this.requiredInputs.find(input => input.name === 'email') ? 'A One-Time Password has been sent to your email address' : 'An One-Time Password has been sent to your phone number'
-    const otpContainer = this.form.buildOTPContainer(submissionId, paragraph)
+    const paragraph = this.requiredInputs.find(input => input.name === 'email')
+      ? Hellotext.business.locale.otp.sent_to_email
+      : Hellotext.business.locale.otp.sent_to_phone
 
+    const otpContainer = this.form.buildOTPContainer(submissionId, paragraph)
     this.element.appendChild(otpContainer)
   }
 

@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus'
 
+import Hellotext from '../hellotext'
 import SubmissionsAPI from '../api/submissions'
 
 export default class extends Controller {
@@ -35,7 +36,7 @@ export default class extends Controller {
       this.resendButtonTarget.disabled = false
     }
 
-    alert('OTP Sent Successfully')
+    alert(Hellotext.business.locale.otp.resend_successful)
   }
 
   async onInputChange() {
@@ -54,7 +55,7 @@ export default class extends Controller {
         }
       })
     } else {
-      alert('OTP Verification Failed')
+      alert(Hellotext.business.locale.otp.invalid)
     }
 
     this.inputTarget.disabled = false
