@@ -51,6 +51,8 @@ export default class extends Controller {
     const response = await FormsAPI.submit(this.form.id, Object.fromEntries(formData))
     this.buttonTarget.disabled = false
 
+    console.log(response)
+
     if(response.succeeded) {
       this.buttonTarget.style.display = 'none'
       this.element.querySelectorAll('input').forEach(input => input.disabled = true)
