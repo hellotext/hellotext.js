@@ -56,8 +56,6 @@ export default class extends Controller {
       this.element.querySelectorAll('input').forEach(input => input.disabled = true)
 
       const data = await response.json()
-      console.log(data)
-
       this.revealOTPContainer(data.id)
     }
   }

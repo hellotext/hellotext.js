@@ -12,6 +12,15 @@ class SubmissionsAPI {
 
     return new Response(response.ok, response)
   }
+
+  static async verifyOTP(id, otp) {
+    const response = await fetch(`${this.endpoint}/${id}/otps/${otp}`, {
+      method: 'GET',
+      headers: Hellotext.headers,
+    })
+
+    return new Response(response.ok, response)
+  }
 }
 
 export default SubmissionsAPI
