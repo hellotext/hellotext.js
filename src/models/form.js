@@ -83,6 +83,8 @@ class Form {
     otpInput.type = 'text'
     otpInput.name = 'otp'
 
+    otpInput.placeholder = 'Enter your OTP'
+
     const article = document.createElement('article')
     article.setAttribute('data-form-otp', '')
     article.setAttribute('data-hellotext--form-target', 'otpContainer')
@@ -98,13 +100,21 @@ class Form {
     const footer = document.createElement('footer')
     footer.setAttribute('data-otp-footer', '')
 
-    const button = document.createElement('button')
-    button.innerText = 'Verify OTP'
+    const verifyOTPButton = document.createElement('button')
+    verifyOTPButton.innerText = 'Verify OTP'
 
-    button.setAttribute('data-action', 'click->hellotext--form#verifyOTP')
-    button.setAttribute('data-hellotext--form-target', 'otpButton')
+    verifyOTPButton.setAttribute('data-action', 'click->hellotext--form#verifyOTP')
+    verifyOTPButton.setAttribute('data-hellotext--form-target', 'verifyOTPButton')
 
-    footer.appendChild(button)
+    const resendOTPButton = document.createElement('button')
+    resendOTPButton.innerText = 'Resend OTP'
+
+    resendOTPButton.setAttribute('data-action', 'click->hellotext--form#resendOTP')
+    resendOTPButton.setAttribute('data-hellotext--form-target', 'resendOTPButton')
+
+    footer.appendChild(verifyOTPButton)
+    footer.appendChild(resendOTPButton)
+
     article.appendChild(footer)
 
     return article
