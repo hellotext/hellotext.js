@@ -76,45 +76,36 @@ class Form {
   }
 
   buildOTPContainer(submissionId, label) {
-    const paragraph = document.createElement('p')
-    paragraph.innerText = label
+    const template = this.otpTemplate(submissionId, label)
+    const container = document.createElement('div')
+    container.innerHTML = template
 
-    const otpInput = document.createElement('input')
-    otpInput.type = 'text'
-    otpInput.name = 'otp'
+    return container.firstElementChild
+  }
 
-    otpInput.setAttribute('data-hellotext--otp-target', 'input')
-    otpInput.placeholder = 'Enter your OTP'
-
-    const article = document.createElement('article')
-
-    article.setAttribute('data-form-otp', '')
-    article.setAttribute('data-controller', 'hellotext--otp')
-    article.setAttribute('data-hellotext--otp-submission-id-value', submissionId)
-    article.setAttribute('data-hellotext--form-target', 'otpContainer')
-
-    const header = document.createElement('header')
-
-    header.setAttribute('data-otp-header', '')
-    header.appendChild(paragraph)
-    header.appendChild(otpInput)
-
-    article.appendChild(header)
-
-    const footer = document.createElement('footer')
-    footer.setAttribute('data-otp-footer', '')
-
-    const resendOTPButton = document.createElement('button')
-    resendOTPButton.innerText = 'Resend OTP'
-
-    resendOTPButton.setAttribute('data-action', 'click->hellotext--otp#resend')
-    resendOTPButton.setAttribute('data-hellotext--otp-target', 'resendButton')
-
-    footer.appendChild(resendOTPButton)
-
-    article.appendChild(footer)
-
-    return article
+  otpTemplate(submissionId, paragraph) {
+    return `
+      <article 
+        data-controller="hellotext--otp" 
+        data-hellotext--otp-submission-id-value="${submissionId}"
+        data-hellotext--form-target="otpContainer"
+        data-form-otp
+        >
+        <header data-otp-header>
+          <p>${paragraph}</p>
+          <input 
+            type="text"
+            name="otp"
+            data-hellotext--otp-target="input"
+            placeholder="Enter your OTP"
+            />
+        </header>
+        
+        <footer data-otp-footer>
+          <button type="button" data-hellotext--otp-target="resendButton" data-action="hellotext--otp#resend">Resend OTP</button>
+        </footer>
+      </article>
+    `
   }
 
   get id() {
