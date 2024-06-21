@@ -52,10 +52,10 @@ export default class extends Controller {
     this.buttonTarget.disabled = false
 
     if(response.succeeded) {
-      this.revealOTPContainer()
-
-      this.buttonTarget.classList.add('hidden')
+      this.buttonTarget.style.display = 'none'
       this.element.querySelectorAll('input').forEach(input => input.disabled = true)
+
+      this.revealOTPContainer()
     }
   }
 
