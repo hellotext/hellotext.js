@@ -55,13 +55,13 @@ export default class extends Controller {
       this.buttonTarget.style.display = 'none'
       this.element.querySelectorAll('input').forEach(input => input.disabled = true)
 
-      this.revealOTPContainer()
+      this.revealOTPContainer(response.data.id)
     }
   }
 
-  revealOTPContainer() {
+  revealOTPContainer(submissionId) {
     const paragraph = this.requiredInputs.find(input => input.name === 'email') ? 'A One-Time Password has been sent to your email address' : 'An One-Time Password has been sent to your phone number'
-    const otpContainer = this.form.buildOTPContainer(paragraph)
+    const otpContainer = this.form.buildOTPContainer(submissionId, paragraph)
 
     this.element.appendChild(otpContainer)
   }

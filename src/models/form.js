@@ -75,7 +75,7 @@ class Form {
     }
   }
 
-  buildOTPContainer(label) {
+  buildOTPContainer(submissionId, label) {
     const paragraph = document.createElement('p')
     paragraph.innerText = label
 
@@ -83,10 +83,14 @@ class Form {
     otpInput.type = 'text'
     otpInput.name = 'otp'
 
+    otpInput.setAttribute('data-hellotext--otp-target', 'input')
     otpInput.placeholder = 'Enter your OTP'
 
     const article = document.createElement('article')
+
     article.setAttribute('data-form-otp', '')
+    article.setAttribute('data-controller', 'hellotext--otp')
+    article.setAttribute('data-hellotext--otp-submission-id-value', submissionId)
     article.setAttribute('data-hellotext--form-target', 'otpContainer')
 
     const header = document.createElement('header')
@@ -103,8 +107,8 @@ class Form {
     const resendOTPButton = document.createElement('button')
     resendOTPButton.innerText = 'Resend OTP'
 
-    resendOTPButton.setAttribute('data-action', 'click->hellotext--form#resendOTP')
-    resendOTPButton.setAttribute('data-hellotext--form-target', 'resendOTPButton')
+    resendOTPButton.setAttribute('data-action', 'click->hellotext--otp#resend')
+    resendOTPButton.setAttribute('data-hellotext--otp-target', 'resendButton')
 
     footer.appendChild(resendOTPButton)
 
