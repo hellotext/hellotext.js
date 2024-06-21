@@ -98,6 +98,7 @@ class Form {
             name="otp"
             data-hellotext--otp-target="input"
             placeholder="Enter your OTP"
+            maxlength="6"
             />
         </header>
         
