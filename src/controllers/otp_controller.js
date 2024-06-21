@@ -14,22 +14,16 @@ export default class extends Controller {
 
   initialize() {
     super.initialize()
-
     this.onInputChange = this.onInputChange.bind(this)
-    this.onInputKeydown = this.onInputKeydown.bind(this)
   }
 
   connect() {
     super.connect()
-
     this.inputTarget.addEventListener('input', this.onInputChange)
-    this.inputTarget.addEventListener('keydown', this.onInputKeydown)
   }
 
   disconnect() {
     this.inputTarget.removeEventListener('input', this.onInputChange)
-    this.inputTarget.removeEventListener('keydown', this.onInputKeydown)
-
     super.disconnect()
   }
 
@@ -54,8 +48,10 @@ export default class extends Controller {
 
     if(response.succeeded) {
       this.dispatch('verified', {
-        submissionId: this.submissionIdValue,
-        sessionId: (await response.json()).id
+        detail: {
+          submissionId: this.submissionIdValue,
+          sessionId: (await response.json()).id
+        }
       })
     } else {
       alert('OTP Verification Failed')
