@@ -21,9 +21,3 @@ export default class FormsAPI {
     return new Response(response.ok, response)
   }
 }
-
-class SubmissionsAPI {
-  static endpoint = `http://api.lvh.me:3000/v1/public/forms/:form_id/submissions`
-}
-
-export { SubmissionsAPI }

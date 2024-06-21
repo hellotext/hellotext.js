@@ -1,6 +1,12 @@
 import { Controller } from '@hotwired/stimulus'
 
+import SubmissionsAPI from '../api/submissions'
+
 export default class extends Controller {
+  static values = {
+    submissionId: String
+  }
+
   static targets = [
     'input',
     'resendButton'
@@ -27,8 +33,15 @@ export default class extends Controller {
     super.disconnect()
   }
 
-  resend() {
-    console.log('resending')
+  async resend() {
+    this.resendButtonTarget.disabled = true
+    const response = await SubmissionsAPI.resendOTP(this.submissionIdValue)
+
+    if(response.succeeded) {
+      this.resendButtonTarget.disabled = false
+    }
+
+    alert('OTP Sent Successfully')
   }
 
   onInputChange() {
