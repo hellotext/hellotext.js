@@ -17,6 +17,9 @@ class SubmissionsAPI {
     const response = await fetch(`${this.endpoint}/${id}/otps/${otp}/verify`, {
       method: 'POST',
       headers: Hellotext.headers,
+      body: JSON.stringify({
+        session: Hellotext.session
+      })
     })
 
     return new Response(response.ok, response)
