@@ -57,6 +57,9 @@ export default class extends Controller {
     } else {
       alert('OTP Verification Failed')
     }
+
+    this.inputTarget.disabled = false
+    this.resendButtonTarget.disabled = false
   }
 
   onInputKeydown() {
