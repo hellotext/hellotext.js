@@ -4,5 +4,6 @@ export default {
     sent_to_phone: 'An One-Time Password has been sent to your phone number',
     resend_successful: 'The One-Time Password has been resent successfully',
     invalid: 'Invalid One-Time Password',
+    resend: 'Resend OTP',
   }
 }

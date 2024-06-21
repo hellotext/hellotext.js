@@ -110,7 +110,9 @@ class Form {
         </header>
         
         <footer data-otp-footer>
-          <button type="button" data-hellotext--otp-target="resendButton" data-action="hellotext--otp#resend">Resend OTP</button>
+          <button type="button" data-hellotext--otp-target="resendButton" data-action="hellotext--otp#resend">
+            ${Hellotext.business.locale.otp.resend}
+          </button>
         </footer>
       </article>
     `
