@@ -67,6 +67,10 @@ export default class extends Controller {
     this.element.appendChild(otpContainer)
   }
 
+  completed() {
+    console.log('completed successfully')
+  }
+
   // private
 
   inputTargetConnected(target) {

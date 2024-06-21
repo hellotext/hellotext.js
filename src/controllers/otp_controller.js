@@ -53,16 +53,12 @@ export default class extends Controller {
     const response = await SubmissionsAPI.verifyOTP(this.submissionIdValue, this.inputTarget.value)
 
     if(response.succeeded) {
-      alert('OTP Verified Successfully')
+      this.dispatch('verified')
     } else {
       alert('OTP Verification Failed')
     }
 
     this.inputTarget.disabled = false
     this.resendButtonTarget.disabled = false
-  }
-
-  onInputKeydown() {
-    console.log('input keydown')
   }
 }
