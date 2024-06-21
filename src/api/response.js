@@ -10,6 +10,10 @@ export default class Response {
     return this.response
   }
 
+  async json() {
+    return await this.response.json()
+  }
+
   get failed() {
     return this.#success === false
   }
