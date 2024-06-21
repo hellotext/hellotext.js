@@ -15,10 +15,10 @@ class Form {
     this.buildButton(firstStep.button)
     this.buildFooter(firstStep.footer)
 
-    this.element.setAttribute('data-action', 'hellotext--otp:verified->hellotext--form#completed')
     this.element.setAttribute('data-controller', 'hellotext--form')
     this.element.setAttribute('data-hello-form', this.id)
     this.element.setAttribute('data-hellotext--form-data-value', JSON.stringify(this.data))
+    this.element.setAttribute('data-action', 'hellotext--otp:verified->hellotext--form#completed')
   }
 
   buildHeader(header) {
@@ -82,6 +82,10 @@ class Form {
     container.innerHTML = template
 
     return container.firstElementChild
+  }
+
+  save() {
+    localStorage.setItem(`hello-form-${this.id}`, 'completed')
   }
 
   otpTemplate(submissionId, paragraph) {

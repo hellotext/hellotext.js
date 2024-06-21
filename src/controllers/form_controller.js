@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus'
 
 import Hellotext from '../hellotext'
-import { Form, Step } from '../models'
+import { Form, Step, Cookies } from '../models'
 
 import API from '../api'
 import FormsAPI from '../api/forms'
@@ -67,8 +67,13 @@ export default class extends Controller {
     this.element.appendChild(otpContainer)
   }
 
-  completed() {
-    console.log('completed successfully')
+  completed({ detail }) {
+    this.form.save()
+    this.element.remove()
+
+    Hellotext.eventEmitter.emit('form:completed', { id: this.form.id })
+
+    console.log(detail)
   }
 
   // private

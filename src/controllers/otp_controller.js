@@ -53,7 +53,10 @@ export default class extends Controller {
     const response = await SubmissionsAPI.verifyOTP(this.submissionIdValue, this.inputTarget.value)
 
     if(response.succeeded) {
-      this.dispatch('verified')
+      this.dispatch('verified', {
+        submissionId: this.submissionIdValue,
+        sessionId: (await response.json()).id
+      })
     } else {
       alert('OTP Verification Failed')
     }

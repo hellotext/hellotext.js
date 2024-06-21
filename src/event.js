@@ -1,7 +1,8 @@
 export default class Event {
   static events = [
     'session-set',
-    'forms:collected'
+    'forms:collected',
+    'form:completed',
   ]
 
   static valid(name) {

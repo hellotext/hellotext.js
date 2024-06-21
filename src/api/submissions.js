@@ -15,7 +15,7 @@ class SubmissionsAPI {
 
   static async verifyOTP(id, otp) {
     const response = await fetch(`${this.endpoint}/${id}/otps/${otp}/verify`, {
-      method: 'GET',
+      method: 'POST',
       headers: Hellotext.headers,
     })
 
