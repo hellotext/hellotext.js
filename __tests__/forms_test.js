@@ -54,6 +54,24 @@ describe('add', () => {
   })
 })
 
+describe('getting elements', () => {
+  const forms = new Forms()
+  forms.add({ id: 1, name: 'Form 1' })
+  forms.add({ id: 2, name: 'Form 1' })
+
+  describe('getById', () => {
+    it('returns the form with the given id', () => {
+      expect(forms.getById(1).id).toEqual(1)
+    })
+  })
+
+  describe('getByIndex', () => {
+    it('returns the form at the given index', () => {
+      expect(forms.getByIndex(1).id).toEqual(2)
+    })
+  })
+})
+
 describe('includes', () => {
   const forms = new Forms()
   const form = { id: 1, name: 'Form 1' }

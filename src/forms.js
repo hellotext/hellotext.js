@@ -33,6 +33,14 @@ class Forms {
     this.forms.push(new Form(data))
   }
 
+  getById(id) {
+    return this.forms.find(form => form.id === id)
+  }
+
+  getByIndex(index) {
+    return this.forms[index]
+  }
+
   includes(formId) {
     return this.forms.some(form => form.id === formId)
   }
