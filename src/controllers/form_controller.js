@@ -26,6 +26,10 @@ export default class extends Controller {
   connect() {
     super.connect()
     this.element.addEventListener('submit', this.submit.bind(this))
+
+    if(document.activeElement.tagName !== 'INPUT') {
+      this.inputTargets[0].focus()
+    }
   }
 
   async submit(e) {
