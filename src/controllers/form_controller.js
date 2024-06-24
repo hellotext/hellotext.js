@@ -79,6 +79,9 @@ export default class extends Controller {
   // private
 
   inputTargetConnected(target) {
+    if(target.getAttribute('data-default-value')) {
+      target.value = target.getAttribute('data-default-value')
+    }
   }
 
   get currentStep() {

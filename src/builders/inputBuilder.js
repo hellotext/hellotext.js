@@ -26,13 +26,12 @@ class InputBuilder {
         input.id = input.name = 'phone'
         label.setAttribute('for', 'phone')
         input.value = `+${Hellotext.business.country.prefix}`
+        input.setAttribute('data-default-value', `+${Hellotext.business.country.prefix}`)
       } else {
         input.name = input.id = `property_by_id[${data.property}]`
         label.setAttribute('for', `property_by_id[${data.property}]`)
       }
     }
-
-    input.setAttribute('data-default-value', input.value)
 
     const main = document.createElement('main')
 
