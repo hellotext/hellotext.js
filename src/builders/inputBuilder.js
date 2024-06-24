@@ -22,16 +22,16 @@ class InputBuilder {
       if(data.type === 'email') {
         input.id = input.name = 'email'
         label.setAttribute('for', 'email')
-        input.value = 'ahmed@hellotext.com'
       } else if(input.type === 'tel') {
         input.id = input.name = 'phone'
         label.setAttribute('for', 'phone')
-        input.value = `+${Hellotext.business.country.prefix}`
       } else {
         input.name = input.id = `property_by_id[${data.property}]`
         label.setAttribute('for', `property_by_id[${data.property}]`)
       }
     }
+
+    input.value = `+${Hellotext.business.country.prefix}`
 
     const main = document.createElement('main')
 
