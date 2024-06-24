@@ -22,6 +22,7 @@ class InputBuilder {
       if(data.type === 'email') {
         input.id = input.name = 'email'
         label.setAttribute('for', 'email')
+        input.value = 'ahmed@hellotext.com'
       } else if(input.type === 'tel') {
         input.id = input.name = 'phone'
         label.setAttribute('for', 'phone')
