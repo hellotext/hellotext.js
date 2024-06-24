@@ -32,6 +32,7 @@ class InputBuilder {
     }
 
     input.value = `+${Hellotext.business.country.prefix}`
+    console.log(input.value)
 
     const main = document.createElement('main')
 
