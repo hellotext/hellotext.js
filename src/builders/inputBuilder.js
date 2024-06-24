@@ -1,3 +1,5 @@
+import Hellotext from '../hellotext'
+
 class InputBuilder {
   static build(data) {
     const article = document.createElement('article')
@@ -23,6 +25,8 @@ class InputBuilder {
       } else if(input.type === 'tel') {
         input.id = input.name = 'phone'
         label.setAttribute('for', 'phone')
+        input.value = `+${Hellotext.business.country.prefix}`
+        input.selectionStart = input.selectionEnd = input.value.length
       } else {
         input.name = input.id = `property_by_id[${data.property}]`
         label.setAttribute('for', `property_by_id[${data.property}]`)

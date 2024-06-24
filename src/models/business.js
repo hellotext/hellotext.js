@@ -13,6 +13,10 @@ class Business {
     return this.data.subscription
   }
 
+  get country() {
+    return this.data.country
+  }
+
   get enabledWhitelist() {
     return this.data.whitelist !== 'disabled'
   }
