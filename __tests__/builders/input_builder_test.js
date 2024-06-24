@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 
+import Hellotext from '../../src/hellotext'
 import { InputBuilder } from '../../src/builders/inputBuilder'
 
 describe('when the input is first_name', () => {
@@ -77,5 +78,42 @@ describe('when the input belongs to a property', () => {
     expect(input.required).toEqual(true)
     expect(input.placeholder).toEqual('Enter your email')
     expect(input.name).toEqual('email')
+  })
+})
+
+describe('when the input is a phone number', () => {
+  const data = {
+    label: 'Phone',
+    type: 'tel',
+    required: true,
+    placeholder: 'Enter your phone number',
+    kind: 'phone',
+  }
+
+  beforeEach(() => {
+    Hellotext.business = {
+      country: {
+        prefix: '598',
+        code: 'UY',
+      }
+    }
+  })
+
+  it('builds an article element that contains a label and input elements', () => {
+    const article = InputBuilder.build(data)
+    const label = article.querySelector('label')
+    const input = article.querySelector('input')
+
+    expect(label.innerText).toEqual('Phone')
+    expect(label.getAttribute('for')).toEqual('phone')
+
+    expect(input.id).toEqual('phone')
+    expect(input.type).toEqual('tel')
+    expect(input.required).toEqual(true)
+    expect(input.placeholder).toEqual('Enter your phone number')
+    expect(input.name).toEqual('phone')
+    expect(input.value).toEqual('598')
+    expect(input.selectionStart).toEqual(2)
+    expect(input.selectionEnd).toEqual(2)
   })
 })
