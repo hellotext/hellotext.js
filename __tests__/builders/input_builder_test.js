@@ -112,7 +112,7 @@ describe('when the input is a phone number', () => {
     expect(input.required).toEqual(true)
     expect(input.placeholder).toEqual('Enter your phone number')
     expect(input.name).toEqual('phone')
-    expect(input.value).toEqual('598')
+    expect(input.value).toEqual('+598')
     expect(input.selectionStart).toEqual(2)
     expect(input.selectionEnd).toEqual(2)
   })

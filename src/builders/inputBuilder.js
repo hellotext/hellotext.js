@@ -25,8 +25,7 @@ class InputBuilder {
       } else if(input.type === 'tel') {
         input.id = input.name = 'phone'
         label.setAttribute('for', 'phone')
-        input.value = `${Hellotext.business.country.prefix}`
-        input.selectionStart = input.selectionEnd = input.value.length
+        input.value = `+${Hellotext.business.country.prefix}`
       } else {
         input.name = input.id = `property_by_id[${data.property}]`
         label.setAttribute('for', `property_by_id[${data.property}]`)
