@@ -27,16 +27,10 @@ class Form {
     if (!document.contains(this.element)) {
       document.body.appendChild(this.element)
     }
-    const container = document.createElement('div')
-    container.setAttribute('data-logo-container', '')
 
-    const small = document.createElement('small')
-    small.innerText = Hellotext.business.locale.white_label.powered_by
-
-    container.appendChild(small)
-    container.appendChild(LogoBuilder.build())
-
-    this.element.prepend(container)
+    if(!Hellotext.business.features.white_label) {
+      this.element.prepend(LogoBuilder.build())
+    }
   }
 
   buildHeader(header) {
