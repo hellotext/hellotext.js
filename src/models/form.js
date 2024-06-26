@@ -1,6 +1,7 @@
 import Hellotext from '../hellotext'
 
-import { InputBuilder } from '../builders/inputBuilder'
+import { InputBuilder } from '../builders/input_builder'
+import { OTPBuilder } from '../builders/otp_builder'
 
 class Form {
   constructor(data, element = null) {
@@ -78,44 +79,12 @@ class Form {
   }
 
   buildOTPContainer(submissionId, label) {
-    const template = this.otpTemplate(submissionId, label)
-    const container = document.createElement('div')
-    container.innerHTML = template
-
-    return container.firstElementChild
+    return OTPBuilder.build(submissionId, label)
   }
 
   markAsCompleted() {
     localStorage.setItem(`hello-form-${this.id}`, 'completed')
     Hellotext.eventEmitter.dispatch('form:completed', { id: this.id })
-  }
-
-  otpTemplate(submissionId, paragraph) {
-    return `
-      <article 
-        data-controller="hellotext--otp" 
-        data-hellotext--otp-submission-id-value="${submissionId}"
-        data-hellotext--form-target="otpContainer"
-        data-form-otp
-        >
-        <header data-otp-header>
-          <p>${paragraph}</p>
-          <input 
-            type="text"
-            name="otp"
-            data-hellotext--otp-target="input"
-            placeholder="Enter your OTP"
-            maxlength="6"
-            />
-        </header>
-        
-        <footer data-otp-footer>
-          <button type="button" data-hellotext--otp-target="resendButton" data-action="hellotext--otp#resend">
-            ${Hellotext.business.locale.otp.resend}
-          </button>
-        </footer>
-      </article>
-    `
   }
 
   get id() {

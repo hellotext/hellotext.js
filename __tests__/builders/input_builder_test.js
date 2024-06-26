@@ -3,7 +3,7 @@
  */
 
 import Hellotext from '../../src/hellotext'
-import { InputBuilder } from '../../src/builders/inputBuilder'
+import { InputBuilder } from '../../src/builders/input_builder'
 
 describe('when the input is first_name', () => {
   const data = {
