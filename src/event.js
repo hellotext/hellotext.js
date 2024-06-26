@@ -40,7 +40,7 @@ export default class Event {
     }
   }
 
-  emit(eventName, data) {
+  dispatch(eventName, data) {
     this.subscribers[eventName]?.forEach((subscriber) => {
       subscriber(data)
     })

@@ -3,7 +3,7 @@ import Hellotext from '../hellotext'
 class Cookies {
   static set(name, value) {
     document.cookie = `${name}=${value}`
-    Hellotext.eventEmitter.emit('session-set', value)
+    Hellotext.eventEmitter.dispatch('session-set', value)
 
     return value
   }

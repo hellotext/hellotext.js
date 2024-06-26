@@ -25,7 +25,7 @@ class FormCollection {
     Promise
       .all(promises)
       .then(forms => forms.forEach(form => this.add(form)))
-      .then(() => Hellotext.eventEmitter.emit('forms:collected', this))
+      .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
   }
 
   add(data) {

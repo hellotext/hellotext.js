@@ -87,7 +87,7 @@ class Form {
 
   markAsCompleted() {
     localStorage.setItem(`hello-form-${this.id}`, 'completed')
-    Hellotext.eventEmitter.emit('form:completed', { id: this.id })
+    Hellotext.eventEmitter.dispatch('form:completed', { id: this.id })
   }
 
   otpTemplate(submissionId, paragraph) {

@@ -1,5 +1,4 @@
 import Event from "../src/event"
-import EventEmitter from "../src/eventEmitter";
 
 describe(".valid", function () {
   it("is true when event name is a valid defined name", () => {
@@ -50,7 +49,7 @@ describe("#emit", () => {
     const callback = jest.fn()
 
     instance.addSubscriber("session-set", callback)
-    instance.emit("session-set", "session_payload")
+    instance.dispatch("session-set", "session_payload")
 
     expect(callback).toHaveBeenCalledTimes(1)
   });
