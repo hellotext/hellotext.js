@@ -1,8 +1,8 @@
-import Hellotext from './hellotext.js'
-import { Form } from './models'
-import API from "./api/forms";
+import Hellotext from '../hellotext.js'
+import { Form } from './form'
+import API from "../api/forms";
 
-class Forms {
+class FormCollection {
   constructor() {
     this.forms = []
 
@@ -61,4 +61,4 @@ class Forms {
   }
 }
 
-export { Forms }
+export { FormCollection }

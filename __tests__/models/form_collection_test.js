@@ -2,9 +2,8 @@
  * @jest-environment jsdom
  */
 
-import { Business } from '../src/models'
-import { Forms } from '../src/forms'
-import Hellotext from '../src/hellotext'
+import { Business, FormCollection } from '../../src/models'
+import Hellotext from '../../src/hellotext'
 
 beforeEach(() => {
   Business.prototype.fetchPublicData = jest.fn().mockResolvedValue({ whitelist: 'disabled' })
@@ -38,7 +37,7 @@ describe('collect', () => {
 })
 
 describe('add', () => {
-  const forms = new Forms()
+  const forms = new FormCollection()
   const form = { id: 1, name: 'Form 1' }
 
   it('adds a form to the forms array', () => {
@@ -55,7 +54,7 @@ describe('add', () => {
 })
 
 describe('getting elements', () => {
-  const forms = new Forms()
+  const forms = new FormCollection()
   forms.add({ id: 1, name: 'Form 1' })
   forms.add({ id: 2, name: 'Form 1' })
 
@@ -73,7 +72,7 @@ describe('getting elements', () => {
 })
 
 describe('includes', () => {
-  const forms = new Forms()
+  const forms = new FormCollection()
   const form = { id: 1, name: 'Form 1' }
 
   it('is true when the form is in the forms array', () => {
@@ -87,7 +86,7 @@ describe('includes', () => {
 })
 
 describe('excludes', () => {
-  const forms = new Forms()
+  const forms = new FormCollection()
   const form = { id: 1, name: 'Form 1' }
 
   it('is true when the form is not in the forms array', () => {

@@ -2,8 +2,12 @@ import EventEmitter from "./eventEmitter"
 
 import { NotInitializedError } from './errors/notInitializedError'
 
-import { Forms } from './forms'
-import { Business, Query, Cookies } from './models'
+import {
+  Business,
+  Query,
+  Cookies,
+  FormCollection
+} from './models'
 
 import API, { Response } from './api'
 
@@ -28,7 +32,7 @@ class Hellotext {
    */
   static initialize(business, config = { autogenerateSession: true }) {
     this.business = new Business(business)
-    this.forms = new Forms()
+    this.forms = new FormCollection()
 
     this.#config = config
     this.#query = new Query()
