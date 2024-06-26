@@ -67,7 +67,7 @@ class Form {
   }
 
   buildFooter(footer) {
-    const element = this.#findOrCreateComponent('header', 'header')
+    const element = this.#findOrCreateComponent('[data-form-footer]', 'footer')
     element.innerHTML = footer.content
 
     if(this.element.querySelector('[data-form-footer]')) {
