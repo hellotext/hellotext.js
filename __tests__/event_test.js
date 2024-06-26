@@ -42,7 +42,7 @@ describe("#removeSubscriber", function () {
   });
 });
 
-describe("#emit", () => {
+describe("#dispatch", () => {
   const instance = new Event()
 
   it("notifies the listeners for an event", () => {
