@@ -1,4 +1,4 @@
-export default class {
+export default class SessionsAPI {
   static endpoint = 'http://api.lvh.me:3000/v1/track/sessions'
 
   constructor(businessId) {
@@ -6,7 +6,7 @@ export default class {
   }
 
   async create() {
-    const response = await fetch(this.endpoint, {
+    const response = await fetch(SessionsAPI.endpoint, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.businessId}`,
