@@ -9,7 +9,7 @@ class Form {
     this.element = element || document.querySelector(`[data-hello-form="${this.id}"]`) || document.createElement('form')
   }
 
-  build() {
+  mount() {
     const firstStep = this.data.steps[0]
 
     this.buildHeader(firstStep.header)
@@ -17,10 +17,13 @@ class Form {
     this.buildButton(firstStep.button)
     this.buildFooter(firstStep.footer)
 
-    this.element.setAttribute('data-controller', 'hellotext--form')
-    this.element.setAttribute('data-hello-form', this.id)
-    this.element.setAttribute('data-hellotext--form-data-value', JSON.stringify(this.data))
-    this.element.setAttribute('data-action', 'hellotext--otp:verified->hellotext--form#completed')
+    this.elementAttributes.forEach(attribute => {
+      this.element.setAttribute(attribute.name, attribute.value)
+    })
+
+    if(!document.contains(this.element)) {
+      document.body.appendChild(this.element)
+    }
   }
 
   buildHeader(header) {
@@ -41,13 +44,9 @@ class Form {
     inputElements.forEach(inputElement => inputsContainerElement.appendChild(inputElement))
 
     if(this.element.querySelector('[data-form-inputs]')) {
-      this.element
-        .querySelector('[data-form-inputs]')
-        .replaceWith(inputsContainerElement)
+      this.element.querySelector('[data-form-inputs]').replaceWith(inputsContainerElement)
     } else {
-      this.element
-        .querySelector('[data-form-header]')
-        .insertAdjacentHTML('afterend', inputsContainerElement.outerHTML)
+      this.element.querySelector('[data-form-header]').insertAdjacentHTML('afterend', inputsContainerElement.outerHTML)
     }
   }
 
@@ -89,6 +88,27 @@ class Form {
 
   get id() {
     return this.data.id
+  }
+
+  get elementAttributes() {
+    return [
+      {
+        name: 'data-controller',
+        value: 'hellotext--form'
+      },
+      {
+        name: 'data-hello-form',
+        value: this.id
+      },
+      {
+        name: 'data-hellotext--form-data-value',
+        value: JSON.stringify(this.data)
+      },
+      {
+        name: 'data-action',
+        value: 'hellotext--otp:verified->hellotext--form#completed'
+      }
+    ]
   }
 
   #findOrCreateComponent(selector, tag) {
