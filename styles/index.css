@@ -1,4 +1,6 @@
 form[data-hello-form] {
+  position: relative;
+
   article {
     [data-error-container] {
       display: none;
@@ -8,6 +10,19 @@ form[data-hello-form] {
       [data-error-container] {
         display: block;
       }
+    }
+  }
+
+  [data-logo-container] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+
+    [data-hello-brand] {
+      width: 4rem;
     }
   }
 }

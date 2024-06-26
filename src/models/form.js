@@ -28,7 +28,13 @@ class Form {
       document.body.appendChild(this.element)
     }
     const container = document.createElement('div')
-    container.innerHTML = LogoBuilder.build()
+    container.setAttribute('data-logo-container', '')
+
+    const paragraph = document.createElement('p')
+    paragraph.innerText = Hellotext.business.locale.white_label.powered_by
+
+    container.appendChild(paragraph)
+    container.appendChild(LogoBuilder.build())
 
     this.element.prepend(container)
   }
