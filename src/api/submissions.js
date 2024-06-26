@@ -1,8 +1,12 @@
-import Hellotext from "../hellotext";
-import Response from "./response";
+import Hellotext from '../hellotext';
+import { Configuration } from '../core'
+
+import { Response } from './response';
 
 class SubmissionsAPI {
-  static endpoint = `http://api.lvh.me:3000/v1/public/submissions`
+  static get endpoint() {
+    return Configuration.endpoint('public/submissions')
+  }
 
   static async resendOTP(id) {
     const response = await fetch(`${this.endpoint}/${id}/otps`, {

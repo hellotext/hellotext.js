@@ -1,8 +1,12 @@
 import Hellotext from '../hellotext'
-import Response from './response'
+import { Configuration } from '../core'
+
+import { Response } from './response'
 
 export default class FormsAPI {
-  static endpoint = 'http://api.lvh.me:3000/v1/public/forms'
+  static get endpoint() {
+    return Configuration.endpoint('public/forms')
+  }
 
   static async get(id) {
     return fetch(`${this.endpoint}/${id}`, {

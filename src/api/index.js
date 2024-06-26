@@ -21,4 +21,4 @@ export default class API {
   }
 }
 
-export { default as Response } from './response'
+export { Response } from './response'

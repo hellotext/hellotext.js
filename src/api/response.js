@@ -1,4 +1,4 @@
-export default class Response {
+class Response {
   #success
 
   constructor(success, response) {
@@ -22,3 +22,5 @@ export default class Response {
     return this.#success === true
   }
 }
+
+export { Response }

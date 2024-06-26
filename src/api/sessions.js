@@ -1,5 +1,9 @@
+import { Configuration } from '../core'
+
 export default class SessionsAPI {
-  static endpoint = 'http://api.lvh.me:3000/v1/track/sessions'
+  static get endpoint() {
+    return Configuration.endpoint('track/sessions')
+  }
 
   constructor(businessId) {
     this.businessId = businessId

@@ -1,8 +1,12 @@
+import { Configuration } from '../core'
+
 import { Query } from '../models'
-import Response from './response'
+import { Response } from './response'
 
 export default class EventsAPI {
-  static endpoint = 'http://api.lvh.me:3000/v1/track/events'
+  static get endpoint() {
+    return Configuration.endpoint('track/events')
+  }
 
   static async create({ headers, body }) {
     if(Query.inPreviewMode) {
