@@ -15,7 +15,13 @@ export default class extends Controller {
 
   initialize() {
     super.initialize()
+
+    this.attempts = 0
     this.onInputChange = this.onInputChange.bind(this)
+
+    this.throttleInterval = setInterval(() => {
+      this.attempts = 0
+    }, 60000)
   }
 
   connect() {
@@ -24,11 +30,15 @@ export default class extends Controller {
   }
 
   disconnect() {
+    clearInterval(this.throttleInterval)
     this.inputTarget.removeEventListener('input', this.onInputChange)
+
     super.disconnect()
   }
 
   async resend() {
+    if(this.throttled) { return alert(Hellotext.business.locale.otp.throttled) }
+
     this.resendButtonTarget.disabled = true
     const response = await SubmissionsAPI.resendOTP(this.submissionIdValue)
 
@@ -37,6 +47,7 @@ export default class extends Controller {
     }
 
     alert(Hellotext.business.locale.otp.resend_successful)
+    this.attempts += 1
   }
 
   async onInputChange() {
@@ -60,5 +71,11 @@ export default class extends Controller {
 
     this.inputTarget.disabled = false
     this.resendButtonTarget.disabled = false
+  }
+
+  // private
+
+  get throttled() {
+    return this.attempts >= 3
   }
 }
