@@ -35,20 +35,9 @@ export default class extends Controller {
 
   async submit(e) {
     e.preventDefault()
+    if(this.invalid) { return this.showErrorMessages() }
 
-    if(!this.element.checkValidity()) {
-      this.element.querySelectorAll('input:invalid').forEach(input => {
-        const parent = input.closest('article')
-        parent.querySelector('[data-error-container]').innerText = input.validationMessage
-      })
-
-      return
-    }
-
-    this.element.querySelectorAll('input').forEach(input => {
-      const parent = input.closest('article')
-      parent.querySelector('[data-error-container]').innerText = ''
-    })
+    this.clearErrorMessages()
 
     const formData = new FormData(this.element)
     this.buttonTarget.disabled = true
@@ -82,6 +71,20 @@ export default class extends Controller {
 
   // private
 
+  showErrorMessages() {
+    this.element.querySelectorAll('input:invalid').forEach(input => {
+      const parent = input.closest('article')
+      parent.querySelector('[data-error-container]').innerText = input.validationMessage
+    })
+  }
+
+  clearErrorMessages() {
+    this.element.querySelectorAll('input').forEach(input => {
+      const parent = input.closest('article')
+      parent.querySelector('[data-error-container]').innerText = ''
+    })
+  }
+
   inputTargetConnected(target) {
     if(target.getAttribute('data-default-value')) {
       target.value = target.getAttribute('data-default-value')
@@ -94,5 +97,9 @@ export default class extends Controller {
 
   get requiredInputs() {
     return this.inputTargets.filter(input => input.required)
+  }
+
+  get invalid() {
+    return !this.element.checkValidity()
   }
 }
