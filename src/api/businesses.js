@@ -1,5 +1,9 @@
+import { Configuration } from '../models'
+
 export default class {
-  static endpoint = 'http://api.lvh.me:3000/v1/public/businesses'
+  static get endpoint() {
+    return Configuration.endpoint('public/businesses')
+  }
 
   static async get(id) {
     return fetch(`${this.endpoint}/${id}`, {

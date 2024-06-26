@@ -3,7 +3,7 @@
  */
 
 import Hellotext from "../src/hellotext";
-import { Business } from "../src/models/business"
+import { Business } from "../src/models"
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 

@@ -6,7 +6,8 @@ import {
   Business,
   Query,
   Cookies,
-  FormCollection
+  FormCollection,
+  Configuration
 } from './models'
 
 import API, { Response } from './api'
@@ -34,7 +35,7 @@ class Hellotext {
     this.business = new Business(business)
     this.forms = new FormCollection()
 
-    this.#config = config
+    this.#config = Configuration.assign(config)
     this.#query = new Query()
 
     addEventListener('load', () => {
