@@ -29,6 +29,14 @@ class FormCollection {
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
   }
 
+  forEach(callback) {
+    this.forms.forEach(callback)
+  }
+
+  map(callback) {
+    return this.forms.map(callback)
+  }
+
   add(data) {
     if (this.includes(data.id)) return
     this.forms.push(new Form(data))
