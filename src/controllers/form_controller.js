@@ -1,10 +1,11 @@
 import { Controller } from '@hotwired/stimulus'
 
 import Hellotext from '../hellotext'
-import { Form, Step, Cookies } from '../models'
+import { Form, Step } from '../models'
 
-import API from '../api'
 import FormsAPI from '../api/forms'
+
+import { OTPBuilder } from '../builders/otp_builder'
 
 export default class extends Controller {
   static values = {
@@ -69,8 +70,7 @@ export default class extends Controller {
       ? Hellotext.business.locale.otp.sent_to_email
       : Hellotext.business.locale.otp.sent_to_phone
 
-    const otpContainer = this.form.buildOTPContainer(submissionId, paragraph)
-    this.element.appendChild(otpContainer)
+    this.element.appendChild(OTPBuilder.build(submissionId, paragraph))
   }
 
   completed({ detail }) {

@@ -77,10 +77,6 @@ class Form {
     }
   }
 
-  buildOTPContainer(submissionId, label) {
-    return OTPBuilder.build(submissionId, label)
-  }
-
   markAsCompleted() {
     localStorage.setItem(`hello-form-${this.id}`, 'completed')
     Hellotext.eventEmitter.dispatch('form:completed', { id: this.id })
