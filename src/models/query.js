@@ -10,15 +10,11 @@ class Query {
   }
 
   get(param) {
-    return this.urlSearchParams.get(
-      this.toHellotextParam(param)
-    )
+    return this.urlSearchParams.get(this.toHellotextParam(param))
   }
 
   has(param) {
-    return this.urlSearchParams.has(
-      this.toHellotextParam(param)
-    )
+    return this.urlSearchParams.has(this.toHellotextParam(param))
   }
 
   get inPreviewMode() {

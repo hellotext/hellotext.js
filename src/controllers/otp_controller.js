@@ -5,13 +5,10 @@ import SubmissionsAPI from '../api/submissions'
 
 export default class extends Controller {
   static values = {
-    submissionId: String
+    submissionId: String,
   }
 
-  static targets = [
-    'input',
-    'resendButton'
-  ]
+  static targets = ['input', 'resendButton']
 
   initialize() {
     super.initialize()
@@ -37,12 +34,14 @@ export default class extends Controller {
   }
 
   async resend() {
-    if(this.throttled) { return alert(Hellotext.business.locale.otp.throttled) }
+    if (this.throttled) {
+      return alert(Hellotext.business.locale.otp.throttled)
+    }
 
     this.resendButtonTarget.disabled = true
     const response = await SubmissionsAPI.resendOTP(this.submissionIdValue)
 
-    if(response.succeeded) {
+    if (response.succeeded) {
       this.resendButtonTarget.disabled = false
     }
 
@@ -51,19 +50,19 @@ export default class extends Controller {
   }
 
   async onInputChange() {
-    if(this.inputTarget.value.length !== 6) return
+    if (this.inputTarget.value.length !== 6) return
 
     this.inputTarget.disabled = true
     this.resendButtonTarget.disabled = true
 
     const response = await SubmissionsAPI.verifyOTP(this.submissionIdValue, this.inputTarget.value)
 
-    if(response.succeeded) {
+    if (response.succeeded) {
       this.dispatch('verified', {
         detail: {
           submissionId: this.submissionIdValue,
-          sessionId: (await response.json()).id
-        }
+          sessionId: (await response.json()).id,
+        },
       })
     } else {
       alert(Hellotext.business.locale.otp.invalid)

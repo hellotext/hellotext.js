@@ -3,5 +3,5 @@ import es from './es'
 
 export default {
   en,
-  es
+  es,
 }

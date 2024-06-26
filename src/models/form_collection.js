@@ -1,6 +1,6 @@
 import Hellotext from '../hellotext.js'
 import { Form } from './form'
-import API from "../api/forms";
+import API from '../api/forms'
 
 class FormCollection {
   constructor() {
@@ -18,18 +18,19 @@ class FormCollection {
       return API.get(id).then(response => response.json())
     })
 
-    if(!Hellotext.business.enabledWhitelist) {
-      console.warn('No whitelist has been configured. It is advised to whitelist the domain to avoid bots from submitting forms.')
+    if (!Hellotext.business.enabledWhitelist) {
+      console.warn(
+        'No whitelist has been configured. It is advised to whitelist the domain to avoid bots from submitting forms.',
+      )
     }
 
-    Promise
-      .all(promises)
+    Promise.all(promises)
       .then(forms => forms.forEach(form => this.add(form)))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
   }
 
   add(data) {
-    if(this.includes(data.id)) return
+    if (this.includes(data.id)) return
     this.forms.push(new Form(data))
   }
 
@@ -54,8 +55,7 @@ class FormCollection {
   }
 
   get #formIdsToFetch() {
-    return Array
-      .from(document.querySelectorAll('[data-hello-form]'))
+    return Array.from(document.querySelectorAll('[data-hello-form]'))
       .map(form => form.dataset.helloForm)
       .filter(this.excludes)
   }

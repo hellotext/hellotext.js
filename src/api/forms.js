@@ -11,7 +11,7 @@ export default class FormsAPI {
   static async get(id) {
     return fetch(`${this.endpoint}/${id}`, {
       method: 'GET',
-      headers: Hellotext.headers
+      headers: Hellotext.headers,
     })
   }
 
@@ -19,7 +19,7 @@ export default class FormsAPI {
     const response = await fetch(`${this.endpoint}/${id}/submissions`, {
       method: 'POST',
       headers: Hellotext.headers,
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     })
 
     return new Response(response.ok, response)

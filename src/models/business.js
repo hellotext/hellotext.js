@@ -28,7 +28,9 @@ class Business {
   // private
 
   fetchPublicData() {
-    API.get(this.id).then(response => response.json()).then(data => this.data = data)
+    API.get(this.id)
+      .then(response => response.json())
+      .then(data => (this.data = data))
   }
 }
 

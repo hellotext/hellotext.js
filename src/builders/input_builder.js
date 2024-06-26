@@ -12,17 +12,17 @@ class InputBuilder {
     input.required = data.required
     input.placeholder = data.placeholder
 
-    if(['first_name', 'last_name'].includes(data.kind)) {
+    if (['first_name', 'last_name'].includes(data.kind)) {
       input.type = 'text'
       input.id = input.name = data.kind
       label.setAttribute('for', data.kind)
     } else {
       input.type = data.type
 
-      if(data.type === 'email') {
+      if (data.type === 'email') {
         input.id = input.name = 'email'
         label.setAttribute('for', 'email')
-      } else if(input.type === 'tel') {
+      } else if (input.type === 'tel') {
         input.id = input.name = 'phone'
         label.setAttribute('for', 'phone')
         input.value = `+${Hellotext.business.country.prefix}`

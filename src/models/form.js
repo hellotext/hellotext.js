@@ -6,7 +6,10 @@ import { OTPBuilder } from '../builders/otp_builder'
 class Form {
   constructor(data, element = null) {
     this.data = data
-    this.element = element || document.querySelector(`[data-hello-form="${this.id}"]`) || document.createElement('form')
+    this.element =
+      element ||
+      document.querySelector(`[data-hello-form="${this.id}"]`) ||
+      document.createElement('form')
   }
 
   mount() {
@@ -21,7 +24,7 @@ class Form {
       this.element.setAttribute(attribute.name, attribute.value)
     })
 
-    if(!document.contains(this.element)) {
+    if (!document.contains(this.element)) {
       document.body.appendChild(this.element)
     }
   }
@@ -30,7 +33,7 @@ class Form {
     const headerElement = this.#findOrCreateComponent('[data-form-header]', 'header')
     headerElement.innerHTML = header.content
 
-    if(this.element.querySelector('[data-form-header]')) {
+    if (this.element.querySelector('[data-form-header]')) {
       this.element.querySelector('[data-form-header]').replaceWith(headerElement)
     } else {
       this.element.prepend(headerElement)
@@ -43,10 +46,12 @@ class Form {
 
     inputElements.forEach(inputElement => inputsContainerElement.appendChild(inputElement))
 
-    if(this.element.querySelector('[data-form-inputs]')) {
+    if (this.element.querySelector('[data-form-inputs]')) {
       this.element.querySelector('[data-form-inputs]').replaceWith(inputsContainerElement)
     } else {
-      this.element.querySelector('[data-form-header]').insertAdjacentHTML('afterend', inputsContainerElement.outerHTML)
+      this.element
+        .querySelector('[data-form-header]')
+        .insertAdjacentHTML('afterend', inputsContainerElement.outerHTML)
     }
   }
 
@@ -57,7 +62,7 @@ class Form {
     buttonElement.setAttribute('data-action', 'click->hellotext--form#submit')
     buttonElement.setAttribute('data-hellotext--form-target', 'button')
 
-    if(this.element.querySelector('[data-form-button]')) {
+    if (this.element.querySelector('[data-form-button]')) {
       this.element.querySelector('[data-form-button]').replaceWith(buttonElement)
     } else {
       this.element
@@ -70,7 +75,7 @@ class Form {
     const element = this.#findOrCreateComponent('[data-form-footer]', 'footer')
     element.innerHTML = footer.content
 
-    if(this.element.querySelector('[data-form-footer]')) {
+    if (this.element.querySelector('[data-form-footer]')) {
       this.element.querySelector('[data-form-footer]').replaceWith(element)
     } else {
       this.element.appendChild(element)
@@ -90,27 +95,27 @@ class Form {
     return [
       {
         name: 'data-controller',
-        value: 'hellotext--form'
+        value: 'hellotext--form',
       },
       {
         name: 'data-hello-form',
-        value: this.id
+        value: this.id,
       },
       {
         name: 'data-hellotext--form-data-value',
-        value: JSON.stringify(this.data)
+        value: JSON.stringify(this.data),
       },
       {
         name: 'data-action',
-        value: 'hellotext--otp:verified->hellotext--form#completed'
-      }
+        value: 'hellotext--otp:verified->hellotext--form#completed',
+      },
     ]
   }
 
   #findOrCreateComponent(selector, tag) {
     const existingElement = this.element.querySelector(selector)
 
-    if(existingElement) {
+    if (existingElement) {
       return existingElement.cloneNode(true)
     }
 

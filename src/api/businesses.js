@@ -12,7 +12,7 @@ export default class {
         Authorization: `Bearer ${id}`,
         Accept: 'application.json',
         'Content-Type': 'application/json',
-      }
+      },
     })
   }
 }

@@ -35,15 +35,14 @@ class Hellotext {
       this.forms.collect()
     })
 
-    if(this.#query.inPreviewMode) return
+    if (this.#query.inPreviewMode) return
 
     if (this.#query.session) {
       this.#session = Cookies.set('hello_session', this.#query.session)
-    } else if(config.autogenerateSession) {
-      this.#mintAnonymousSession()
-        .then(response => {
-          this.#session = Cookies.set('hello_session', response.id)
-        })
+    } else if (config.autogenerateSession) {
+      this.#mintAnonymousSession().then(response => {
+        this.#session = Cookies.set('hello_session', response.id)
+      })
     }
   }
 
@@ -59,7 +58,9 @@ class Hellotext {
    * @returns {Promise<Response>}
    */
   static async track(action, params = {}) {
-    if (this.#notInitialized) { throw new NotInitializedError() }
+    if (this.#notInitialized) {
+      throw new NotInitializedError()
+    }
 
     return await API.events.create({
       headers: this.headers,
@@ -67,8 +68,8 @@ class Hellotext {
         session: this.session,
         action,
         ...params,
-        url: (params && params.url) || window.location.href
-      }
+        url: (params && params.url) || window.location.href,
+      },
     })
   }
 
@@ -95,7 +96,9 @@ class Hellotext {
    * @returns {String}
    */
   static get session() {
-    if (this.#notInitialized) { throw new NotInitializedError() }
+    if (this.#notInitialized) {
+      throw new NotInitializedError()
+    }
 
     return this.#session
   }
@@ -115,12 +118,17 @@ class Hellotext {
   }
 
   static async #mintAnonymousSession() {
-    if (this.#notInitialized) { throw new NotInitializedError() }
+    if (this.#notInitialized) {
+      throw new NotInitializedError()
+    }
+
     return API.sessions(this.business.id).create()
   }
 
   static get headers() {
-    if (this.#notInitialized) { throw new NotInitializedError() }
+    if (this.#notInitialized) {
+      throw new NotInitializedError()
+    }
 
     return {
       Authorization: `Bearer ${this.business.id}`,

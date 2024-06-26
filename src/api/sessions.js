@@ -15,7 +15,7 @@ export default class SessionsAPI {
       headers: {
         Authorization: `Bearer ${this.businessId}`,
         Accept: 'application/json',
-      }
+      },
     })
 
     return response.json()

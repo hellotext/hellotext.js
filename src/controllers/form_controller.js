@@ -10,15 +10,10 @@ import { OTPBuilder } from '../builders/otp_builder'
 export default class extends Controller {
   static values = {
     data: Object,
-    step: { type: Number, default: 1 }
+    step: { type: Number, default: 1 },
   }
 
-  static targets = [
-    'inputContainer',
-    'input',
-    'button',
-    'otpContainer',
-  ]
+  static targets = ['inputContainer', 'input', 'button', 'otpContainer']
 
   initialize() {
     this.form = new Form(this.dataValue, this.element)
@@ -28,14 +23,16 @@ export default class extends Controller {
     super.connect()
     this.element.addEventListener('submit', this.submit.bind(this))
 
-    if(document.activeElement.tagName !== 'INPUT') {
+    if (document.activeElement.tagName !== 'INPUT') {
       this.inputTargets[0].focus()
     }
   }
 
   async submit(e) {
     e.preventDefault()
-    if(this.invalid) { return this.showErrorMessages() }
+    if (this.invalid) {
+      return this.showErrorMessages()
+    }
 
     this.clearErrorMessages()
 
@@ -45,9 +42,9 @@ export default class extends Controller {
     const response = await FormsAPI.submit(this.form.id, Object.fromEntries(formData))
     this.buttonTarget.disabled = false
 
-    if(response.succeeded) {
+    if (response.succeeded) {
       this.buttonTarget.style.display = 'none'
-      this.element.querySelectorAll('input').forEach(input => input.disabled = true)
+      this.element.querySelectorAll('input').forEach(input => (input.disabled = true))
 
       const data = await response.json()
       this.revealOTPContainer(data.id)
@@ -86,7 +83,7 @@ export default class extends Controller {
   }
 
   inputTargetConnected(target) {
-    if(target.getAttribute('data-default-value')) {
+    if (target.getAttribute('data-default-value')) {
       target.value = target.getAttribute('data-default-value')
     }
   }

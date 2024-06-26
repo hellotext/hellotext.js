@@ -1,7 +1,7 @@
-import Hellotext from '../hellotext';
+import Hellotext from '../hellotext'
 import { Configuration } from '../core'
 
-import { Response } from './response';
+import { Response } from './response'
 
 class SubmissionsAPI {
   static get endpoint() {
@@ -11,7 +11,7 @@ class SubmissionsAPI {
   static async resendOTP(id) {
     const response = await fetch(`${this.endpoint}/${id}/otps`, {
       method: 'POST',
-      headers: Hellotext.headers
+      headers: Hellotext.headers,
     })
 
     return new Response(response.ok, response)
@@ -22,8 +22,8 @@ class SubmissionsAPI {
       method: 'POST',
       headers: Hellotext.headers,
       body: JSON.stringify({
-        session: Hellotext.session
-      })
+        session: Hellotext.session,
+      }),
     })
 
     return new Response(response.ok, response)

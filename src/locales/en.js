@@ -5,6 +5,6 @@ export default {
     resend_successful: 'The One-Time Password has been resent successfully',
     invalid: 'Invalid One-Time Password',
     resend: 'Resend OTP',
-    throttled: 'You have reached the maximum number of attempts. Please try again in 1 minute.'
-  }
+    throttled: 'You have reached the maximum number of attempts. Please try again in 1 minute.',
+  },
 }

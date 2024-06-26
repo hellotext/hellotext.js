@@ -9,7 +9,7 @@ export default class EventsAPI {
   }
 
   static async create({ headers, body }) {
-    if(Query.inPreviewMode) {
+    if (Query.inPreviewMode) {
       return new Response(true, { received: true })
     }
 
