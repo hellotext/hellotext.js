@@ -92,7 +92,7 @@ class Form {
     }
   }
 
-  markAsCompleted(data = {}) {
+  markAsCompleted(data) {
     localStorage.setItem(`hello-form-${this.id}`, 'completed')
     Hellotext.eventEmitter.dispatch('form:completed', { id: this.id, ...data })
   }

@@ -60,6 +60,7 @@ export default class extends Controller {
   }
 
   completed({ detail }) {
+    console.log(Object.fromEntries(new FormData(this.element)))
     this.form.markAsCompleted(Object.fromEntries(new FormData(this.element)))
     Hellotext.setSession(detail.sessionId)
 
