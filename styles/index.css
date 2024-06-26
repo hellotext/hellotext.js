@@ -16,10 +16,14 @@ form[data-hello-form] {
   [data-logo-container] {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-end;
     position: absolute;
     right: 1rem;
     bottom: 1rem;
+
+    small {
+      margin: 0 .3rem;
+    }
 
     [data-hello-brand] {
       width: 4rem;

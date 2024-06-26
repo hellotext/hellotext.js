@@ -30,10 +30,10 @@ class Form {
     const container = document.createElement('div')
     container.setAttribute('data-logo-container', '')
 
-    const paragraph = document.createElement('p')
-    paragraph.innerText = Hellotext.business.locale.white_label.powered_by
+    const small = document.createElement('small')
+    small.innerText = Hellotext.business.locale.white_label.powered_by
 
-    container.appendChild(paragraph)
+    container.appendChild(small)
     container.appendChild(LogoBuilder.build())
 
     this.element.prepend(container)
