@@ -1,16 +1,9 @@
-import Event from "./event"
+import { Event, Configuration } from './core'
+
+import API from './api'
+import { Business, Query, Cookies, FormCollection } from './models'
 
 import { NotInitializedError } from './errors/notInitializedError'
-
-import {
-  Business,
-  Query,
-  Cookies,
-  FormCollection,
-  Configuration
-} from './models'
-
-import API, { Response } from './api'
 
 /**
  * @typedef {Object} Config

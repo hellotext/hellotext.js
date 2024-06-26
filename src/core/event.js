@@ -1,4 +1,4 @@
-import { InvalidEvent } from "./errors/invalidEvent";
+import { InvalidEvent } from "../errors/invalidEvent";
 
 export default class Event {
   static events = [

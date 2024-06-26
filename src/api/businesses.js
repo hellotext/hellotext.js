@@ -1,4 +1,4 @@
-import { Configuration } from '../models'
+import { Configuration } from '../core'
 
 export default class {
   static get endpoint() {

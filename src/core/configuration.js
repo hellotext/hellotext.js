@@ -3,7 +3,7 @@ class Configuration {
   static autoGenerateSession = true
 
   static assign({ apiRoot, autoGenerateSession }) {
-    this.apiRoot = apiRoot
+    this.apiRoot = apiRoot || this.apiRoot
     this.autoGenerateSession = autoGenerateSession
     return this
   }
