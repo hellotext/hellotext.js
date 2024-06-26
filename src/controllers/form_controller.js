@@ -36,10 +36,10 @@ export default class extends Controller {
 
     this.clearErrorMessages()
 
-    const formData = new FormData(this.element)
+    this.formData = Object.fromEntries(new FormData(this.element))
     this.buttonTarget.disabled = true
 
-    const response = await FormsAPI.submit(this.form.id, Object.fromEntries(formData))
+    const response = await FormsAPI.submit(this.form.id, this.formData)
     this.buttonTarget.disabled = false
 
     if (response.succeeded) {
@@ -60,8 +60,7 @@ export default class extends Controller {
   }
 
   completed({ detail }) {
-    console.log(Object.fromEntries(new FormData(this.element)))
-    this.form.markAsCompleted(Object.fromEntries(new FormData(this.element)))
+    this.form.markAsCompleted(this.formData)
     Hellotext.setSession(detail.sessionId)
 
     this.element.remove()
