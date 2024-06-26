@@ -25,6 +25,10 @@ class Business {
     return locales[this.data.locale]
   }
 
+  get features() {
+    return this.data.features
+  }
+
   // private
 
   fetchPublicData() {
