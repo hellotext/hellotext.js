@@ -1,7 +1,7 @@
 import Hellotext from '../hellotext'
 
 import { InputBuilder } from '../builders/input_builder'
-import { OTPBuilder } from '../builders/otp_builder'
+import { LogoBuilder } from '../builders/logo_builder'
 
 class Form {
   constructor(data, element = null) {
@@ -12,7 +12,7 @@ class Form {
       document.createElement('form')
   }
 
-  mount() {
+  async mount() {
     const firstStep = this.data.steps[0]
 
     this.buildHeader(firstStep.header)
@@ -27,6 +27,10 @@ class Form {
     if (!document.contains(this.element)) {
       document.body.appendChild(this.element)
     }
+    const container = document.createElement('div')
+    container.innerHTML = LogoBuilder.build()
+
+    this.element.prepend(container)
   }
 
   buildHeader(header) {
