@@ -1,4 +1,4 @@
-import EventEmitter from "./eventEmitter"
+import Event from "./event"
 
 import { NotInitializedError } from './errors/notInitializedError'
 
@@ -21,7 +21,7 @@ class Hellotext {
   static #config
   static #query
 
-  static eventEmitter = new EventEmitter()
+  static eventEmitter = new Event()
   static forms
   static business
 
