@@ -30,6 +30,7 @@ export default class extends Controller {
 
   async submit(e) {
     e.preventDefault()
+
     if (this.invalid) {
       return this.showErrorMessages()
     }
@@ -42,12 +43,20 @@ export default class extends Controller {
     const response = await FormsAPI.submit(this.form.id, this.formData)
     this.buttonTarget.disabled = false
 
-    if (response.succeeded) {
-      this.buttonTarget.style.display = 'none'
-      this.element.querySelectorAll('input').forEach(input => (input.disabled = true))
+    if(response.failed) {
+      return
+    }
 
-      const data = await response.json()
-      this.revealOTPContainer(data.id)
+    this.buttonTarget.style.display = 'none'
+    this.element.querySelectorAll('input').forEach(input => (input.disabled = true))
+
+    const submission = await response.json()
+
+    if(submission.identified) {
+      this.completed({ detail: submission })
+    } else {
+      Hellotext.setSession(submission.session)
+      this.revealOTPContainer(submission.id)
     }
   }
 
@@ -61,7 +70,7 @@ export default class extends Controller {
 
   completed({ detail }) {
     this.form.markAsCompleted(this.formData)
-    Hellotext.setSession(detail.sessionId)
+    Hellotext.setSession(detail.session)
 
     this.element.remove()
   }

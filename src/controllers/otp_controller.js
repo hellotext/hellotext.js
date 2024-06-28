@@ -61,7 +61,7 @@ export default class extends Controller {
       this.dispatch('verified', {
         detail: {
           submissionId: this.submissionIdValue,
-          sessionId: (await response.json()).id,
+          session: (await response.json()).id,
         },
       })
     } else {

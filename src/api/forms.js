@@ -19,7 +19,10 @@ export default class FormsAPI {
     const response = await fetch(`${this.endpoint}/${id}/submissions`, {
       method: 'POST',
       headers: Hellotext.headers,
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        session: Hellotext.session,
+        ...data,
+      }),
     })
 
     return new Response(response.ok, response)
