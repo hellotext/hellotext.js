@@ -44,8 +44,8 @@ Failing to initialize the class before calling any other method will throw a `No
 
 Learn how to leverage the library to track events and collect forms.
 
-- [Tracking Events](https://www.github.com/hellotext/hellotext/docs/tracking)
-- [Forms](https://www.github.com/hellotext/hellotext/docs/forms)
+- [Tracking Events](/docs/tracking.md)
+- [Forms](/docs/forms.md)
 
 ## Events
 
