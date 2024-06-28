@@ -11,12 +11,13 @@ After initializing the `Hellotext` class, it attaches a `load` event listener an
 it looks for any HTML element that is on the page that has a `data-hello-form` attribute. 
 
 You can access the forms object to also trigger the form collection phase manually. 
-This is useful if you have an Single Page Application(SPA) and cannot hardcode the `data-hello-form` element on the rendered page. 
+This is useful if you have a Single Page Application(SPA) and cannot hardcode the `data-hello-form` element on the rendered page. 
 
 To manually collect forms, do the following. 
 
 ```javascript
-Hellotext.forms.collect();
+Hellotext.initialize('HELLOTEXT_BUSINESS_ID')
+Hellotext.forms.collect()
 ```
 
 Once loaded, you can access the forms object by calling `Hellotext.forms`.
@@ -75,6 +76,7 @@ Until a valid OTP has been entered, data will not show up on the dashboard and w
 
 Once the user enters the OTP they received. The form is considered to be complete and will be sent to the Hellotext API to create(or update) a profile from the submission information. 
 The library also dispatches a `form:completed` event that you can subscribe to. In addition, a Session object is set and stored on the browser's cookies. 
+Additionally, the `Hellotext.session` is also set if no session was present already, you can listen for the session events by subscribing to `session-set` event.
 
 ```javascript
 Hellotext.on('form:completed', (form) => {
