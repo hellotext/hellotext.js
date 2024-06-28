@@ -8,6 +8,8 @@ class FormCollection {
 
     this.includes = this.includes.bind(this)
     this.excludes = this.excludes.bind(this)
+
+    this.add = this.add.bind(this)
   }
 
   collect() {
@@ -25,7 +27,7 @@ class FormCollection {
     }
 
     Promise.all(promises)
-      .then(forms => forms.forEach(form => this.add(form)))
+      .then(forms => forms.forEach(this.add))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
   }
 

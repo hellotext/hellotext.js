@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus'
 
 import Hellotext from '../hellotext'
-import { Form, Step } from '../models'
+import { Form } from '../models'
 
 import FormsAPI from '../api/forms'
 
@@ -93,10 +93,6 @@ export default class extends Controller {
     if (target.getAttribute('data-default-value')) {
       target.value = target.getAttribute('data-default-value')
     }
-  }
-
-  get currentStep() {
-    return new Step(this.dataValue.steps.find(step => step.position === this.stepValue))
   }
 
   get requiredInputs() {
