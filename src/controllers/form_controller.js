@@ -53,7 +53,7 @@ export default class extends Controller {
     const submission = await response.json()
 
     if(submission.identified) {
-      this.completed({ detail: submission })
+      this.completed()
     } else {
       Hellotext.setSession(submission.session)
       this.revealOTPContainer(submission.id)
@@ -68,10 +68,8 @@ export default class extends Controller {
     this.element.appendChild(OTPBuilder.build(submissionId, paragraph))
   }
 
-  completed({ detail }) {
+  completed() {
     this.form.markAsCompleted(this.formData)
-    Hellotext.setSession(detail.session)
-
     this.element.remove()
   }
 

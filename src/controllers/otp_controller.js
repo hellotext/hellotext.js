@@ -59,10 +59,7 @@ export default class extends Controller {
 
     if (response.succeeded) {
       this.dispatch('verified', {
-        detail: {
-          submissionId: this.submissionIdValue,
-          session: (await response.json()).id,
-        },
+        detail: { submissionId: this.submissionIdValue },
       })
     } else {
       alert(Hellotext.business.locale.otp.invalid)
