@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { Cookies } from '../../src/models/cookies'
+import { Cookies } from '../../src/models'
 
 beforeEach(() => {
   document.cookie = ''

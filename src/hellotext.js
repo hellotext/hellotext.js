@@ -3,7 +3,7 @@ import { Event, Configuration } from './core'
 import API from './api'
 import { Business, Query, Cookies, FormCollection } from './models'
 
-import { NotInitializedError } from './errors/notInitializedError'
+import { NotInitializedError } from './errors'
 
 /**
  * @typedef {Object} Config
@@ -58,7 +58,7 @@ class Hellotext {
    * @returns {Promise<Response>}
    */
   static async track(action, params = {}) {
-    if (this.#notInitialized) {
+    if (this.notInitialized) {
       throw new NotInitializedError()
     }
 
@@ -96,7 +96,7 @@ class Hellotext {
    * @returns {String}
    */
   static get session() {
-    if (this.#notInitialized) {
+    if (this.notInitialized) {
       throw new NotInitializedError()
     }
 
@@ -113,12 +113,12 @@ class Hellotext {
 
   // private
 
-  static get #notInitialized() {
+  static get notInitialized() {
     return this.business.id === undefined
   }
 
   static async #mintAnonymousSession() {
-    if (this.#notInitialized) {
+    if (this.notInitialized) {
       throw new NotInitializedError()
     }
 
@@ -126,7 +126,7 @@ class Hellotext {
   }
 
   static get headers() {
-    if (this.#notInitialized) {
+    if (this.notInitialized) {
       throw new NotInitializedError()
     }
 

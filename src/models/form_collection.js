@@ -1,6 +1,9 @@
 import Hellotext from '../hellotext.js'
+import API from '../api'
+
 import { Form } from './form'
-import API from '../api/forms'
+
+import { NotInitializedError } from '../errors'
 
 class FormCollection {
   constructor() {
@@ -13,11 +16,15 @@ class FormCollection {
   }
 
   collect() {
+    if(Hellotext.notInitialized) {
+      throw new NotInitializedError()
+    }
+
     const formsIdsToFetch = this.#formIdsToFetch
     if (formsIdsToFetch.length === 0) return
 
     const promises = formsIdsToFetch.map(id => {
-      return API.get(id).then(response => response.json())
+      return API.forms.get(id).then(response => response.json())
     })
 
     if (!Hellotext.business.enabledWhitelist) {

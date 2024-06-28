@@ -3,7 +3,7 @@
  */
 
 
-import { Business } from '../../src/models/business'
+import { Business } from '../../src/models'
 
 describe('enabledWhitelist', () => {
   beforeEach(() => {
