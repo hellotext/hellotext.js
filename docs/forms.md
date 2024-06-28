@@ -20,7 +20,7 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID')
 Hellotext.forms.collect()
 ```
 
-Once loaded, you can access the forms object by calling `Hellotext.forms`.
+Once loaded, you can access the `FormCollection` object by calling `Hellotext.forms`.
 
 Make sure you have initialized with `Hellotext.initialize` otherwise an error is reported. 
 
