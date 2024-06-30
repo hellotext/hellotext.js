@@ -1,25 +1,23 @@
-import Event from "./event"
-import EventEmitter from "./eventEmitter"
-import Response from "./response";
-import Query from "./query";
+import { Event, Configuration } from './core'
 
-import { NotInitializedError } from './errors/notInitializedError'
-import { InvalidEvent } from "./errors/invalidEvent"
+import API from './api'
+import { Business, Query, Cookies, FormCollection } from './models'
+
+import { NotInitializedError } from './errors'
 
 /**
  * @typedef {Object} Config
  * @property {Boolean} autogenerateSession
  */
 
-
 class Hellotext {
-  static __apiURL = 'https://api.hellotext.com/v1/'
-
   static #session
-  static #business
   static #config
-  static #eventEmitter = new EventEmitter()
   static #query
+
+  static eventEmitter = new Event()
+  static forms
+  static business
 
   /**
    * initialize the module.
@@ -27,25 +25,29 @@ class Hellotext {
    * @param { Config } config
    */
   static initialize(business, config = { autogenerateSession: true }) {
-    this.#business = business
-    this.#config = config
+    this.business = new Business(business)
+    this.forms = new FormCollection()
 
-    this.#query = new Query(window.location.search)
+    this.#config = Configuration.assign(config)
+    this.#query = new Query()
 
-    if(this.#query.has("preview")) return
+    addEventListener('load', () => {
+      this.forms.collect()
+    })
 
-    const session = this.#query.get("session") || this.#cookie
+    if (this.#query.inPreviewMode) return
 
-    if (session && session !== "undefined" && session !== "null") {
-      this.#session = session
-      this.#setSessionCookie()
-    } else if(config.autogenerateSession) {
-      this.#mintAnonymousSession()
-        .then(response => {
-          this.#session = response.id
-          this.#setSessionCookie()
-        })
+    if (this.#query.session) {
+      this.#session = Cookies.set('hello_session', this.#query.session)
+    } else if (config.autogenerateSession) {
+      this.#mintAnonymousSession().then(response => {
+        this.#session = Cookies.set('hello_session', response.id)
+      })
     }
+  }
+
+  static setSession(value) {
+    this.#session = Cookies.set('hello_session', value)
   }
 
   /**
@@ -56,24 +58,19 @@ class Hellotext {
    * @returns {Promise<Response>}
    */
   static async track(action, params = {}) {
-    if (this.#notInitialized) { throw new NotInitializedError() }
-
-    if(this.#query.has("preview")) {
-      return new Response(true, { received: true })
+    if (this.notInitialized) {
+      throw new NotInitializedError()
     }
 
-    const response = await fetch(this.__apiURL + 'track/events', {
-      headers: this.#headers,
-      method: 'post',
-      body: JSON.stringify({
+    return await API.events.create({
+      headers: this.headers,
+      body: {
         session: this.session,
         action,
         ...params,
-        url: (params && params.url) || window.location.href
-      }),
+        url: (params && params.url) || window.location.href,
+      },
     })
-
-    return new Response(response.status === 200, await response.json())
   }
 
   /**
@@ -82,9 +79,7 @@ class Hellotext {
    * @param callback the callback. This method will be called with the payload
    */
   static on(event, callback) {
-    if(Event.invalid(event)) { throw new InvalidEvent(event) }
-
-    this.#eventEmitter.addSubscriber(event, callback)
+    this.eventEmitter.addSubscriber(event, callback)
   }
 
   /**
@@ -93,9 +88,7 @@ class Hellotext {
    * @param callback the callback to remove
    */
   static removeEventListener(event, callback) {
-    if(Event.invalid(event)) { throw new InvalidEvent(event) }
-
-    this.#eventEmitter.removeSubscriber(event, callback)
+    this.eventEmitter.removeSubscriber(event, callback)
   }
 
   /**
@@ -103,7 +96,9 @@ class Hellotext {
    * @returns {String}
    */
   static get session() {
-    if (this.#notInitialized) { throw new NotInitializedError() }
+    if (this.notInitialized) {
+      throw new NotInitializedError()
+    }
 
     return this.#session
   }
@@ -118,45 +113,28 @@ class Hellotext {
 
   // private
 
-  static get #notInitialized() {
-    return this.#business === undefined
+  static get notInitialized() {
+    return this.business.id === undefined
   }
 
   static async #mintAnonymousSession() {
-    if (this.#notInitialized) { throw new NotInitializedError() }
+    if (this.notInitialized) {
+      throw new NotInitializedError()
+    }
 
-    const trackingUrl = this.__apiURL + 'track/sessions'
-
-    this.mintingPromise = await fetch(trackingUrl, {
-      method: 'post',
-      headers: { Authorization: `Bearer ${this.#business}` },
-    })
-
-    return this.mintingPromise.json()
+    return API.sessions(this.business.id).create()
   }
 
-  static get #headers() {
-    if (this.#notInitialized) { throw new NotInitializedError() }
+  static get headers() {
+    if (this.notInitialized) {
+      throw new NotInitializedError()
+    }
 
     return {
-      Authorization: `Bearer ${this.#business}`,
+      Authorization: `Bearer ${this.business.id}`,
       Accept: 'application.json',
       'Content-Type': 'application/json',
     }
-  }
-
-  static #setSessionCookie() {
-    if (this.#notInitialized) { throw new NotInitializedError() }
-
-    if(this.#eventEmitter.listeners) {
-      this.#eventEmitter.emit("session-set", this.#session)
-    }
-
-    document.cookie = `hello_session=${this.#session}`
-  }
-
-  static get #cookie() {
-    return document.cookie.match('(^|;)\\s*' + 'hello_session' + '\\s*=\\s*([^;]+)')?.pop()
   }
 }
 

@@ -1,0 +1,32 @@
+form[data-hello-form] {
+  position: relative;
+
+  article {
+    [data-error-container] {
+      display: none;
+    }
+
+    &:has(input:invalid) {
+      [data-error-container] {
+        display: block;
+      }
+    }
+  }
+
+  [data-logo-container] {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+
+    small {
+      margin: 0 .3rem;
+    }
+
+    [data-hello-brand] {
+      width: 4rem;
+    }
+  }
+}

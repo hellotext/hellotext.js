@@ -3,12 +3,17 @@
  */
 
 import Hellotext from "../src/hellotext";
+import { Business } from "../src/models"
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
 const expireSession = () => {
   document.cookie = "hello_session=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
 }
+
+beforeEach(() => {
+  Business.prototype.fetchPublicData = jest.fn().mockResolvedValue({ whitelist: 'disabled' })
+})
 
 afterEach(() => {
   jest.clearAllMocks();
@@ -202,5 +207,12 @@ describe("when hello_preview query parameter is present", () => {
       const response = await Hellotext.track("page.viewed")
       expect(response.succeeded).toEqual(true)
     });
+  })
+})
+
+describe('setSession', () => {
+  it('sets the session', () => {
+    Hellotext.setSession("12345")
+    expect(Hellotext.session).toEqual("12345")
   })
 })

@@ -1,7 +1,27 @@
-import EventEmitter from "../src/eventEmitter"
+import Event from "../../src/core/event"
+
+describe(".valid", function () {
+  it("is true when event name is a valid defined name", () => {
+    expect(Event.valid("session-set")).toEqual(true)
+  });
+
+  it("is false when event name is not defined", () =>  {
+    expect(Event.valid("undefined-event")).toEqual(false)
+  });
+});
+
+describe(".invalid", () => {
+  it("is true when event name is not defined", () =>  {
+    expect(Event.invalid("undefined-event")).toEqual(true)
+  });
+
+  it("is false when event name is a valid defined name", () => {
+    expect(Event.invalid("session-set")).toEqual(false)
+  });
+});
 
 describe("#addSubscriber", function () {
-  const instance = new EventEmitter()
+  const instance = new Event()
 
   it("adds the callback to the list of subscribers for an event", () => {
     const callback = (session) => {}
@@ -11,7 +31,7 @@ describe("#addSubscriber", function () {
 });
 
 describe("#removeSubscriber", function () {
-  const instance = new EventEmitter()
+  const instance = new Event()
 
   it("removes the callback from the list of subscribers for an event", () => {
     const callback = (session) => {}
@@ -22,14 +42,14 @@ describe("#removeSubscriber", function () {
   });
 });
 
-describe("#emit", () => {
-  const instance = new EventEmitter()
+describe("#dispatch", () => {
+  const instance = new Event()
 
   it("notifies the listeners for an event", () => {
     const callback = jest.fn()
 
     instance.addSubscriber("session-set", callback)
-    instance.emit("session-set", "session_payload")
+    instance.dispatch("session-set", "session_payload")
 
     expect(callback).toHaveBeenCalledTimes(1)
   });

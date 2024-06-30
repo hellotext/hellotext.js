@@ -1,14 +1,17 @@
-export default class Response {
+class Response {
   #success
-  #response
 
   constructor(success, response) {
+    this.response = response
     this.#success = success
-    this.#response = response
   }
 
   get data() {
-    return this.#response
+    return this.response
+  }
+
+  async json() {
+    return await this.response.json()
   }
 
   get failed() {
@@ -19,3 +22,5 @@ export default class Response {
     return this.#success === true
   }
 }
+
+export { Response }
