@@ -1,5 +1,5 @@
 class Configuration {
-  static apiRoot = 'http://api.lvh.me:3000/v1/'
+  static apiRoot = 'https://api.hellotext.com/v1'
   static autoGenerateSession = true
 
   static assign({ apiRoot, autoGenerateSession }) {
