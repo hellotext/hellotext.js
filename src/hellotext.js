@@ -25,11 +25,11 @@ class Hellotext {
    * @param { Config } config
    */
   static initialize(business, config = { autogenerateSession: true }) {
-    this.business = new Business(business)
-    this.forms = new FormCollection()
-
     this.#config = Configuration.assign(config)
     this.#query = new Query()
+
+    this.business = new Business(business)
+    this.forms = new FormCollection()
 
     addEventListener('load', () => {
       this.forms.collect()
