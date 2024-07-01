@@ -1,19 +1,19 @@
 form[data-hello-form] {
   position: relative;
 
-  article {
-    [data-error-container] {
+  & article {
+    & [data-error-container] {
       display: none;
     }
 
     &:has(input:invalid) {
-      [data-error-container] {
+      & [data-error-container] {
         display: block;
       }
     }
   }
 
-  [data-logo-container] {
+  & [data-logo-container] {
     display: flex;
     justify-content: center;
     align-items: flex-end;
@@ -21,11 +21,11 @@ form[data-hello-form] {
     right: 1rem;
     bottom: 1rem;
 
-    small {
+    & small {
       margin: 0 .3rem;
     }
 
-    [data-hello-brand] {
+    & [data-hello-brand] {
       width: 4rem;
     }
   }
