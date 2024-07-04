@@ -16,7 +16,7 @@ class FormCollection {
     this.add = this.add.bind(this)
   }
 
-  collect() {
+  async collect() {
     if(Hellotext.notInitialized) {
       throw new NotInitializedError()
     }
@@ -34,7 +34,7 @@ class FormCollection {
       )
     }
 
-    Promise.all(promises)
+    await Promise.all(promises)
       .then(forms => forms.forEach(this.add))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
 
