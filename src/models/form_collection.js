@@ -22,6 +22,7 @@ class FormCollection {
     }
 
     const formsIdsToFetch = this.#formIdsToFetch
+    console.log(formsIdsToFetch)
     if (formsIdsToFetch.length === 0) return
 
     const promises = formsIdsToFetch.map(id => {
