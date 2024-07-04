@@ -16,13 +16,17 @@ addEventListener('DOMContentLoaded', () => {
 })
 
 addEventListener('readystatechange', () => {
+
+})
+
+document.onreadystatechange = () => {
   console.log(document.readyState)
 
   if(document.readyState === 'complete') {
     console.log('loadedd 2')
     Hellotext.forms.collect()
   }
-})
+}
 
 addEventListener('load', () => {
   console.log('loadedd 3')
