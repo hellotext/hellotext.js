@@ -11,7 +11,7 @@ application.register('hellotext--otp', OTPController)
 import '../styles/index.css'
 
 addEventListener('load', () => {
-  console.log('document has loaded')
+  Hellotext.forms.collect()
 })
 
 export default Hellotext
