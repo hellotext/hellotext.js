@@ -32,6 +32,7 @@ class Hellotext {
     this.forms = new FormCollection()
 
     addEventListener('load', () => {
+      console.log('loaded')
       this.forms.collect()
     })
 
