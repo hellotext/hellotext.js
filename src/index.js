@@ -10,4 +10,8 @@ application.register('hellotext--otp', OTPController)
 
 import '../styles/index.css'
 
+addEventListener('load', () => {
+  console.log('document has loaded')
+})
+
 export default Hellotext
