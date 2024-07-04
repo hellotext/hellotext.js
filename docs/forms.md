@@ -7,8 +7,7 @@ For more information on how to create a form from the dashboard, view this [guid
 
 ### Collection Phase
 
-After initializing the `Hellotext` class, it attaches a `load` event listener and once the page is loaded,
-it looks for any HTML element that is on the page that has a `data-hello-form` attribute.
+Hellotext uses the `MutationObserver` API to listen for changes in the DOM, specifically new form elements being added that have the `data-hello-form` attribute.
 
 You can access the forms object to also trigger the form collection phase manually.
 This is useful if you have a Single Page Application(SPA) and cannot hardcode the `data-hello-form` element on the rendered page.
