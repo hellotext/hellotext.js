@@ -8,6 +8,6 @@ const application = Application.start()
 application.register('hellotext--form', FormController)
 application.register('hellotext--otp', OTPController)
 
-// import '../styles/index.css'
+import '../styles/index.css'
 
 export default Hellotext

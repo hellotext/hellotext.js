@@ -19,13 +19,13 @@ class FormCollection {
     this.mutationObserver.observe(document.body, {childList: true, subtree: true})
   }
 
-  formMutationObserver(mutationsList, observer) {
-    const mutation = mutationsList.find(mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0)
+  formMutationObserver(mutations) {
+    const mutation = mutations.find(mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0)
     if(!mutation) return
 
     const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
 
-    if(forms) {
+    if(forms && Configuration.autoMountForms) {
       this.collect()
     }
   }
@@ -35,7 +35,7 @@ class FormCollection {
       throw new NotInitializedError()
     }
 
-    const formsIdsToFetch = this.#formIdsToFetch
+    const formsIdsToFetch = this.#formIdsToFetch.filter(this.excludes)
     if (formsIdsToFetch.length === 0) return
 
     const promises = formsIdsToFetch.map(id => {
