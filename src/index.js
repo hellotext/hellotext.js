@@ -8,10 +8,16 @@ const application = Application.start()
 application.register('hellotext--form', FormController)
 application.register('hellotext--otp', OTPController)
 
-import '../styles/index.css'
+// import '../styles/index.css'
 
 addEventListener('load', () => {
+  console.log('loadedd')
   Hellotext.forms.collect()
+
+  setTimeout(() => {
+    console.log('collecting')
+    Hellotext.forms.collect()
+  }, 2000)
 })
 
 export default Hellotext
