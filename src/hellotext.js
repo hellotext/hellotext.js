@@ -31,10 +31,15 @@ class Hellotext {
     this.business = new Business(business)
     this.forms = new FormCollection()
 
-    addEventListener('load', () => {
+    if(document.readyState === 'complete') {
       console.log('loaded')
       this.forms.collect()
-    })
+    } else {
+      addEventListener('load', () => {
+        console.log('loaded')
+        this.forms.collect()
+      })
+    }
 
     if (this.#query.inPreviewMode) return
 
