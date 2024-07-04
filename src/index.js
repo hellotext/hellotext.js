@@ -10,7 +10,7 @@ application.register('hellotext--otp', OTPController)
 
 // import '../styles/index.css'
 
-addEventListener('load', () => {
+addEventListener('DOMContentLoaded', () => {
   console.log('loadedd')
   Hellotext.forms.collect()
 
