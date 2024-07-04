@@ -10,4 +10,14 @@ application.register('hellotext--otp', OTPController)
 
 // import '../styles/index.css'
 
+const observer = new MutationObserver((mutationsList) => {
+  for (let mutation of mutationsList) {
+    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+      console.log(document.querySelectorAll('[data-hello-form]'))
+    }
+  }
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
+
 export default Hellotext
