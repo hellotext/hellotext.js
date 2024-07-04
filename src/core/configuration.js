@@ -4,9 +4,11 @@ class Configuration {
   static autoMountForms = true
 
   static assign(props) {
-    Object.entries(props).forEach(([key, value]) => {
-      this[key] = value
-    })
+    if(props) {
+      Object.entries(props).forEach(([key, value]) => {
+        this[key] = value
+      })
+    }
 
     return this
   }
