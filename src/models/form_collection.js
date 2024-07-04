@@ -14,6 +14,19 @@ class FormCollection {
     this.excludes = this.excludes.bind(this)
 
     this.add = this.add.bind(this)
+
+    this.mutationObserver = new MutationObserver(this.formMutationObserver.bind(this))
+
+    this.mutationObserver.observe(document.body, {childList: true, subtree: true})
+  }
+
+  formMutationObserver(mutationsList, observer) {
+    const mutation = mutationsList.find(mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0)
+    if(!mutation) return
+
+    const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
+
+    console.log(forms)
   }
 
   async collect() {
