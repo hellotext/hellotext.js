@@ -1,12 +1,11 @@
 # Hellotext.js
 
-Official [Hellotext](https://www.hellotext.com) (client-side) JavaScript library. 
+Official [Hellotext](https://www.hellotext.com) (client-side) JavaScript library.
 
 This library allows you the following,
 
 - Track events happening on your site to [Hellotext](https://www.hellotext.com) in real-time.
 - Use Hellotext Forms to dynamically collect data from your customers based on your specific business requirements.
-
 
 ## Installation
 
@@ -118,6 +117,6 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 #### Configuration Options
 
 | Property            | Description                                                                                                      | Type    | Default |
-|---------------------|------------------------------------------------------------------------------------------------------------------| ------- | ------- |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- | ------- | ------- |
 | autogenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies | Boolean | true    |
 | autoMountForms      | Whether the library should automatically mount forms collected or not                                            | Boolean | true    |

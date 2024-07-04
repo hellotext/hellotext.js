@@ -22,7 +22,7 @@ form[data-hello-form] {
     bottom: 1rem;
 
     & small {
-      margin: 0 .3rem;
+      margin: 0 0.3rem;
     }
 
     & [data-hello-brand] {

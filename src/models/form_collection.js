@@ -16,22 +16,25 @@ class FormCollection {
     this.add = this.add.bind(this)
 
     this.mutationObserver = new MutationObserver(this.formMutationObserver.bind(this))
-    this.mutationObserver.observe(document.body, {childList: true, subtree: true})
+    this.mutationObserver.observe(document.body, { childList: true, subtree: true })
   }
 
   formMutationObserver(mutations) {
-    const mutation = mutations.find(mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0)
-    if(!mutation) return
+    const mutation = mutations.find(
+      mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0,
+    )
+
+    if (!mutation) return
 
     const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
 
-    if(forms && Configuration.autoMountForms) {
+    if (forms && Configuration.autoMountForms) {
       this.collect()
     }
   }
 
   async collect() {
-    if(Hellotext.notInitialized) {
+    if (Hellotext.notInitialized) {
       throw new NotInitializedError()
     }
 
@@ -52,7 +55,7 @@ class FormCollection {
       .then(forms => forms.forEach(this.add))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
 
-    if(Configuration.autoMountForms) {
+    if (Configuration.autoMountForms) {
       this.forms.forEach(form => form.mount())
     }
   }
