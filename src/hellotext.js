@@ -31,6 +31,7 @@ class Hellotext {
     this.business = new Business(business)
     this.forms = new FormCollection()
 
+    console.log(document.readyState)
     if(document.readyState === 'complete') {
       console.log('loaded')
       this.forms.collect()
