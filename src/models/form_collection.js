@@ -1,6 +1,7 @@
-import Hellotext from '../hellotext.js'
+import Hellotext from '../hellotext'
 import API from '../api/forms'
 
+import { Configuration } from '../core'
 import { Form } from './form'
 
 import { NotInitializedError } from '../errors'
@@ -13,14 +14,31 @@ class FormCollection {
     this.excludes = this.excludes.bind(this)
 
     this.add = this.add.bind(this)
+
+    this.mutationObserver = new MutationObserver(this.formMutationObserver.bind(this))
+    this.mutationObserver.observe(document.body, { childList: true, subtree: true })
   }
 
-  collect() {
-    if(Hellotext.notInitialized) {
+  formMutationObserver(mutations) {
+    const mutation = mutations.find(
+      mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0,
+    )
+
+    if (!mutation) return
+
+    const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
+
+    if (forms && Configuration.autoMountForms) {
+      this.collect()
+    }
+  }
+
+  async collect() {
+    if (Hellotext.notInitialized) {
       throw new NotInitializedError()
     }
 
-    const formsIdsToFetch = this.#formIdsToFetch
+    const formsIdsToFetch = this.#formIdsToFetch.filter(this.excludes)
     if (formsIdsToFetch.length === 0) return
 
     const promises = formsIdsToFetch.map(id => {
@@ -33,9 +51,13 @@ class FormCollection {
       )
     }
 
-    Promise.all(promises)
+    await Promise.all(promises)
       .then(forms => forms.forEach(this.add))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
+
+    if (Configuration.autoMountForms) {
+      this.forms.forEach(form => form.mount())
+    }
   }
 
   forEach(callback) {

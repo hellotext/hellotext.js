@@ -8,6 +8,7 @@ import { NotInitializedError } from './errors'
 /**
  * @typedef {Object} Config
  * @property {Boolean} autogenerateSession
+ * @property {Boolean} autoMountForms
  */
 
 class Hellotext {
@@ -24,16 +25,12 @@ class Hellotext {
    * @param business public business id
    * @param { Config } config
    */
-  static initialize(business, config = { autogenerateSession: true }) {
+  static initialize(business, config) {
     this.#config = Configuration.assign(config)
     this.#query = new Query()
 
     this.business = new Business(business)
     this.forms = new FormCollection()
-
-    addEventListener('load', () => {
-      this.forms.collect()
-    })
 
     if (this.#query.inPreviewMode) return
 

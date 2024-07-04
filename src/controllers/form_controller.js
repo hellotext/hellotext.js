@@ -43,7 +43,7 @@ export default class extends Controller {
     const response = await FormsAPI.submit(this.form.id, this.formData)
     this.buttonTarget.disabled = false
 
-    if(response.failed) {
+    if (response.failed) {
       return
     }
 
@@ -52,7 +52,7 @@ export default class extends Controller {
 
     const submission = await response.json()
 
-    if(submission.identified) {
+    if (submission.identified) {
       this.completed()
     } else {
       Hellotext.setSession(submission.session)

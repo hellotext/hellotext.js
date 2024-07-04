@@ -28,7 +28,7 @@ class Form {
       document.body.appendChild(this.element)
     }
 
-    if(!Hellotext.business.features.white_label) {
+    if (!Hellotext.business.features.white_label) {
       this.element.prepend(LogoBuilder.build())
     }
   }

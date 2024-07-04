@@ -8,6 +8,6 @@ export default {
     throttled: 'You have reached the maximum number of attempts. Please try again in 1 minute.',
   },
   white_label: {
-    powered_by: "Powered by",
-  }
+    powered_by: 'Powered by',
+  },
 }
