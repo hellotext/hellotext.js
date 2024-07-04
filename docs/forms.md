@@ -44,8 +44,14 @@ The `FormCollection` class is a wrapper around the forms, which providers other 
 
 ### Mounting forms
 
-After the collection phase, form elements would be available to be mounted. Hellotext does not automatically mount form elements, 
-you have total control on when and where to mount the form elements. To mount a form object, you call the `mount` method on the form object. 
+Hellotext.js by default automatically mounts forms collected to the DOM. You can disable this behaviour by passing the `autoMountForms` option as `false` when initializing the library.
+
+```javascript
+Hellotext.initialize('HELLOTEXT_BUSINESS_ID', { autoMountForms: false })
+```
+
+If form mounting is disabled, Hellotext does not automatically mount form elements, 
+you will have total control on when and where to mount the form elements. To mount a form object, you call the `mount` method on the form object. 
 
 ```javascript
 Hellotext.on('forms:collected', (forms) => {

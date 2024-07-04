@@ -1,6 +1,7 @@
-import Hellotext from '../hellotext.js'
+import Hellotext from '../hellotext'
 import API from '../api/forms'
 
+import { Configuration } from '../core'
 import { Form } from './form'
 
 import { NotInitializedError } from '../errors'
@@ -36,6 +37,10 @@ class FormCollection {
     Promise.all(promises)
       .then(forms => forms.forEach(this.add))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
+
+    if(Configuration.autoMountForms) {
+      this.forms.forEach(form => form.mount())
+    }
   }
 
   forEach(callback) {
