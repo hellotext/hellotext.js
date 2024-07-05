@@ -63,6 +63,18 @@ Hellotext looks for a `form` element with the `data-hello-form` attribute and mo
 If this condition is not met, Hellotext creates the form manually and appends it to the body of the document.
 We recommend to make the criteria met to ensure the form is loaded into an expected place in your page.
 
+Hellotext provides seamless integration with your website, once forms are completed, they are stored in the `localStorage`,
+this ensures that the form is not displayed again to the user if they have already completed it. Of course, sometimes it may be desired to 
+show the form to a user regardless if they have completed the form or not, in these cases, you can adjust the way you call `Form.mount()`,
+
+```javascript
+Hellotext.on('forms:collected', forms => {
+  forms.getByIndex(0).mount({ ifCompleted: false })
+})
+```
+
+This will mount the form regardless if the user has completed the form or not.
+
 ### Validation
 
 Hellotext automatically validates the form inputs based on how they were configured on the dashboard
