@@ -12,7 +12,7 @@ class Form {
       document.createElement('form')
   }
 
-  async mount({ ifCompleted = true }) {
+  async mount({ ifCompleted = true } = {}) {
     if(ifCompleted && this.hasBeenCompleted) {
       return
     }
