@@ -12,6 +12,7 @@ export default class FormsAPI {
     return fetch(`${this.endpoint}/${id}`, {
       method: 'GET',
       headers: Hellotext.headers,
+      body: JSON.stringify({ session: Hellotext.session }),
     })
   }
 
