@@ -9,10 +9,12 @@ export default class FormsAPI {
   }
 
   static async get(id) {
-    return fetch(`${this.endpoint}/${id}`, {
+    const url = new URL(`${this.endpoint}/${id}`)
+    url.searchParams.append('session', Hellotext.session)
+
+    return fetch(url, {
       method: 'GET',
       headers: Hellotext.headers,
-      body: JSON.stringify({ session: Hellotext.session }),
     })
   }
 
