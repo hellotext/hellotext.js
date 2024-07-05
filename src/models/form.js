@@ -12,7 +12,11 @@ class Form {
       document.createElement('form')
   }
 
-  async mount() {
+  async mount({ ifCompleted = true } = {}) {
+    if(ifCompleted && this.hasBeenCompleted) {
+      return
+    }
+
     const firstStep = this.data.steps[0]
 
     this.buildHeader(firstStep.header)
@@ -87,8 +91,13 @@ class Form {
   }
 
   markAsCompleted(data) {
-    localStorage.setItem(`hello-form-${this.id}`, 'completed')
+    localStorage.setItem(`hello-form-${this.id}`, JSON.stringify({ state: 'completed', data }))
+
     Hellotext.eventEmitter.dispatch('form:completed', { id: this.id, ...data })
+  }
+
+  get hasBeenCompleted() {
+    return localStorage.getItem(`hello-form-${this.id}`) !== null
   }
 
   get id() {
