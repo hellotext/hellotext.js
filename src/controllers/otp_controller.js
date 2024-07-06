@@ -53,6 +53,8 @@ export default class extends Controller {
 
   onInputChange() {
     if (this.inputTarget.value.length !== 6) return
+
+    this.submitButton.disabled = false
     this.submit()
   }
 

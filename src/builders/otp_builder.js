@@ -30,7 +30,7 @@ class OTPBuilder {
         </header>
         
         <footer data-otp-footer>
-          <button type="button" data-hellotext--otp-target="submitButton" data-action="hellotext--otp#submit">
+          <button type="button" data-hellotext--otp-target="submitButton" disabled data-action="hellotext--otp#submit">
             ${Hellotext.business.locale.otp.submit}
           </button>
           
