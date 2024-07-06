@@ -53,12 +53,14 @@ export default class extends Controller {
 
   onInputChange() {
     if (this.inputTarget.value.length !== 6) return
-
-    this.submitButton.disabled = false
     this.submit()
   }
 
   async submit() {
+    if(this.inputTarget.value.length !== 6) {
+      return alert(Hellotext.business.locale.otp.invalid)
+    }
+
     this.disable()
 
     const response = await SubmissionsAPI.verifyOTP(this.submissionIdValue, this.inputTarget.value)
