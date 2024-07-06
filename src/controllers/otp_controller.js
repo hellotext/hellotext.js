@@ -68,8 +68,10 @@ export default class extends Controller {
     } else {
       alert(Hellotext.business.locale.otp.invalid)
 
-      this.inputTarget.value = ''
-      this.inputTarget.focus()
+      setTimeout(() => {
+        this.inputTarget.value = ''
+        this.inputTarget.focus()
+      })
     }
 
     this.enable()
