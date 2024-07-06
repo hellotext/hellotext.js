@@ -49,9 +49,12 @@ export default class extends Controller {
     this.attempts += 1
   }
 
-  async onInputChange() {
+  onInputChange() {
     if (this.inputTarget.value.length !== 6) return
+    this.submit()
+  }
 
+  async submit() {
     this.inputTarget.disabled = true
     this.resendButtonTarget.disabled = true
 
