@@ -22,8 +22,10 @@ export default class extends Controller {
   }
 
   connect() {
-    super.connect()
     this.inputTarget.addEventListener('input', this.onInputChange)
+    this.inputTarget.focus()
+
+    super.connect()
   }
 
   disconnect() {
@@ -65,6 +67,9 @@ export default class extends Controller {
       })
     } else {
       alert(Hellotext.business.locale.otp.invalid)
+
+      this.inputTarget.value = ''
+      this.inputTarget.focus()
     }
 
     this.enable()
