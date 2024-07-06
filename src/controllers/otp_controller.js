@@ -8,7 +8,7 @@ export default class extends Controller {
     submissionId: String,
   }
 
-  static targets = ['input', 'resendButton']
+  static targets = ['input', 'submitButton', 'resendButton']
 
   initialize() {
     super.initialize()
@@ -22,8 +22,10 @@ export default class extends Controller {
   }
 
   connect() {
-    super.connect()
     this.inputTarget.addEventListener('input', this.onInputChange)
+    this.inputTarget.focus()
+
+    super.connect()
   }
 
   disconnect() {
@@ -49,11 +51,17 @@ export default class extends Controller {
     this.attempts += 1
   }
 
-  async onInputChange() {
+  onInputChange() {
     if (this.inputTarget.value.length !== 6) return
+    this.submit()
+  }
 
-    this.inputTarget.disabled = true
-    this.resendButtonTarget.disabled = true
+  async submit() {
+    if(this.inputTarget.value.length !== 6) {
+      return alert(Hellotext.business.locale.otp.invalid)
+    }
+
+    this.disable()
 
     const response = await SubmissionsAPI.verifyOTP(this.submissionIdValue, this.inputTarget.value)
 
@@ -63,13 +71,29 @@ export default class extends Controller {
       })
     } else {
       alert(Hellotext.business.locale.otp.invalid)
+
+      setTimeout(() => {
+        this.inputTarget.value = ''
+        this.inputTarget.focus()
+      })
     }
 
-    this.inputTarget.disabled = false
-    this.resendButtonTarget.disabled = false
+    this.enable()
   }
 
   // private
+
+  disable() {
+    this.inputTarget.disabled = true
+    this.resendButtonTarget.disabled = true
+    this.submitButtonTarget.disabled = true
+  }
+
+  enable() {
+    this.inputTarget.disabled = false
+    this.resendButtonTarget.disabled = false
+    this.submitButtonTarget.disabled = false
+  }
 
   get throttled() {
     return this.attempts >= 3
