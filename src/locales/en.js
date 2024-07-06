@@ -6,6 +6,7 @@ export default {
     invalid: 'Invalid One-Time Password',
     resend: 'Resend OTP',
     throttled: 'You have reached the maximum number of attempts. Please try again in 1 minute.',
+    placeholder: 'Enter the code here',
   },
   white_label: {
     powered_by: 'Powered by',

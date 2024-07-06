@@ -5,8 +5,8 @@ export default {
     resend_successful: 'El código de un solo uso ha sido reenviado exitosamente',
     invalid: 'Código de un solo uso inválido',
     resend: 'Reenviar OTP',
-    throttled:
-      'Has alcanzado el número máximo de intentos. Por favor intenta de nuevo en 1 minuto.',
+    throttled: 'Has alcanzado el número máximo de intentos. Por favor intenta de nuevo en 1 minuto.',
+    placeholder: 'Ingresa el código aquí'
   },
   white_label: {
     powered_by: 'Desarrollado por',

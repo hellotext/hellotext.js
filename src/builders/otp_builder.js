@@ -24,7 +24,7 @@ class OTPBuilder {
             type="text"
             name="otp"
             data-hellotext--otp-target="input"
-            placeholder="Enter your OTP"
+            placeholder="${Hellotext.business.locale.otp.placeholder}"
             maxlength="6"
             />
         </header>
