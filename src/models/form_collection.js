@@ -38,7 +38,9 @@ class FormCollection {
       throw new NotInitializedError()
     }
 
-    const formsIdsToFetch = this.#formIdsToFetch.filter(this.excludes)
+    if(this.fetching) return
+
+    const formsIdsToFetch = this.#formIdsToFetch
     if (formsIdsToFetch.length === 0) return
 
     const promises = formsIdsToFetch.map(id => {
@@ -51,9 +53,12 @@ class FormCollection {
       )
     }
 
+    this.fetching = true
+
     await Promise.all(promises)
       .then(forms => forms.forEach(this.add))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
+      .then(() => this.fetching = false)
 
     if (Configuration.autoMountForms) {
       this.forms.forEach(form => form.mount())
