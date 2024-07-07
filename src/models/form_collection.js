@@ -38,9 +38,10 @@ class FormCollection {
       throw new NotInitializedError()
     }
 
-    const formsIdsToFetch = this.#formIdsToFetch.filter(this.excludes)
+    const formsIdsToFetch = this.#formIdsToFetch
     if (formsIdsToFetch.length === 0) return
 
+    console.log(formsIdsToFetch)
     const promises = formsIdsToFetch.map(id => {
       return API.get(id).then(response => response.json())
     })
