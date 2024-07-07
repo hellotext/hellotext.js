@@ -38,10 +38,11 @@ class FormCollection {
       throw new NotInitializedError()
     }
 
+    if(this.fetching) return
+
     const formsIdsToFetch = this.#formIdsToFetch
     if (formsIdsToFetch.length === 0) return
 
-    console.log(formsIdsToFetch)
     const promises = formsIdsToFetch.map(id => {
       return API.get(id).then(response => response.json())
     })
@@ -52,9 +53,12 @@ class FormCollection {
       )
     }
 
+    this.fetching = true
+
     await Promise.all(promises)
       .then(forms => forms.forEach(this.add))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
+      .then(() => this.fetching = false)
 
     if (Configuration.autoMountForms) {
       this.forms.forEach(form => form.mount())
