@@ -4,7 +4,7 @@ export default {
     sent_to_phone: 'An One-Time Password has been sent to your phone number',
     resend_successful: 'The One-Time Password has been resent successfully',
     invalid: 'Invalid One-Time Password',
-    resend: 'Resend',
+    resend: 'Resend verification code',
     submit: 'Submit',
     throttled: 'You have reached the maximum number of attempts. Please try again in 1 minute.',
     placeholder: 'Enter the code here',
