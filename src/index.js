@@ -10,4 +10,6 @@ application.register('hellotext--otp', OTPController)
 
 import '../styles/index.css'
 
+window.Hellotext = Hellotext
+
 export default Hellotext
