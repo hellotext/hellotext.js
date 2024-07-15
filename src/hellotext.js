@@ -13,7 +13,6 @@ import { NotInitializedError } from './errors'
 
 class Hellotext {
   static #session
-  static #config
   static #query
 
   static eventEmitter = new Event()
@@ -26,7 +25,8 @@ class Hellotext {
    * @param { Config } config
    */
   static initialize(business, config) {
-    this.#config = Configuration.assign(config)
+    Configuration.assign(config)
+
     this.#query = new Query()
 
     this.business = new Business(business)
@@ -36,7 +36,7 @@ class Hellotext {
 
     if (this.#query.session) {
       this.#session = Cookies.set('hello_session', this.#query.session)
-    } else if (config.autogenerateSession) {
+    } else if (Configuration.autoGenerateSession) {
       this.#mintAnonymousSession().then(response => {
         this.#session = Cookies.set('hello_session', response.id)
       })
