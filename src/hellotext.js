@@ -129,7 +129,7 @@ class Hellotext {
 
     return {
       Authorization: `Bearer ${this.business.id}`,
-      Accept: 'application.json',
+      Accept: 'application/json',
       'Content-Type': 'application/json',
     }
   }

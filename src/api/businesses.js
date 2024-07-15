@@ -10,7 +10,7 @@ export default class {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${id}`,
-        Accept: 'application.json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
     })
