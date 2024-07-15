@@ -118,5 +118,5 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 
 | Property            | Description                                                                                                      | Type    | Default |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------- | ------- | ------- |
-| autogenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies | Boolean | true    |
+| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies | Boolean | true    |
 | autoMountForms      | Whether the library should automatically mount forms collected or not                                            | Boolean | true    |

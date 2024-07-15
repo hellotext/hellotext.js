@@ -9,7 +9,7 @@ beforeEach(() => {
   Business.prototype.fetchPublicData = jest.fn().mockResolvedValue({ whitelist: 'disabled' })
 
   Hellotext.initialize('M01az53K', {
-    autogenerateSession: false,
+    autoGenerateSession: false,
     autoMountForms: false
   })
 })

@@ -7,7 +7,7 @@ import { NotInitializedError } from './errors'
 
 /**
  * @typedef {Object} Config
- * @property {Boolean} autogenerateSession
+ * @property {Boolean} autoGenerateSession
  * @property {Boolean} autoMountForms
  */
 
