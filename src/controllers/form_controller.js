@@ -5,8 +5,6 @@ import { Form } from '../models'
 
 import FormsAPI from '../api/forms'
 
-import { OTPBuilder } from '../builders/otp_builder'
-
 export default class extends Controller {
   static values = {
     data: Object,
