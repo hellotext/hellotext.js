@@ -118,10 +118,6 @@ class Form {
         name: 'data-hellotext--form-data-value',
         value: JSON.stringify(this.data),
       },
-      {
-        name: 'data-action',
-        value: 'hellotext--otp:verified->hellotext--form#completed',
-      },
     ]
   }
 

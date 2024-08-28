@@ -52,20 +52,11 @@ export default class extends Controller {
 
     const submission = await response.json()
 
-    if (submission.identified) {
-      this.completed()
-    } else {
+    if (!submission.identified) {
       Hellotext.setSession(submission.session)
-      this.revealOTPContainer(submission.id)
     }
-  }
 
-  revealOTPContainer(submissionId) {
-    const paragraph = this.requiredInputs.find(input => input.name === 'email')
-      ? Hellotext.business.locale.otp.sent_to_email
-      : Hellotext.business.locale.otp.sent_to_phone
-
-    this.element.appendChild(OTPBuilder.build(submissionId, paragraph))
+    this.completed()
   }
 
   completed() {
