@@ -82,12 +82,12 @@ using browser's native [checkValidity()](https://developer.mozilla.org/en-US/doc
 Once the user tries to submit the form and there are missing required fields,
 the submission is halted and we display default browser's error message using [HTMLObjectElement.validationMessage](https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/validationMessage) property.
 
-### Authentication
+### Authentication and Verification
 
 Hellotext protects you from bot submissions and protects your customers from identity theft and impersonation.
-When a subscriber fills the form, Hellotext sends a One Time Password (OTP) code to the subscriber. If they have an email,
-an email is sent to them, otherwise an SMS is sent to their phone number.
-Until a valid OTP has been entered, data will not show up on the dashboard and will not contribute to attribution marketing.
+When a subscriber fills the form with an email and/or phone number, Hellotext sends a verification link to the value the submission had at the time of creation. 
+When the customer clicks the link in their email and/or the SMS they receive, the attribute is verified. 
+Once the email/phone number were verified, the data is considered to be _reliable_.
 
 ### Form Completion
 
