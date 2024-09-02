@@ -42,6 +42,7 @@ export default class extends Controller {
     this.buttonTarget.disabled = false
 
     if (response.failed) {
+      console.log(await response.json())
       return
     }
 
