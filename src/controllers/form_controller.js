@@ -50,7 +50,13 @@ export default class extends Controller {
         const input = this.inputTargets.find(input => input.name === parameter)
         const parent = input.closest('article')
 
-        parent.querySelector('[data-error-container]').innerText = Hellotext.business.locale.errors[type]
+        input.setCustomValidity(Hellotext.business.locale.errors[type])
+        input.reportValidity()
+
+        input.addEventListener('input', () => {
+          input.setCustomValidity('')
+          input.reportValidity()
+        })
       })
     }
 
@@ -82,6 +88,7 @@ export default class extends Controller {
 
   clearErrorMessages() {
     this.element.querySelectorAll('input').forEach(input => {
+      input.setCustomValidity('')
       const parent = input.closest('article')
       parent.querySelector('[data-error-container]').innerText = ''
     })
