@@ -42,8 +42,16 @@ export default class extends Controller {
     this.buttonTarget.disabled = false
 
     if (response.failed) {
-      console.log(await response.json())
-      return
+      const data = await response.json()
+
+      return data.errors.forEach(error => {
+        const { type, parameter } = error
+
+        const input = this.inputTargets.find(input => input.name === parameter)
+        const parent = input.closest('article')
+
+        parent.querySelector('[data-error-container]').innerText = Hellotext.business.locale.errors[type]
+      })
     }
 
     this.buttonTarget.style.display = 'none'
