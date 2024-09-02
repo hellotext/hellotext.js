@@ -41,14 +41,13 @@ export default class extends Controller {
     const response = await FormsAPI.submit(this.form.id, this.formData)
     this.buttonTarget.disabled = false
 
-    if (response.failed) {
-      const data = await response.json()
+    const data = await response.json()
 
+    if (response.failed) {
       data.errors.forEach(error => {
         const { type, parameter } = error
 
         const input = this.inputTargets.find(input => input.name === parameter)
-        const parent = input.closest('article')
 
         input.setCustomValidity(Hellotext.business.locale.errors[type])
         input.reportValidity()
@@ -65,10 +64,8 @@ export default class extends Controller {
     this.buttonTarget.style.display = 'none'
     this.element.querySelectorAll('input').forEach(input => (input.disabled = true))
 
-    const submission = await response.json()
-
-    if (!submission.identified) {
-      Hellotext.setSession(submission.session)
+    if (!data.identified) {
+      Hellotext.setSession(data.session)
     }
 
     this.completed()
