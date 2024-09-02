@@ -3,6 +3,8 @@ form[data-hello-form] {
 
   & article {
     & [data-error-container] {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
       display: none;
     }
 
