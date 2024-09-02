@@ -44,7 +44,7 @@ export default class extends Controller {
     if (response.failed) {
       const data = await response.json()
 
-      return data.errors.forEach(error => {
+      data.errors.forEach(error => {
         const { type, parameter } = error
 
         const input = this.inputTargets.find(input => input.name === parameter)
@@ -58,6 +58,8 @@ export default class extends Controller {
           input.reportValidity()
         })
       })
+
+      return this.showErrorMessages()
     }
 
     this.buttonTarget.style.display = 'none'
