@@ -79,15 +79,28 @@ This will mount the form regardless if the user has completed the form or not.
 
 Hellotext automatically validates the form inputs based on how they were configured on the dashboard
 using browser's native [checkValidity()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/checkValidity).
+
 Once the user tries to submit the form and there are missing required fields,
 the submission is halted and we display default browser's error message using [HTMLObjectElement.validationMessage](https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/validationMessage) property.
 
-### Authentication and Verification
+If the form contains a unique property and the client enters a value that is already taken,
+the submission will not be complete. Instead, an error will be reported to the client and the form will not be submitted.
+
+Uniqueness errors use the browser's native [setCustomValidity()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/setCustomValidity)
+method which are reported as normal form validation errors, they can be styled with the `input:invalid` selector.
+
+### Understanding Verification
 
 Hellotext protects you from bot submissions and protects your customers from identity theft and impersonation.
+
 When a subscriber fills the form with an email and/or phone number, Hellotext sends a verification link to the value the submission had at the time of creation. 
 When the customer clicks the link in their email and/or the SMS they receive, the attribute is verified. 
-Once the email/phone number were verified, the data is considered to be _reliable_.
+Once the email/phone number were verified, the data is considered to be _verified_.
+
+Once verification of a submission is complete, Hellotext performs an automatic merge (if needed) of all profiles 
+that have the same email and/or phone number. After automatic merging, if a property has multiple values, 
+it will be visible in the Audience page and the user can see the values that were merged and they can decide which one 
+to ignore and which one to accept.
 
 ### Form Completion
 
