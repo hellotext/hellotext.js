@@ -104,7 +104,7 @@ to ignore and which one to accept.
 
 ### Form Completion
 
-Once the user enters the OTP they received. The form is considered to be complete and will be sent to the Hellotext API to create(or update) a profile from the submission information.
+Once the form is considered to be complete, it will be sent to the Hellotext API to create(or update) a profile from the submission information.
 The library also dispatches a `form:completed` event that you can subscribe to. In addition, a Session object is set and stored on the browser's cookies.
 Additionally, the `Hellotext.session` is also set if no session was present already, you can listen for the session events by subscribing to `session-set` event.
 
