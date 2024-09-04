@@ -5,8 +5,6 @@ import { Form } from '../models'
 
 import FormsAPI from '../api/forms'
 
-import { OTPBuilder } from '../builders/otp_builder'
-
 export default class extends Controller {
   static values = {
     data: Object,
@@ -43,29 +41,34 @@ export default class extends Controller {
     const response = await FormsAPI.submit(this.form.id, this.formData)
     this.buttonTarget.disabled = false
 
+    const data = await response.json()
+
     if (response.failed) {
-      return
+      data.errors.forEach(error => {
+        const { type, parameter } = error
+
+        const input = this.inputTargets.find(input => input.name === parameter)
+
+        input.setCustomValidity(Hellotext.business.locale.errors[type])
+        input.reportValidity()
+
+        input.addEventListener('input', () => {
+          input.setCustomValidity('')
+          input.reportValidity()
+        })
+      })
+
+      return this.showErrorMessages()
     }
 
     this.buttonTarget.style.display = 'none'
     this.element.querySelectorAll('input').forEach(input => (input.disabled = true))
 
-    const submission = await response.json()
-
-    if (submission.identified) {
-      this.completed()
-    } else {
-      Hellotext.setSession(submission.session)
-      this.revealOTPContainer(submission.id)
+    if (!data.identified) {
+      Hellotext.setSession(data.session)
     }
-  }
 
-  revealOTPContainer(submissionId) {
-    const paragraph = this.requiredInputs.find(input => input.name === 'email')
-      ? Hellotext.business.locale.otp.sent_to_email
-      : Hellotext.business.locale.otp.sent_to_phone
-
-    this.element.appendChild(OTPBuilder.build(submissionId, paragraph))
+    this.completed()
   }
 
   completed() {
@@ -84,6 +87,7 @@ export default class extends Controller {
 
   clearErrorMessages() {
     this.element.querySelectorAll('input').forEach(input => {
+      input.setCustomValidity('')
       const parent = input.closest('article')
       parent.querySelector('[data-error-container]').innerText = ''
     })
