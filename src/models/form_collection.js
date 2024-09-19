@@ -15,8 +15,10 @@ class FormCollection {
 
     this.add = this.add.bind(this)
 
-    this.mutationObserver = new MutationObserver(this.formMutationObserver.bind(this))
-    this.mutationObserver.observe(document.body, { childList: true, subtree: true })
+    if(typeof MutationObserver !== 'undefined') {
+      this.mutationObserver = new MutationObserver(this.formMutationObserver.bind(this))
+      this.mutationObserver.observe(document.body, { childList: true, subtree: true })
+    }
   }
 
   formMutationObserver(mutations) {
