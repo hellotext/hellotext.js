@@ -14,11 +14,6 @@ class FormCollection {
     this.excludes = this.excludes.bind(this)
 
     this.add = this.add.bind(this)
-
-    if(typeof window.MutationObserver !== 'undefined') {
-      this.mutationObserver = new MutationObserver(this.formMutationObserver.bind(this))
-      this.mutationObserver.observe(document.body, { childList: true, subtree: true })
-    }
   }
 
   formMutationObserver(mutations) {
