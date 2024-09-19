@@ -1,9 +1,3 @@
-if(typeof MutationObserver === 'undefined') {
-  import('mutationobserver-shim').then(() => {
-    console.log('MutationObserver shim loaded')
-  })
-}
-
 import { Application } from '@hotwired/stimulus'
 import Hellotext from './hellotext'
 
