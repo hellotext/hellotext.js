@@ -1,1 +1,1 @@
-export default from './hellotext'
+module.exports = require('./hellotext.js')
