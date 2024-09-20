@@ -8,11 +8,8 @@
   "license": "MIT",
   "homepage": "https://github.com/hellotext/hellotext.js",
   "exports": {
+    "default": "./lib/index.js",
     "import": {
-      "default": "./lib/index.js",
-      "./vanilla": "./lib/vanilla.js"
-    },
-    "require": {
       "default": "./lib/index.js",
       "./vanilla": "./lib/vanilla.js"
     }
