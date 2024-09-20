@@ -7,6 +7,10 @@
   "author": "Hellotext",
   "license": "MIT",
   "homepage": "https://github.com/hellotext/hellotext.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./vanilla": "./lib/vanilla.js"
+  },
   "devDependencies": {
     "@babel/cli": "^7.20.7",
     "@babel/core": "^7.20.12",
