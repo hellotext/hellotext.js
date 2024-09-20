@@ -6,8 +6,8 @@
   "main": "lib/index.cjs",
   "module": "lib/index.js",
   "exports": {
-    "import": "./lib/index.js",
-    "require": "./lib/index.cjs"
+    "import": "lib/index.js",
+    "require": "lib/index.cjs"
   },
   "author": "Hellotext",
   "license": "MIT",
