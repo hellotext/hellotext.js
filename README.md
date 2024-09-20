@@ -29,6 +29,13 @@ Import the library into your app.
 import Hellotext from '@hellotext/hellotext'
 ```
 
+If you're running in a non-browser environment, such as Node.js, you can import the vanilla implementation which only includes 
+Hellotext.js class without initializing other libraries that rely on the browser environment.
+
+```javascript
+import Hellotext from '@hellotext/hellotext/vanilla'
+```
+
 Initialize the library passing the public `HELLOTEXT_BUSINESS_ID` identifier that represents the business.
 
 You can find it from the business's settings page.
@@ -116,7 +123,8 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 
 #### Configuration Options
 
-| Property            | Description                                                                                                      | Type    | Default |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------- | ------- | ------- |
-| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies | Boolean | true    |
-| autoMountForms      | Whether the library should automatically mount forms collected or not                                            | Boolean | true    |
+| Property            | Description                                                                                                                                                                                     | Type    | Default |
+|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|---------|
+| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null    |
+| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true    |
+| autoMountForms      | Whether the library should automatically mount forms collected or not                                                                                                                           | Boolean | true    |
