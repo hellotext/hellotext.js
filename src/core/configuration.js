@@ -2,6 +2,7 @@ class Configuration {
   static apiRoot = 'https://api.hellotext.com/v1'
   static autoGenerateSession = true
   static autoMountForms = true
+  static session = null
 
   static assign(props) {
     if(props) {

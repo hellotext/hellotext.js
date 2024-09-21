@@ -2,14 +2,21 @@ import Hellotext from '../hellotext'
 
 class Cookies {
   static set(name, value) {
-    document.cookie = `${name}=${value}`
+    if(typeof document !== 'undefined') {
+      document.cookie = `${name}=${value}`
+    }
+
     Hellotext.eventEmitter.dispatch('session-set', value)
 
     return value
   }
 
   static get(name) {
-    return document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
+    if(typeof document !== 'undefined') {
+      return document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
+    } else {
+      return undefined
+    }
   }
 }
 

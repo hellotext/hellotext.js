@@ -34,7 +34,9 @@ class Hellotext {
 
     if (this.#query.inPreviewMode) return
 
-    if (this.#query.session) {
+    if(Configuration.session) {
+      this.#session = Configuration.session
+    } else if (this.#query.session) {
       this.#session = Cookies.set('hello_session', this.#query.session)
     } else if (Configuration.autoGenerateSession) {
       this.#mintAnonymousSession().then(response => {
