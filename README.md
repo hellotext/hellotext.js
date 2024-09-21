@@ -1,6 +1,6 @@
 # Hellotext.js
 
-Official [Hellotext](https://www.hellotext.com) (client-side) JavaScript library.
+Official [Hellotext](https://www.hellotext.com) JavaScript library.
 
 This library allows you the following,
 
