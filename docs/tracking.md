@@ -49,11 +49,15 @@ Hellotext.track('page.viewed', {
 
 ### Headers 
 
-You can add any custom or additional headers to the request by passing an object as the third argument to the `track` method.
-Any duplicate headers will be overwritten by Hellotext's default headers.
+You can add any custom or additional headers to the request by passing a `headers` object in the parameter.
 
 ```javascript
-Hellotext.track('page.viewed', {}, { 'X-Custom-Header': 'value' })
+Hellotext.track('page.viewed', {
+  headers: {
+    'X-Custom-Header': 'value',
+  },
+  // event related parameters
+})
 ```
 
 ### Errors
