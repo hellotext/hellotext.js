@@ -54,15 +54,19 @@ class Hellotext {
    *
    * @param { String } action a valid action name
    * @param { Object } params
+   * @param { Object } headers additional headers to send
    * @returns {Promise<Response>}
    */
-  static async track(action, params = {}) {
+  static async track(action, params = {}, headers = {}) {
     if (this.notInitialized) {
       throw new NotInitializedError()
     }
 
     return await API.events.create({
-      headers: this.headers,
+      headers: {
+        ...headers,
+        ...this.headers,
+      },
       body: {
         session: this.session,
         action,

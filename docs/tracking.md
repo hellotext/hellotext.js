@@ -47,6 +47,15 @@ Hellotext.track('page.viewed', {
 })
 ```
 
+### Headers 
+
+You can add any custom or additional headers to the request by passing an object as the third argument to the `track` method.
+Any duplicate headers will be overwritten by Hellotext's default headers.
+
+```javascript
+Hellotext.track('page.viewed', {}, { 'X-Custom-Header': 'value' })
+```
+
 ### Errors
 
 Failing to provide valid set of parameters will result in an error object being returned, describing the parameters that did not satisfy the rules.
