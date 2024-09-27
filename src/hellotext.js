@@ -61,17 +61,23 @@ class Hellotext {
       throw new NotInitializedError()
     }
 
+    const headers = {
+      ...(params && params.headers) || {},
+      ...this.headers,
+    }
+
+    const body = {
+      session: this.session,
+      action,
+      ...params,
+      url: (params && params.url) || window.location.href,
+    }
+
+    delete body.headers
+
     return await API.events.create({
-      headers: {
-        ...(params && params.headers || {}),
-        ...this.headers,
-      },
-      body: {
-        session: this.session,
-        action,
-        ...params,
-        url: (params && params.url) || window.location.href,
-      },
+      headers,
+      body,
     })
   }
 
