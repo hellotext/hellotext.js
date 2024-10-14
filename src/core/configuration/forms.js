@@ -1,3 +1,10 @@
+/**
+ * @class Forms
+ * @classdesc
+ * Configuration for forms
+ * @property {Boolean} autoMount - whether to auto mount forms
+ * @property {Boolean|String} successMessage - whether to show success message after form completion or not
+ */
 class Forms {
   static autoMount = true
   static successMessage = true
@@ -15,6 +22,10 @@ class Forms {
     }
 
     return this
+  }
+
+  static get shouldShowSuccessMessage() {
+    return this.successMessage
   }
 }
 

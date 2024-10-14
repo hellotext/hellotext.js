@@ -104,6 +104,25 @@ class Form {
     return this.data.id
   }
 
+  get requiresAuthentication() {
+    const firstStep = this.data.steps[0]
+    return firstStep.inputs.some(input => input.kind === 'email') || firstStep.inputs.some(input => input.kind === 'phone')
+  }
+
+  get localeAuthKey() {
+    const firstStep = this.data.steps[0]
+
+    if(firstStep.inputs.some(input => input.kind === 'email') && firstStep.inputs.some(input => input.kind === 'phone')) {
+      return 'phone_and_email'
+    } else if(firstStep.inputs.some(input => input.kind === 'email')) {
+      return 'email'
+    } else if(firstStep.inputs.some(input => input.kind === 'phone')) {
+      return 'phone'
+    } else {
+      return null
+    }
+  }
+
   get elementAttributes() {
     return [
       {

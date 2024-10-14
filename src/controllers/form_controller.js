@@ -5,6 +5,8 @@ import { Form } from '../models'
 
 import FormsAPI from '../api/forms'
 
+import { Configuration } from '../core'
+
 export default class extends Controller {
   static values = {
     data: Object,
@@ -73,7 +75,16 @@ export default class extends Controller {
 
   completed() {
     this.form.markAsCompleted(this.formData)
-    this.element.remove()
+
+    if(!Configuration.forms.shouldShowSuccessMessage || !this.form.requiresAuthentication) {
+      return this.element.remove()
+    }
+
+    if(typeof Configuration.forms.successMessage === 'string') {
+      this.element.innerHTML = Configuration.forms.successMessage
+    } else {
+      this.element.innerHTML = Hellotext.business.locale.forms[this.form.localeAuthKey]
+    }
   }
 
   // private
