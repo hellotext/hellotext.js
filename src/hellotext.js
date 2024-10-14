@@ -8,7 +8,6 @@ import { NotInitializedError } from './errors'
 /**
  * @typedef {Object} Config
  * @property {Boolean} autoGenerateSession
- * @property {Boolean} autoMountForms
  */
 
 class Hellotext {
