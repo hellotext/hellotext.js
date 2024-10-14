@@ -1,5 +1,13 @@
 import { Forms } from './configuration/forms'
 
+/**
+ * @class Configuration
+ * @classdesc
+ * Configuration for Hellotext
+ * @property {Boolean} [autoGenerateSession=true] - whether to auto generate session or not
+ * @property {String} [session] - session id
+ * @property {Forms} [forms] - form configuration
+ */
 class Configuration {
   static apiRoot = 'https://api.hellotext.com/v1'
 
