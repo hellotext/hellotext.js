@@ -30,6 +30,9 @@ class FormCollection {
 
     const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
 
+    console.log(Configuration.forms.autoMount)
+    console.log(Configuration)
+
     if (forms && Configuration.forms.autoMount) {
       this.collect()
     }
