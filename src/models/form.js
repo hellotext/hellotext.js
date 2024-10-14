@@ -104,11 +104,6 @@ class Form {
     return this.data.id
   }
 
-  get requiresAuthentication() {
-    const firstStep = this.data.steps[0]
-    return firstStep.inputs.some(input => input.kind === 'email') || firstStep.inputs.some(input => input.kind === 'phone')
-  }
-
   get localeAuthKey() {
     const firstStep = this.data.steps[0]
 

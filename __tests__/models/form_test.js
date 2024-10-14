@@ -80,44 +80,6 @@ describe('markAsCompleted', () => {
   })
 })
 
-describe('requiresAuthentication', () => {
-  it('is true when the first step has an email input', () => {
-    const form = new Form({
-      steps: [
-        {
-          inputs: [{ kind: 'email' }]
-        }
-      ]
-    })
-
-    expect(form.requiresAuthentication).toBe(true)
-  })
-
-  it('is true when the first step has a phone input', () => {
-    const form = new Form({
-      steps: [
-        {
-          inputs: [{ kind: 'phone' }]
-        }
-      ]
-    })
-
-    expect(form.requiresAuthentication).toBe(true)
-  })
-
-  it('is true when the first step has both email and phone inputs', () => {
-    const form = new Form({
-      steps: [
-        {
-          inputs: [{ kind: 'email' }, { kind: 'phone' }]
-        }
-      ]
-    })
-
-    expect(form.requiresAuthentication).toBe(true)
-  })
-})
-
 describe('localeAuthKey', () => {
   it('is email when the first step has an email input', () => {
     const form = new Form({

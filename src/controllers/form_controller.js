@@ -76,7 +76,7 @@ export default class extends Controller {
   completed() {
     this.form.markAsCompleted(this.formData)
 
-    if(!Configuration.forms.shouldShowSuccessMessage || !this.form.requiresAuthentication) {
+    if(!Configuration.forms.shouldShowSuccessMessage) {
       return this.element.remove()
     }
 
