@@ -30,7 +30,7 @@ class FormCollection {
 
     const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
 
-    if (forms && Configuration.autoMountForms) {
+    if (forms && Configuration.forms.autoMount) {
       this.collect()
     }
   }
