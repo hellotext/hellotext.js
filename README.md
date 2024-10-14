@@ -123,8 +123,8 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 
 #### Configuration Options
 
-| Property            | Description                                                                                                                                                                                     | Type    | Default |
-|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|---------|
-| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null    |
-| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true    |
-| autoMountForms      | Whether the library should automatically mount forms collected or not                                                                                                                           | Boolean | true    |
+| Property            | Description                                                                                                                                                                                     | Type    | Default                                   |
+|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|-------------------------------------------|
+| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null                                      |
+| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true                                      |
+| forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object  | { autoMount: true, successMessage: true } |
