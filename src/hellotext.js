@@ -5,11 +5,6 @@ import { Business, Query, Cookies, FormCollection } from './models'
 
 import { NotInitializedError } from './errors'
 
-/**
- * @typedef {Object} Config
- * @property {Boolean} autoGenerateSession
- * @property {Boolean} autoMountForms
- */
 
 class Hellotext {
   static #session
@@ -22,7 +17,7 @@ class Hellotext {
   /**
    * initialize the module.
    * @param business public business id
-   * @param { Config } config
+   * @param { Configuration } config
    */
   static initialize(business, config) {
     Configuration.assign(config)

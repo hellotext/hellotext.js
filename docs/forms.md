@@ -5,6 +5,23 @@ Then let Hellotext handle building the form, collecting, validating and authenti
 
 For more information on how to create a form from the dashboard, view this [guide](https://help.hellotext.com/forms).
 
+### Configuration 
+
+Hellotext forms have a default configuration that can be overridden by passing an object when initializing the library. It has the following attributes by default:
+
+- `autoMount`: Automatically mount forms to the DOM when a `form` element with the `data-hello-form` attribute is found. Default is `true`.
+- `successMessage`: Display a contextual success message when a form is submitted successfully. Default is `true`.
+You can turn this off by setting it to `false`, or provide your custom success message by setting it to a string.
+
+```javascript
+Hellotext.initialize('HELLOTEXT_BUSINESS_ID', {
+  forms: {
+    autoMount: true,
+    successMessage: 'Thank you for submitting the form'
+  }
+})
+```
+
 ### Collection Phase
 
 Hellotext uses the `MutationObserver` API to listen for changes in the DOM, specifically new form elements being added that have the `data-hello-form` attribute.

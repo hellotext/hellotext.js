@@ -79,3 +79,53 @@ describe('markAsCompleted', () => {
     expect(emit).toHaveBeenCalledWith('form:completed', { id: 1 })
   })
 })
+
+describe('localeAuthKey', () => {
+  it('is email when the first step has an email input', () => {
+    const form = new Form({
+      steps: [
+        {
+          inputs: [{ kind: 'email' }]
+        }
+      ]
+    })
+
+    expect(form.localeAuthKey).toBe('email')
+  })
+
+  it('is phone when the first step has a phone input', () => {
+    const form = new Form({
+      steps: [
+        {
+          inputs: [{ kind: 'phone' }]
+        }
+      ]
+    })
+
+    expect(form.localeAuthKey).toBe('phone')
+  })
+
+  it('is phone_and_email when the first step has both email and phone inputs', () => {
+    const form = new Form({
+      steps: [
+        {
+          inputs: [{ kind: 'email' }, { kind: 'phone' }]
+        }
+      ]
+    })
+
+    expect(form.localeAuthKey).toBe('phone_and_email')
+  })
+
+  it('is none when the first step has neither email nor phone inputs', () => {
+    const form = new Form({
+      steps: [
+        {
+          inputs: [{ kind: 'first_name' }]
+        }
+      ]
+    })
+
+    expect(form.localeAuthKey).toBe('none')
+  })
+})

@@ -30,7 +30,7 @@ class FormCollection {
 
     const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
 
-    if (forms && Configuration.autoMountForms) {
+    if (forms && Configuration.forms.autoMount) {
       this.collect()
     }
   }
@@ -62,7 +62,7 @@ class FormCollection {
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
       .then(() => this.fetching = false)
 
-    if (Configuration.autoMountForms) {
+    if (Configuration.forms.autoMount) {
       this.forms.forEach(form => form.mount())
     }
   }
