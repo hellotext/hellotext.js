@@ -10,7 +10,9 @@ beforeEach(() => {
 
   Hellotext.initialize('M01az53K', {
     autoGenerateSession: false,
-    autoMountForms: false
+    forms: {
+      autoMount: false,
+    }
   })
 })
 
