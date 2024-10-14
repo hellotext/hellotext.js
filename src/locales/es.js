@@ -10,5 +10,6 @@ export default {
     phone: 'Haga clic en el enlace enviado por SMS para verificar su envío.',
     email: 'Haga clic en el enlace enviado por e-mail para verificar su envío.',
     phone_and_email: 'Haga clic en los enlaces enviados por SMS y e-mail para verificar su envío.',
+    none: 'Su envío ha sido recibido.'
   }
 }

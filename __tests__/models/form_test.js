@@ -155,7 +155,7 @@ describe('localeAuthKey', () => {
     expect(form.localeAuthKey).toBe('phone_and_email')
   })
 
-  it('is null when the first step has neither email nor phone inputs', () => {
+  it('is none when the first step has neither email nor phone inputs', () => {
     const form = new Form({
       steps: [
         {
@@ -164,6 +164,6 @@ describe('localeAuthKey', () => {
       ]
     })
 
-    expect(form.localeAuthKey).toBe(null)
+    expect(form.localeAuthKey).toBe('none')
   })
 })

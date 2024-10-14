@@ -119,7 +119,7 @@ class Form {
     } else if(firstStep.inputs.some(input => input.kind === 'phone')) {
       return 'phone'
     } else {
-      return null
+      return 'none'
     }
   }
 
