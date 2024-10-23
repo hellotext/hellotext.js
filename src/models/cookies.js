@@ -3,7 +3,7 @@ import Hellotext from '../hellotext'
 class Cookies {
   static set(name, value) {
     if(typeof document !== 'undefined') {
-      document.cookie = `${name}=${value}`
+      document.cookie = `${name}=${value}; path=/;`
     }
 
     Hellotext.eventEmitter.dispatch('session-set', value)
