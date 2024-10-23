@@ -78,10 +78,10 @@ Hellotext.removeEventListener(eventName, callback)
 
 ## Understanding Sessions
 
-The library looks for a session identifier present on the `hellotext_session` query parameter. If the session is not present as a cookie neither it will create a new random session identifier, you can disable this default behaviour via the configuration, see [Configuration Options](#configuration-options) for more information.
+The library looks for a session identifier present on the `hello_session` query parameter. If the session is not present as a cookie neither it will create a new random session identifier, you can disable this default behaviour via the configuration, see [Configuration Options](#configuration-options) for more information.
 The session is automatically sent to Hellotext any time the `Hellotext.track` method is called.
 
-Short links redirections attaches a session identifier to the destination url as `hellotext_session` query parameter. This will identify all the events back to the customer who opened the link.
+Short links redirections attaches a session identifier to the destination url as `hello_session` query parameter. This will identify all the events back to the customer who opened the link.
 
 ### Get session
 
