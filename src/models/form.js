@@ -14,7 +14,10 @@ class Form {
 
   async mount({ ifCompleted = true } = {}) {
     if(ifCompleted && this.hasBeenCompleted) {
-      return
+      return Hellotext.eventEmitter.dispatch('form:completed', {
+        id: this.id,
+        ...JSON.parse(localStorage.getItem(`hello-form-${this.id}`)).data,
+      })
     }
 
     const firstStep = this.data.steps[0]
@@ -91,7 +94,11 @@ class Form {
   }
 
   markAsCompleted(data) {
-    localStorage.setItem(`hello-form-${this.id}`, JSON.stringify({ state: 'completed', data }))
+    localStorage.setItem(`hello-form-${this.id}`, JSON.stringify({
+      state: 'completed',
+      data,
+      completedAt: new Date().getTime()
+    }))
 
     Hellotext.eventEmitter.dispatch('form:completed', { id: this.id, ...data })
   }
