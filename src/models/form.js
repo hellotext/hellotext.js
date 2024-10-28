@@ -18,7 +18,7 @@ class Form {
 
       return Hellotext.eventEmitter.dispatch('form:completed', {
         id: this.id,
-        ...JSON.parse(localStorage.getItem(`hello-form-${this.id}`)).data,
+        ...JSON.parse(localStorage.getItem(`hello-form-${this.id}`)),
       })
     }
 
@@ -96,13 +96,15 @@ class Form {
   }
 
   markAsCompleted(data) {
-    localStorage.setItem(`hello-form-${this.id}`, JSON.stringify({
+    const payload = {
       state: 'completed',
+      id: this.id,
       data,
-      completedAt: new Date().getTime()
-    }))
+      completedAt: new Date().getTime(),
+    }
 
-    Hellotext.eventEmitter.dispatch('form:completed', { id: this.id, ...data })
+    localStorage.setItem(`hello-form-${this.id}`, JSON.stringify(payload))
+    Hellotext.eventEmitter.dispatch('form:completed', payload)
   }
 
   get hasBeenCompleted() {
