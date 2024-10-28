@@ -14,6 +14,8 @@ class Form {
 
   async mount({ ifCompleted = true } = {}) {
     if(ifCompleted && this.hasBeenCompleted) {
+      this.element?.remove()
+
       return Hellotext.eventEmitter.dispatch('form:completed', {
         id: this.id,
         ...JSON.parse(localStorage.getItem(`hello-form-${this.id}`)).data,
