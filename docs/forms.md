@@ -131,12 +131,16 @@ Hellotext.on('form:completed', (form) => {
 })
 
 {
+  state: 'completed',
+  completedAt: 1730114734999, // Timestamp when the form was completed
   id: "xxxxx", // Id of the form that has been completed
-  first_name: "Billy",
-  last_name: "Butcher",
-  email: "theboys@hellotext.com",
-  phone: "+1234567890",
-  property_by_id[xxxxx]: "value"
+  data: {
+    first_name: "Billy",
+    last_name: "Butcher",
+    email: "theboys@hellotext.com",
+    phone: "+1234567890",
+    property_by_id[xxxxx]: "value"
+  }
 }
 ```
 
