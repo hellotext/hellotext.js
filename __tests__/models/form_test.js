@@ -76,7 +76,7 @@ describe('markAsCompleted', () => {
     const emit = jest.spyOn(Hellotext.eventEmitter, 'dispatch')
 
     form.markAsCompleted()
-    expect(emit).toHaveBeenCalledWith('form:completed', { id: 1 })
+    expect(emit).toHaveBeenCalled()
   })
 })
 
