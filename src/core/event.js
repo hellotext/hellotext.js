@@ -1,7 +1,17 @@
 import { InvalidEvent } from '../errors'
 
 export default class Event {
-  static events = ['session-set', 'forms:collected', 'form:completed']
+  static events = [
+    'session-set',
+    'forms:collected',
+    'form:completed',
+    'webchat:loaded',
+    'webchat:mounted',
+    'webchat:opened',
+    'webchat:closed',
+    'webchat:message:sent',
+    'webchat:message:received',
+  ]
 
   static valid(name) {
     return Event.exists(name)

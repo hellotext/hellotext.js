@@ -1,3 +1,4 @@
+import Hellotext from '../hellotext';
 import API from '../api';
 
 class WebChat {
@@ -7,6 +8,7 @@ class WebChat {
 
   constructor(data) {
     this.data = data
+    Hellotext.eventEmitter.dispatch('webchat:loaded', this)
   }
 }
 
