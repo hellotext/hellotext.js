@@ -30,3 +30,12 @@ The default position for a webchat is `bottom-right`, but you can specify any of
 - `bottom-right`
 - `top-left`
 - `top-right`
+
+### Events 
+
+The webchat emits the following events which can be listened to, to add an event listener you can `Hellotext.addEventListener(event, callback)`.
+
+- `webchat:opened` - Emitted when the webchat is opened
+- `webchat:closed` - Emitted when the webchat is closed
+- `webchat:message:sent` - Emitted when a message is sent by the user.
+- `webchat:message:received` - Emitted when a message is received by the webchat from Hellotext.
