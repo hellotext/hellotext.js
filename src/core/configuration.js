@@ -1,4 +1,5 @@
 import { Forms } from './configuration/forms'
+import { WebChat } from './configuration/web_chat'
 
 /**
  * @class Configuration
@@ -15,6 +16,7 @@ class Configuration {
   static session = null
 
   static forms = Forms
+  static webchat = WebChat
 
   /**
    *
@@ -29,6 +31,8 @@ class Configuration {
       Object.entries(props).forEach(([key, value]) => {
         if (key === 'forms') {
           this.forms = Forms.assign(value)
+        } else if(key === 'webchat') {
+          this.webchat = WebChat.assign(value)
         } else {
           this[key] = value
         }
