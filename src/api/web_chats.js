@@ -1,8 +1,6 @@
 import Hellotext from '../hellotext'
 import { Configuration } from '../core'
 
-import { WebChat } from '../models';
-
 class WebChatsAPI {
   static get endpoint() {
     return Configuration.endpoint('public/webchats')
@@ -17,8 +15,8 @@ class WebChatsAPI {
       headers: Hellotext.headers,
     })
 
-    const data = response.json()
-
-    return new WebChat(data)
+    return response.json()
   }
 }
+
+export default WebChatsAPI

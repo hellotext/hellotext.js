@@ -1,7 +1,7 @@
 import { Event, Configuration } from './core'
 
 import API from './api'
-import { Business, Query, Cookies, FormCollection } from './models'
+import { Business, Query, Cookies, FormCollection, WebChat } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -13,19 +13,24 @@ class Hellotext {
   static eventEmitter = new Event()
   static forms
   static business
+  static webChat
 
   /**
    * initialize the module.
    * @param business public business id
    * @param { Configuration } config
    */
-  static initialize(business, config) {
+  static async initialize(business, config) {
     Configuration.assign(config)
 
     this.#query = new Query()
 
     this.business = new Business(business)
     this.forms = new FormCollection()
+
+    if(Configuration.webchat.isSet) {
+      this.webChat = await WebChat.load(Configuration.webchat.id)
+    }
 
     if (this.#query.inPreviewMode) return
 

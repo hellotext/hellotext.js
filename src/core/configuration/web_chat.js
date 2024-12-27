@@ -71,6 +71,10 @@ class WebChat {
     return this._id
   }
 
+  static get isSet() {
+    return !!this._id
+  }
+
   static assign(props) {
     if(props) {
       Object.entries(props).forEach(([key, value]) => {
