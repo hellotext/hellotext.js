@@ -16,7 +16,7 @@ class WebChatsAPI {
     })
 
     const htmlText = await response.text()
-    return (new DOMParser()).parseFromString(htmlText, "text/html");
+    return (new DOMParser()).parseFromString(htmlText, "text/html").querySelector('article');
   }
 }
 
