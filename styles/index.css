@@ -33,15 +33,14 @@ form[data-hello-form] {
   }
 }
 
-.cursor-pointer {
-  cursor: pointer;
-}
+.hellotext--webchat {
+  position: absolute;
 
-.size-12 {
-  width: 3rem;
-  height: 3rem;
-}
-
-.bg-tiger {
-  background-color: rgb(255, 76, 0);
+  & .hellotext--webchat-trigger {
+    cursor: pointer;
+    width: 3rem;
+    height: 3rem;
+    background-color: rgb(255, 76, 0);
+    border-radius: 9999px;
+  }
 }
