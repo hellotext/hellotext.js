@@ -42,7 +42,6 @@ form[data-hello-form] {
     cursor: pointer;
     width: 3rem;
     height: 3rem;
-    background-color: rgb(255, 76, 0);
     border-radius: 9999px;
     padding: .5rem;
   }
