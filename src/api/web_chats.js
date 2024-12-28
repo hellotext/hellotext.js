@@ -15,7 +15,8 @@ class WebChatsAPI {
       headers: Hellotext.headers,
     })
 
-    return response.json()
+    const htmlText = await response.text()
+    return (new DOMParser()).parseFromString(htmlText, "text/html");
   }
 }
 
