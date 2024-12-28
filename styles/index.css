@@ -35,8 +35,10 @@ form[data-hello-form] {
 
 .hellotext--webchat {
   position: absolute;
+  bottom: 1rem;
+  right: 1rem;
 
-  & .hellotext--webchat-trigger {
+  & #hellotext--webchat-trigger {
     cursor: pointer;
     width: 3rem;
     height: 3rem;
