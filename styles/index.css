@@ -32,3 +32,16 @@ form[data-hello-form] {
     }
   }
 }
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.size-12 {
+  width: 3rem;
+  height: 3rem;
+}
+
+.bg-tiger {
+  background-color: rgb(255, 76, 0);
+}
