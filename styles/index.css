@@ -99,4 +99,11 @@ form[data-hello-form] {
       outline: none; /* focus:outline-none */
     }
   }
+
+  [data-hellotext--webchat-target="attachmentButton"] {
+    background-color: transparent;
+    border: 0;
+    padding: 0;
+    color: rgb(114, 104, 132)
+  }
 }
