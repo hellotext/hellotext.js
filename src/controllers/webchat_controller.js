@@ -84,6 +84,7 @@ export default class extends Controller {
   }
 
   openAttachment() {
+    console.log('opening attachment')
     this.attachmentInputTarget.click()
   }
 
