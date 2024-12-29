@@ -93,11 +93,10 @@ form[data-hello-form] {
   [data-hellotext--webchat-target="input"] {
     padding: 0.5rem 0.75rem;
     border: 0;
+    outline: none;
 
     :focus {
       outline: none; /* focus:outline-none */
-      box-shadow: 0 0 0 4px rgb(240, 229, 255); /* focus:ring-4 (using lavender-light color) */
-      border-color: rgb(119, 59, 188); /* focus:border-indigo-60 */
     }
   }
 }
