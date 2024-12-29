@@ -80,7 +80,7 @@ form[data-hello-form] {
     background-color: #ffffff;
     border-radius: 0.75rem;
     z-index: 10;
-    min-width: 12rem;
+    min-width: 24rem;
     overflow-y: scroll;
   }
 
