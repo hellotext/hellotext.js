@@ -104,6 +104,10 @@ form[data-hello-form] {
     background-color: transparent;
     border: 0;
     padding: 0;
-    color: rgb(114, 104, 132)
+    color: rgb(114, 104, 132);
+
+    :hover {
+      color: rgb(255, 76, 0);
+    }
   }
 }
