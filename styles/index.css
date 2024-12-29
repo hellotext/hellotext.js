@@ -33,6 +33,32 @@ form[data-hello-form] {
   }
 }
 
+@-webkit-keyframes fpFadeInDown {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(0, -20px, 0);
+    transform: translate3d(0, -20px, 0);
+  }
+  to {
+    opacity: 1;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fpFadeInDown {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(0, -20px, 0);
+    transform: translate3d(0, -20px, 0);
+  }
+  to {
+    opacity: 1;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 .hellotext--webchat {
   position: absolute;
   bottom: 1rem;
@@ -44,5 +70,22 @@ form[data-hello-form] {
     height: 3rem;
     border-radius: 9999px;
     padding: .5rem;
+  }
+
+  [popover] {
+    margin: 0;
+    border: 1px solid;
+    text-align: left;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+    z-index: 10;
+    min-width: 12rem;
+    overflow-y: scroll;
+  }
+
+  [popover]:popover-open {
+    -webkit-animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
+    animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 }
