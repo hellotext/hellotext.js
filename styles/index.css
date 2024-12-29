@@ -89,4 +89,19 @@ form[data-hello-form] {
     -webkit-animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
     animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
   }
+
+  [data-hellotext--webchat-target="input"] {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid; /* Default border style */
+    border-radius: 0.75rem; /* rounded-xl = 12px */
+    outline: none; /* outline-none */
+    transition: all 100ms; /* transition duration-100 */
+    font-size: 1rem; /* text-base = 16px */
+
+    :focus {
+      outline: none; /* focus:outline-none */
+      box-shadow: 0 0 0 4px rgb(240, 229, 255); /* focus:ring-4 (using lavender-light color) */
+      border-color: rgb(119, 59, 188); /* focus:border-indigo-60 */
+    }
+  }
 }
