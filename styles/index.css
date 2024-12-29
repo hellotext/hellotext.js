@@ -92,11 +92,7 @@ form[data-hello-form] {
 
   [data-hellotext--webchat-target="input"] {
     padding: 0.5rem 0.75rem;
-    border: 1px solid; /* Default border style */
-    border-radius: 0.75rem; /* rounded-xl = 12px */
-    outline: none; /* outline-none */
-    transition: all 100ms; /* transition duration-100 */
-    font-size: 1rem; /* text-base = 16px */
+    border: 0;
 
     :focus {
       outline: none; /* focus:outline-none */
