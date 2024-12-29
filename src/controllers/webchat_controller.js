@@ -12,6 +12,9 @@ export default class extends Controller {
   static targets = [
     'trigger',
     'popover',
+    'input',
+    'attachmentInput',
+    'attachmentButton',
   ]
 
   connect() {
@@ -74,6 +77,14 @@ export default class extends Controller {
 
       this.dispatch("hidden")
     }
+  }
+
+  sendMessage() {
+    // send message here
+  }
+
+  openAttachment() {
+    this.attachmentInputTarget.click()
   }
 
   get middlewares() {
