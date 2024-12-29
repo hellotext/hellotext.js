@@ -91,7 +91,7 @@ form[data-hello-form] {
   }
 
   [data-hellotext--webchat-target="input"] {
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0;
     border: 0;
     outline: none;
 
