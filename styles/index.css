@@ -1,3 +1,7 @@
+.hidden {
+  display: none;
+}
+
 form[data-hello-form] {
   position: relative;
 

@@ -1,8 +1,11 @@
 import { Controller } from '@hotwired/stimulus'
 import { computePosition, autoUpdate, shift, flip, offset } from '@floating-ui/dom'
 
+import WebChatMessagesAPI from '../api/web_chat/messages'
+
 export default class extends Controller {
   static values = {
+    id: String,
     placement: { type: String, default: "bottom-end" },
     open: { type: Boolean, default: false },
     autoPlacement: { type: Boolean, default: false },
@@ -16,6 +19,11 @@ export default class extends Controller {
     'attachmentInput',
     'attachmentButton',
   ]
+
+  initialize() {
+    this.messagesAPI = new WebChatMessagesAPI(this.idValue)
+    super.initialize()
+  }
 
   connect() {
     this.floatingUICleanup = autoUpdate(this.triggerTarget, this.popoverTarget, () => {
@@ -79,8 +87,13 @@ export default class extends Controller {
     }
   }
 
-  sendMessage() {
+  async sendMessage() {
     // send message here
+    const response = await this.messagesAPI.create({
+      body: this.inputTarget.value,
+    })
+
+    console.log(response)
   }
 
   openAttachment() {
