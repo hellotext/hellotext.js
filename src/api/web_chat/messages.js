@@ -17,7 +17,7 @@ class WebChatMessagesAPI {
       method: 'POST',
       headers: Hellotext.headers,
       body: JSON.stringify({
-        ...params,
+        message: params,
         session: Hellotext.session,
       })
     })
