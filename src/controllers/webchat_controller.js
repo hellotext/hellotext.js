@@ -86,6 +86,8 @@ export default class extends Controller {
       this.popoverTarget.removeAttribute("aria-expanded")
 
       this.dispatch("hidden")
+
+      this.inputTarget.value = ""
     }
   }
 
