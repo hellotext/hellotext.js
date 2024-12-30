@@ -21,6 +21,7 @@ export default class extends Controller {
     'attachmentInput',
     'attachmentButton',
     'errorMessageContainer',
+    'attachmentTemplate',
   ]
 
   initialize() {
@@ -113,9 +114,10 @@ export default class extends Controller {
   }
 
   onFileInputChange() {
-    this.files =  Array.from(this.attachmentInputTarget.files)
+    this.errorMessageContainerTarget.classList.add('hidden')
 
-    console.log(this.mediaValue)
+    this.files = Array.from(this.attachmentInputTarget.files)
+
     const fileMaxSizeTooMuch = this.files.find(file => {
       const type = file.type.split("/")[0]
 
@@ -126,15 +128,54 @@ export default class extends Controller {
       }
     })
 
-    if(true || fileMaxSizeTooMuch) {
+    if(fileMaxSizeTooMuch) {
       const type = fileMaxSizeTooMuch.type.split("/")[0]
       const mediaType = ['image', 'audio', 'video'].includes(type) ? type : 'document'
 
-      const errorMessage = this.fileSizeErrorMessageValue.replace('%{limit}', this.byteToMegabyte(this.mediaValue[mediaType].max_size))
-
-      this.errorMessageContainerTarget.innerText = errorMessage
+      this.errorMessageContainerTarget.innerText = this.fileSizeErrorMessageValue.replace('%{limit}', this.byteToMegabyte(this.mediaValue[mediaType].max_size))
       this.errorMessageContainerTarget.classList.remove('hidden')
+
+      return
     }
+
+    this.errorMessageContainerTarget.classList.add('hidden')
+
+    this.files.forEach(file => this.createAttachmentElement(file))
+  }
+
+  createAttachmentElementFromTemplate(data) {
+    const element = this.attachmentElement()
+
+    if(data.content_type.startsWith('image/')) {
+      const thumbnail = document.createElement('img')
+      thumbnail.src = data.url
+      this.addClass(thumbnail, ...this.widthClasses, 'h-28', 'rounded-md', 'object-cover')
+
+      element.querySelector('main').innerHTML = ''
+      element.querySelector('main').appendChild(thumbnail)
+    } else {
+      element.querySelector('main').classList.add(...this.widthClasses, 'h-20', 'rounded-md', 'bg-gray-200', 'p-1')
+      element.querySelector('p[data-attachment-name]').innerText = data.filename
+    }
+
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = `${this.inputNameValue}[signed_id]`
+    input.value = data.signed_id
+
+    element.setAttribute("data-editor--attached-media-upload-value", false)
+
+    element.appendChild(input)
+    this.appendElement(element)
+  }
+
+  attachmentElement() {
+    const element = this.attachmentTemplateTarget.cloneNode(true)
+    element.removeAttribute("hidden")
+    element.setAttribute("data-controller", "editor--attached-media")
+    element.setAttribute("data-editor--media-target", "attachment")
+
+    return element
   }
 
   byteToMegabyte(bytes) {

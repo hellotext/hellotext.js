@@ -115,4 +115,14 @@ form[data-hello-form] {
       color: rgb(255, 76, 0);
     }
   }
+
+  [data-hellotext--webchat-target="attachmentRemoveButton"] {
+    background: rgb(221, 196, 255);
+    border-radius: 9999px;
+    padding: 1rem;
+
+    :hover {
+      background: rgb(240, 229, 255);
+    }
+  }
 }
