@@ -92,10 +92,14 @@ export default class extends Controller {
   }
 
   async sendMessage() {
-    // send message here
-    const response = await this.messagesAPI.create({
-      body: this.inputTarget.value,
-    })
+    const formData = new FormData()
+
+    formData.append('message[body]', this.inputTarget.value)
+    formData.append('message[attachment]', this.attachmentInputTarget.files[0])
+
+    formData.append('session', Hellotext.session)
+
+    const response = await this.messagesAPI.create(formData)
 
     console.log(response)
   }

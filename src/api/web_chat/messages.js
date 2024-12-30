@@ -12,14 +12,14 @@ class WebChatMessagesAPI {
     this.webChatId = webChatId
   }
 
-  async create(params) {
+  async create(formData) {
     const response = await fetch(this.url, {
       method: 'POST',
-      headers: Hellotext.headers,
-      body: JSON.stringify({
-        message: params,
-        session: Hellotext.session,
-      })
+      headers: {
+        ...Hellotext.headers,
+        'Content-Type': 'multipart/form-data',
+      },
+      body: formData
     })
 
     return new Response(response.ok, response)
