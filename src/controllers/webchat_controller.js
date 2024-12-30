@@ -79,6 +79,8 @@ export default class extends Controller {
       this.popoverTarget.setAttribute("aria-expanded", "true")
 
       this.dispatch("opened")
+
+      this.inputTarget.focus()
     } else {
       this.popoverTarget.hidePopover()
       this.popoverTarget.removeAttribute("aria-expanded")
