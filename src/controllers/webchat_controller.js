@@ -6,6 +6,8 @@ import WebChatMessagesAPI from '../api/web_chat/messages'
 export default class extends Controller {
   static values = {
     id: String,
+    media: Object,
+    fileSizeErrorMessage: String,
     placement: { type: String, default: "bottom-end" },
     open: { type: Boolean, default: false },
     autoPlacement: { type: Boolean, default: false },
@@ -18,6 +20,7 @@ export default class extends Controller {
     'input',
     'attachmentInput',
     'attachmentButton',
+    'errorMessageContainer',
   ]
 
   initialize() {
@@ -107,6 +110,35 @@ export default class extends Controller {
   openAttachment() {
     console.log('opening attachment')
     this.attachmentInputTarget.click()
+  }
+
+  onFileInputChange() {
+    this.files =  Array.from(this.attachmentInputTarget.files)
+
+    console.log(this.mediaValue)
+    const fileMaxSizeTooMuch = this.files.find(file => {
+      const type = file.type.split("/")[0]
+
+      if(['image', 'video', 'audio'].includes(type)) {
+        return this.mediaValue[type].max_size < file.size
+      } else {
+        return this.mediaValue.document.max_size < file.size
+      }
+    })
+
+    if(true || fileMaxSizeTooMuch) {
+      const type = fileMaxSizeTooMuch.type.split("/")[0]
+      const mediaType = ['image', 'audio', 'video'].includes(type) ? type : 'document'
+
+      const errorMessage = this.fileSizeErrorMessageValue.replace('%{limit}', this.byteToMegabyte(this.mediaValue[mediaType].max_size))
+
+      this.errorMessageContainerTarget.innerText = errorMessage
+      this.errorMessageContainerTarget.classList.remove('hidden')
+    }
+  }
+
+  byteToMegabyte(bytes) {
+    return Math.ceil(bytes / 1024 / 1024)
   }
 
   get middlewares() {
