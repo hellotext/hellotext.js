@@ -16,8 +16,7 @@ class WebChatMessagesAPI {
     const response = await fetch(this.url, {
       method: 'POST',
       headers: {
-        ...Hellotext.headers,
-        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${Hellotext.business.id}`,
       },
       body: formData
     })
