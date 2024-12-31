@@ -149,12 +149,14 @@ export default class extends Controller {
 
     this.attachmentContainerTarget.classList.remove('hidden')
 
-    console.log(file)
-    if(true || file.type.startsWith("image/")) {
+    if(file.type.startsWith("image/")) {
       const thumbnail = document.createElement("img")
       thumbnail.src = URL.createObjectURL(file)
 
       element.appendChild(thumbnail)
+
+      this.attachmentContainerTarget.appendChild(element)
+      this.attachmentContainerTarget.style.display = 'flex'
     } else {
       element.querySelector("main").classList.add(...this.widthClasses, "h-20", "rounded-md", "bg-gray-200", "p-1")
       element.querySelector("p[data-attachment-name]").innerText = file.name
