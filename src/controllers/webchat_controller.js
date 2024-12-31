@@ -28,6 +28,8 @@ export default class extends Controller {
 
   initialize() {
     this.messagesAPI = new WebChatMessagesAPI(this.idValue)
+    this.files = []
+
     super.initialize()
   }
 
