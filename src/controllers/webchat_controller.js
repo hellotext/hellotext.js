@@ -149,7 +149,8 @@ export default class extends Controller {
 
     this.attachmentContainerTarget.classList.remove('hidden')
 
-    if(file.type.startsWith("image/")) {
+    console.log(file)
+    if(true || file.type.startsWith("image/")) {
       const thumbnail = document.createElement("img")
       thumbnail.src = URL.createObjectURL(file)
 
