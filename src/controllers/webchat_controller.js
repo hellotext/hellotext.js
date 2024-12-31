@@ -23,6 +23,7 @@ export default class extends Controller {
     'errorMessageContainer',
     'attachmentTemplate',
     'attachmentContainer',
+    'attachment',
   ]
 
   initialize() {
@@ -163,11 +164,18 @@ export default class extends Controller {
     }
   }
 
-  removeAttachment() {
-    this.attachmentContainerTarget.innerHTML = ""
-    this.attachmentContainerTarget.classList.add("hidden")
+  removeAttachment({ currentTarget }) {
+    const attachment = currentTarget.closest("[data-hellotext--webchat-target='attachment']")
+    attachment.remove()
 
     this.inputTarget.focus()
+  }
+
+  attachmentTargetDisconnected() {
+    if(this.attachmentTargets.length === 0) {
+      this.attachmentContainerTarget.innerHTML = ""
+      this.attachmentContainerTarget.classList.add("hidden")
+    }
   }
 
   attachmentElement() {
@@ -175,8 +183,7 @@ export default class extends Controller {
     element.removeAttribute("hidden")
     element.style.display = 'flex'
 
-    element.setAttribute("data-controller", "editor--attached-media")
-    element.setAttribute("data-editor--media-target", "attachment")
+    element.setAttribute("data-hellotext--webchat-target", "attachment")
 
     return element
   }
