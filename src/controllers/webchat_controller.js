@@ -24,6 +24,8 @@ export default class extends Controller {
     'attachmentTemplate',
     'attachmentContainer',
     'attachment',
+    'messageTemplate',
+    'messagesContainer',
   ]
 
   initialize() {
@@ -112,6 +114,21 @@ export default class extends Controller {
 
     const response = await this.messagesAPI.create(formData)
 
+    if(response.succeeded) {
+      const element = this.messageTemplateTarget.cloneNode(true)
+      element.style.display = 'flex'
+
+      element.innerText = this.inputTarget.value
+
+      this.messagesContainerTarget.appendChild(element)
+
+      this.inputTarget.value = ""
+      this.files = []
+      this.attachmentContainerTarget.innerHTML = ""
+      this.attachmentContainerTarget.classList.add("hidden")
+
+      this.inputTarget.focus()
+    }
     console.log(response)
   }
 
