@@ -110,7 +110,6 @@ export default class extends Controller {
   }
 
   openAttachment() {
-    console.log('opening attachment')
     this.attachmentInputTarget.click()
   }
 
@@ -142,6 +141,7 @@ export default class extends Controller {
     this.errorMessageContainerTarget.classList.add('hidden')
 
     this.files.forEach(file => this.createAttachmentElement(file))
+    this.inputTarget.focus()
   }
 
   createAttachmentElement(file) {
