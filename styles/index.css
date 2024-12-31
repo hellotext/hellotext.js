@@ -127,8 +127,8 @@ form[data-hello-form] {
     align-items: center;
     border: 0;
     position: absolute;
-    right: -.2rem;
-    top: -0.5rem;
+    right: -.5rem;
+    top: -.5rem;
 
     &:hover {
       background: rgb(240, 229, 255);
