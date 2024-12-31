@@ -150,6 +150,8 @@ export default class extends Controller {
 
     this.attachmentContainerTarget.classList.remove('hidden')
 
+    element.setAttribute('data-name', file.name)
+
     if(file.type.startsWith("image/")) {
       const thumbnail = element.querySelector('img')
       thumbnail.src = URL.createObjectURL(file)
@@ -166,8 +168,10 @@ export default class extends Controller {
 
   removeAttachment({ currentTarget }) {
     const attachment = currentTarget.closest("[data-hellotext--webchat-target='attachment']")
-    attachment.remove()
 
+    this.files = this.files.filter(file => file.name !== attachment.dataset.name)
+
+    attachment.remove()
     this.inputTarget.focus()
   }
 
