@@ -101,7 +101,10 @@ export default class extends Controller {
     const formData = new FormData()
 
     formData.append('message[body]', this.inputTarget.value)
-    formData.append('message[attachment]', this.attachmentInputTarget.files[0])
+
+    this.files.forEach(file => {
+      formData.append('message[attachments][]', file)
+    })
 
     formData.append('session', Hellotext.session)
 
