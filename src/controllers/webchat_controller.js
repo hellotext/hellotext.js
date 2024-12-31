@@ -22,6 +22,7 @@ export default class extends Controller {
     'attachmentButton',
     'errorMessageContainer',
     'attachmentTemplate',
+    'attachmentContainer',
   ]
 
   initialize() {
@@ -143,6 +144,22 @@ export default class extends Controller {
     this.files.forEach(file => this.createAttachmentElement(file))
   }
 
+  createAttachmentElement(file) {
+    const element = this.attachmentElement()
+
+    this.attachmentContainerTarget.classList.remove('hidden')
+
+    if(file.type.startsWith("image/")) {
+      const thumbnail = document.createElement("img")
+      thumbnail.src = URL.createObjectURL(file)
+
+      element.appendChild(thumbnail)
+    } else {
+      element.querySelector("main").classList.add(...this.widthClasses, "h-20", "rounded-md", "bg-gray-200", "p-1")
+      element.querySelector("p[data-attachment-name]").innerText = file.name
+    }
+  }
+
   createAttachmentElementFromTemplate(data) {
     const element = this.attachmentElement()
 
@@ -172,6 +189,8 @@ export default class extends Controller {
   attachmentElement() {
     const element = this.attachmentTemplateTarget.cloneNode(true)
     element.removeAttribute("hidden")
+    element.style.display = 'flex'
+
     element.setAttribute("data-controller", "editor--attached-media")
     element.setAttribute("data-editor--media-target", "attachment")
 
