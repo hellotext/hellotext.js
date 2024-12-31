@@ -129,6 +129,7 @@ form[data-hello-form] {
     position: absolute;
     right: -.5rem;
     top: -.5rem;
+    cursor: pointer;
 
     &:hover {
       background: rgb(240, 229, 255);
