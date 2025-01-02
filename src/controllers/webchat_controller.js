@@ -33,7 +33,7 @@ export default class extends Controller {
     this.messagesAPI = new WebChatMessagesAPI(this.idValue)
     this.files = []
 
-    this.consumer = createConsumer('wss://localhost:3000/cable')
+    this.consumer = createConsumer('ws://localhost:3000/cable')
 
     super.initialize()
   }
