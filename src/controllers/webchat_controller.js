@@ -1,6 +1,5 @@
 import { Controller } from '@hotwired/stimulus'
 import { computePosition, autoUpdate, shift, flip, offset } from '@floating-ui/dom'
-import { createConsumer } from "@rails/actioncable"
 
 import WebChatMessagesAPI from '../api/web_chat/messages'
 
@@ -33,7 +32,7 @@ export default class extends Controller {
     this.messagesAPI = new WebChatMessagesAPI(this.idValue)
     this.files = []
 
-    this.consumer = createConsumer('ws://localhost:3000/cable')
+    this.socket = new WebSocket('ws://localhost:3000/cable')
 
     super.initialize()
   }
@@ -59,11 +58,18 @@ export default class extends Controller {
       session: Hellotext.session
     }
 
-    this.consumer.subscriptions.create(params, {
-      received(data) {
-        console.log("data received", data)
+    this.socket.onopen = () => {
+      const message = {
+        command: 'subscribe',
+        identifier: JSON.stringify(params)
       }
-    })
+
+      this.socket.send(JSON.stringify(message))
+    }
+
+    this.socket.onmessage = (event) => {
+      console.log("event received", event)
+    }
 
     super.connect()
   }

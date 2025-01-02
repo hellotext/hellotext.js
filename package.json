@@ -48,7 +48,6 @@
     "@floating-ui/dom": "^1.6.12",
     "@hotwired/stimulus": "^3.0.0",
     "core-js": "3.27.2",
-    "whatwg-fetch": "^3.6.2",
-    "@rails/actioncable": "^8.0.100"
+    "whatwg-fetch": "^3.6.2"
   }
 }
