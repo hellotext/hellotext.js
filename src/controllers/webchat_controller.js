@@ -68,13 +68,15 @@ export default class extends Controller {
     }
 
     this.socket.onmessage = (event) => {
-      const message = JSON.parse(event.data);
+      const data = JSON.parse(event.data);
 
-      if (message.type === "ping") {
+      if (data.type === "ping") {
         return;
       }
 
-      console.log("event received", event)
+      const { message } = data
+
+      console.log("event received", message)
     }
 
     super.connect()
