@@ -55,8 +55,8 @@ export default class extends Controller {
 
     this.consumer.subscriptions.create({
       channel: "WebChatChannel",
-      web_chat_id: this.idValue,
-      hello_session: Hellotext.session,
+      id: this.idValue,
+      session: Hellotext.session,
     })
 
     super.connect()
