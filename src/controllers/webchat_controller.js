@@ -53,10 +53,16 @@ export default class extends Controller {
       });
     })
 
-    this.consumer.subscriptions.create({
+    const params = {
       channel: "WebChatChannel",
       id: this.idValue,
-      session: Hellotext.session,
+      session: Hellotext.session
+    }
+
+    this.consumer.subscriptions.create(params, {
+      received(data) {
+        console.log("data received", data)
+      }
     })
 
     super.connect()
