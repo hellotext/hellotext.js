@@ -76,6 +76,17 @@ export default class extends Controller {
 
       const { message } = data
 
+      const { body } = message
+
+      const div = document.createElement('div')
+      div.innerHTML = body
+
+      const element = this.messageTemplateTarget.cloneNode(true)
+      element.style.display = 'flex'
+
+      element.innerHTML = div.innerHTML
+
+      this.messagesContainerTarget.appendChild(element)
       console.log("event received", message)
     }
 

@@ -76,6 +76,17 @@ form[data-hello-form] {
     padding: .5rem;
   }
 
+  .trix-content {
+    & a {
+     color: rgb(255, 76, 0);
+     text-decoration: none;
+
+      :hover {
+        color: rgb(253, 125, 51);
+      }
+    }
+  }
+
   [popover] {
     margin: 0;
     padding: 0;
