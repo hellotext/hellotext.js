@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus'
 import { computePosition, autoUpdate, shift, flip, offset } from '@floating-ui/dom'
+import { createConsumer } from "@rails/actioncable"
 
 import WebChatMessagesAPI from '../api/web_chat/messages'
 
@@ -32,6 +33,8 @@ export default class extends Controller {
     this.messagesAPI = new WebChatMessagesAPI(this.idValue)
     this.files = []
 
+    this.consumer = createConsumer('wss://localhost:3000/cable')
+
     super.initialize()
   }
 
@@ -48,6 +51,12 @@ export default class extends Controller {
 
         Object.assign(this.popoverTarget.style, newStyle);
       });
+    })
+
+    this.consumer.subscriptions.create({
+      channel: "WebChatChannel",
+      web_chat_id: this.idValue,
+      session: Hellotext.session
     })
 
     super.connect()
