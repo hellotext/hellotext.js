@@ -63,7 +63,7 @@ export default class extends Controller {
     }
 
     this.webChatChannel.onMessage((message) => {
-      console.log(data)
+      console.log(message)
     })
 
     // this.socket.onmessage = (event) => {
