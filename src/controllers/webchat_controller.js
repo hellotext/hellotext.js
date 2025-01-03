@@ -28,6 +28,8 @@ export default class extends Controller {
     'attachment',
     'messageTemplate',
     'messagesContainer',
+    'title',
+    'onlineStatus',
   ]
 
   initialize() {
@@ -67,7 +69,15 @@ export default class extends Controller {
     })
 
     this.webChatChannel.onConversationAssignment((conversation) => {
-      console.log(conversation)
+      const { to: user } = conversation
+
+      this.titleTarget.innerText = user.name
+
+      if(user.online) {
+        this.onlineStatusTarget.style.display = 'flex'
+      } else {
+        this.onlineStatusTarget.style.display = 'none'
+      }
     })
 
 
