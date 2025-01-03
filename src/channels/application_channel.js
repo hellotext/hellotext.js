@@ -24,6 +24,8 @@ class ApplicationChannel {
         return;
       }
 
+      console.log(data.type)
+
       callback(data.message)
     })
   }
