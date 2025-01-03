@@ -18,15 +18,14 @@ class ApplicationChannel {
 
   onMessage(callback) {
     this.webSocket.addEventListener('message', (event) => {
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data)
+      const { type, message } = data
 
-      if (data.type === 'ping' || data.type === 'confirm_subscription') {
+      if (this.ignoredEvents.includes(type)) {
         return;
       }
 
-      console.log(data.type)
-
-      callback(data.message)
+      callback(message)
     })
   }
 
@@ -36,6 +35,10 @@ class ApplicationChannel {
     }
 
     return ApplicationChannel.webSocket
+  }
+
+  get ignoredEvents() {
+    return ['ping', 'confirm_subscription', 'welcome']
   }
 }
 
