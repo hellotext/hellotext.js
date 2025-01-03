@@ -7,11 +7,11 @@ class ApplicationChannel {
       identifier: JSON.stringify(identifier)
     }
 
-    if (ApplicationChannel.webSocket.readyState === WebSocket.OPEN) {
-      ApplicationChannel.webSocket.send(JSON.stringify(data))
+    if (this.webSocket.readyState === WebSocket.OPEN) {
+      this.webSocket.send(JSON.stringify(data))
     } else {
-      ApplicationChannel.webSocket.addEventListener('open', () => {
-        ApplicationChannel.webSocket.send(JSON.stringify(data))
+      this.webSocket.addEventListener('open', () => {
+        this.webSocket.send(JSON.stringify(data))
       })
     }
   }
