@@ -141,18 +141,11 @@ form[data-hello-form] {
   }
 
   & [data-hellotext--webchat-target="attachmentContainer"] {
+    display: none;
     column-gap: 1rem;
     overflow-x: auto;
     overflow-y: visible;
     padding-top: 1rem;
-
-    :empty {
-      display: none;
-    }
-
-    :not(:empty) {
-      display: flex;
-    }
   }
 
   & [data-hellotext--webchat-target="footer"] {
