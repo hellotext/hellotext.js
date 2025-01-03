@@ -2,10 +2,12 @@ import { Controller } from '@hotwired/stimulus'
 import { computePosition, autoUpdate, shift, flip, offset } from '@floating-ui/dom'
 
 import WebChatMessagesAPI from '../api/web_chat/messages'
+import WebChatChannel from '../channels/web_chat_channel'
 
 export default class extends Controller {
   static values = {
     id: String,
+    conversationId: String,
     media: Object,
     fileSizeErrorMessage: String,
     placement: { type: String, default: "bottom-end" },
@@ -30,6 +32,8 @@ export default class extends Controller {
 
   initialize() {
     this.messagesAPI = new WebChatMessagesAPI(this.idValue)
+    this.webChatChannel = new WebChatChannel(this.idValue, Hellotext.session)
+
     this.files = []
 
     this.socket = new WebSocket('ws://localhost:3000/cable')
@@ -58,37 +62,32 @@ export default class extends Controller {
       session: Hellotext.session
     }
 
-    this.socket.onopen = () => {
-      const message = {
-        command: 'subscribe',
-        identifier: JSON.stringify(params)
-      }
+    this.webChatChannel.onMessage((data) => {
+      console.log(data)
+    })
 
-      this.socket.send(JSON.stringify(message))
-    }
-
-    this.socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "ping") {
-        return;
-      }
-
-      const { message } = data
-
-      const { body } = message
-
-      const div = document.createElement('div')
-      div.innerHTML = body
-
-      const element = this.messageTemplateTarget.cloneNode(true)
-      element.style.display = 'flex'
-
-      element.innerHTML = div.innerHTML
-
-      this.messagesContainerTarget.appendChild(element)
-      console.log("event received", message)
-    }
+    // this.socket.onmessage = (event) => {
+    //   const data = JSON.parse(event.data);
+    //
+    //   if (data.type === "ping") {
+    //     return;
+    //   }
+    //
+    //   const { message } = data
+    //
+    //   const { body } = message
+    //
+    //   const div = document.createElement('div')
+    //   div.innerHTML = body
+    //
+    //   const element = this.messageTemplateTarget.cloneNode(true)
+    //   element.style.display = 'flex'
+    //
+    //   element.innerHTML = div.innerHTML
+    //
+    //   this.messagesContainerTarget.appendChild(element)
+    //   console.log("event received", message)
+    // }
 
     super.connect()
   }
