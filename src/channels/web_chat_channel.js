@@ -30,7 +30,7 @@ class WebChatChannel extends ApplicationChannel {
   onConversationAssignment(callback) {
     super.onMessage((message) => {
       if(message.type === 'conversation.assigned') {
-        callback(message.data)
+        callback(message)
       }
     })
   }
