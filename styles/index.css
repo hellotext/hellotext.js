@@ -146,11 +146,11 @@ form[data-hello-form] {
     overflow-y: visible;
     padding-top: 1rem;
 
-    :has(:not(:empty)) {
+    &:has(:not(:empty)) {
       display: flex;
     }
 
-    :has(:empty) {
+    &:has(:empty) {
       display: none;
     }
   }
