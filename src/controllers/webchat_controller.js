@@ -158,7 +158,11 @@ export default class extends Controller {
       const element = this.messageTemplateTarget.cloneNode(true)
       element.style.display = 'flex'
 
-      element.innerText = this.inputTarget.value
+      element.querySelector('[data-body]').innerText = this.inputTarget.value
+
+      this.attachmentContainerTarget.querySelectorAll('img').forEach(attachment => {
+        element.querySelector('[data-attachment-container]').appendChild(attachment)
+      })
 
       this.messagesContainerTarget.appendChild(element)
 
