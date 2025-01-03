@@ -84,8 +84,6 @@ export default class extends Controller {
 
           element.querySelector('[data-attachment-container]').appendChild(image)
         })
-
-        element.querySelector('[data-attachment-container]').style.display = 'flex'
       }
 
       this.messagesContainerTarget.appendChild(element)
@@ -170,12 +168,10 @@ export default class extends Controller {
     if(response.succeeded) {
       const element = this.messageTemplateTarget.cloneNode(true)
 
-      element.style.display = 'flex'
-      element.style.alignItems = 'flex-end'
+      element.classList.add('received')
+      element.style.removeAttribute('display')
 
       element.setAttribute('data-hellotext--webchat-target', 'message')
-      element.classList.add('received')
-
       element.querySelector('[data-body]').innerText = this.inputTarget.value
 
       const attachments =  this.attachmentContainerTarget.querySelectorAll('img')
@@ -184,10 +180,6 @@ export default class extends Controller {
         attachments.forEach(attachment => {
           element.querySelector('[data-attachment-container]').appendChild(attachment)
         })
-
-        element.querySelector('[data-attachment-container]').style.display = 'flex'
-      } else {
-        element.querySelector('[data-attachment-container]').style.display = 'none'
       }
 
       this.messagesContainerTarget.appendChild(element)
