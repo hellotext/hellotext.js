@@ -169,7 +169,7 @@ export default class extends Controller {
       const element = this.messageTemplateTarget.cloneNode(true)
 
       element.classList.add('received')
-      element.style.removeAttribute('display')
+      element.style.removeProperty('display')
 
       element.setAttribute('data-hellotext--webchat-target', 'message')
       element.querySelector('[data-body]').innerText = this.inputTarget.value
