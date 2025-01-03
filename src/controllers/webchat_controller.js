@@ -62,7 +62,7 @@ export default class extends Controller {
       session: Hellotext.session
     }
 
-    this.webChatChannel.onMessage((data) => {
+    this.webChatChannel.onMessage((message) => {
       console.log(data)
     })
 

@@ -20,11 +20,11 @@ class ApplicationChannel {
     this.webSocket.addEventListener('message', (event) => {
       const data = JSON.parse(event.data);
 
-      if (data.type === 'ping') {
+      if (data.type === 'ping' || data.type === 'confirm_subscription') {
         return;
       }
 
-      callback(data)
+      callback(data.message)
     })
   }
 
