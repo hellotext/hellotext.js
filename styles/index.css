@@ -118,6 +118,21 @@ form[data-hello-form] {
     }
   }
 
+  & .hellotext--webchat-message.received {
+    display: flex;
+    align-items: flex-end;
+
+    & [data-body] {
+      background: rgb(240, 229, 255);
+    }
+
+    & [data-bubble] {
+      transform: none;
+      left: unset;
+      right: -.2rem;
+    }
+  }
+
   .trix-content {
     & a {
      color: rgb(255, 76, 0);

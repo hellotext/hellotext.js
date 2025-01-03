@@ -174,6 +174,7 @@ export default class extends Controller {
       element.style.alignItems = 'flex-end'
 
       element.setAttribute('data-hellotext--webchat-target', 'message')
+      element.classList.add('received')
 
       element.querySelector('[data-body]').innerText = this.inputTarget.value
 
@@ -188,10 +189,6 @@ export default class extends Controller {
       } else {
         element.querySelector('[data-attachment-container]').style.display = 'none'
       }
-
-      element.querySelector('[data-bubble]').style.right = '-.2rem'
-      element.querySelector('[data-bubble]').style.removeProperty('left')
-      element.querySelector('[data-bubble]').style.removeProperty('transform')
 
       this.messagesContainerTarget.appendChild(element)
 
