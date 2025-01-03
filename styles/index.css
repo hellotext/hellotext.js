@@ -97,6 +97,7 @@ form[data-hello-form] {
     border-radius: 1.25rem;
     z-index: 10;
     min-width: 24rem;
+    max-width: 24rem;
     overflow-y: scroll;
   }
 
@@ -111,7 +112,7 @@ form[data-hello-form] {
     outline: none;
 
     :focus {
-      outline: none; /* focus:outline-none */
+      outline: none;
     }
   }
 
