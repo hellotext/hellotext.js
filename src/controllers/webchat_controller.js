@@ -187,7 +187,6 @@ export default class extends Controller {
       this.inputTarget.value = ""
       this.files = []
       this.attachmentContainerTarget.innerHTML = ""
-      this.attachmentContainerTarget.classList.add("hidden")
 
       this.inputTarget.focus()
     }
@@ -228,8 +227,6 @@ export default class extends Controller {
   createAttachmentElement(file) {
     const element = this.attachmentElement()
 
-    this.attachmentContainerTarget.classList.remove('hidden')
-
     element.setAttribute('data-name', file.name)
 
     if(file.type.startsWith("image/")) {
@@ -241,7 +238,6 @@ export default class extends Controller {
       element.appendChild(thumbnail)
 
       this.attachmentContainerTarget.appendChild(element)
-      this.attachmentContainerTarget.style.display = 'flex'
     } else {
       element.querySelector("main").classList.add(...this.widthClasses, "h-20", "rounded-md", "bg-gray-200", "p-1")
       element.querySelector("p[data-attachment-name]").innerText = file.name
@@ -255,13 +251,6 @@ export default class extends Controller {
 
     attachment.remove()
     this.inputTarget.focus()
-  }
-
-  attachmentTargetDisconnected() {
-    if(this.attachmentTargets.length === 0) {
-      this.attachmentContainerTarget.innerHTML = ""
-      this.attachmentContainerTarget.classList.add("hidden")
-    }
   }
 
   attachmentElement() {
