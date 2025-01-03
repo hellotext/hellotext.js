@@ -76,6 +76,16 @@ form[data-hello-form] {
     padding: .5rem;
   }
 
+  & [data-hellotext--webchat-target="messagesContainer"] {
+    display: flex;
+    flex-direction: column;
+    row-gap: .5rem;
+    background-color: white;
+    padding: 1rem 1.25rem;
+    height: 24rem;
+    overflow-y: scroll;
+  }
+
   & .hellotext--webchat-message {
     display: flex;
     flex-direction: column;

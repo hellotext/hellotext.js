@@ -169,8 +169,11 @@ export default class extends Controller {
 
     if(response.succeeded) {
       const element = this.messageTemplateTarget.cloneNode(true)
+
       element.style.display = 'flex'
       element.style.alignItems = 'flex-end'
+
+      element.setAttribute('data-hellotext--webchat-target', 'message')
 
       element.querySelector('[data-body]').innerText = this.inputTarget.value
 
