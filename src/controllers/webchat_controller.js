@@ -186,6 +186,10 @@ export default class extends Controller {
         element.querySelector('[data-attachment-container]').style.display = 'none'
       }
 
+      element.querySelector('[data-bubble]').style.right = '-.2rem'
+      element.querySelector('[data-bubble]').style.removeProperty('left')
+      element.querySelector('[data-bubble]').style.removeProperty('transform')
+
       this.messagesContainerTarget.appendChild(element)
 
       this.inputTarget.value = ""
