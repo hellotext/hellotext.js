@@ -199,7 +199,6 @@ export default class extends Controller {
 
       this.inputTarget.focus()
     }
-    console.log(response)
   }
 
   openAttachment() {
