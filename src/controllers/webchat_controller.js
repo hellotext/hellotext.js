@@ -217,13 +217,10 @@ export default class extends Controller {
       const mediaType = ['image', 'audio', 'video'].includes(type) ? type : 'document'
 
       this.errorMessageContainerTarget.innerText = this.fileSizeErrorMessageValue.replace('%{limit}', this.byteToMegabyte(this.mediaValue[mediaType].max_size))
-      this.errorMessageContainerTarget.classList.remove('hidden')
-
       return
     }
 
-    this.errorMessageContainerTarget.classList.add('hidden')
-
+    this.errorMessageContainerTarget.innerText = ""
     this.files.forEach(file => this.createAttachmentElement(file))
     this.inputTarget.focus()
   }
@@ -236,8 +233,10 @@ export default class extends Controller {
     element.setAttribute('data-name', file.name)
 
     if(file.type.startsWith("image/")) {
-      const thumbnail = element.querySelector('img')
+      const thumbnail = this.attachmentImageTarget.cloneNode(true)
+
       thumbnail.src = URL.createObjectURL(file)
+      thumbnail.style.display = 'block'
 
       element.appendChild(thumbnail)
 
