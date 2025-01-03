@@ -161,9 +161,17 @@ export default class extends Controller {
 
       element.querySelector('[data-body]').innerText = this.inputTarget.value
 
-      this.attachmentContainerTarget.querySelectorAll('img').forEach(attachment => {
-        element.querySelector('[data-attachment-container]').appendChild(attachment)
-      })
+      const attachments =  this.attachmentContainerTarget.querySelectorAll('img')
+
+      if(attachments.length > 0) {
+        attachments.forEach(attachment => {
+          element.querySelector('[data-attachment-container]').appendChild(attachment)
+        })
+
+        element.querySelector('[data-attachment-container]').style.display = 'flex'
+      } else {
+        element.querySelector('[data-attachment-container]').style.display = 'none'
+      }
 
       this.messagesContainerTarget.appendChild(element)
 
