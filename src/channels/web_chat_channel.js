@@ -19,6 +19,21 @@ class WebChatChannel extends ApplicationChannel {
 
     this.send( { command: 'subscribe',  identifier: params })
   }
+
+  onMessage(callback) {
+    super.onMessage((message) => {
+      if(message.type !== 'message') return
+      callback(message)
+    })
+  }
+
+  onConversationAssignment(callback) {
+    super.onMessage((message) => {
+      if(message.type === 'conversation.assigned') {
+        callback(message.data)
+      }
+    })
+  }
 }
 
 export default WebChatChannel

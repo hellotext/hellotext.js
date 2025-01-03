@@ -66,6 +66,11 @@ export default class extends Controller {
       console.log(message)
     })
 
+    this.webChatChannel.onConversationAssignment((conversation) => {
+      console.log(conversation)
+    })
+
+
     // this.socket.onmessage = (event) => {
     //   const data = JSON.parse(event.data);
     //
