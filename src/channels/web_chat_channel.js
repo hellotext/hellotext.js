@@ -34,6 +34,17 @@ class WebChatChannel extends ApplicationChannel {
       }
     })
   }
+
+  updateSubscription() {
+    const params = {
+      channel: "WebChatChannel",
+      id: this.id,
+      session: this.session
+    }
+
+    this.send({ command: 'unsubscribe', identifier: params })
+    this.subscribe()
+  }
 }
 
 export default WebChatChannel

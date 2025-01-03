@@ -30,6 +30,7 @@ export default class extends Controller {
     'messagesContainer',
     'title',
     'onlineStatus',
+    'attachmentImage',
   ]
 
   initialize() {
@@ -65,7 +66,29 @@ export default class extends Controller {
     }
 
     this.webChatChannel.onMessage((message) => {
-      console.log(message)
+      const { body, attachments } = message
+
+      const div = document.createElement('div')
+      div.innerHTML = body
+
+      const element = this.messageTemplateTarget.cloneNode(true)
+      element.style.display = 'flex'
+
+      element.querySelector('[data-body]').replaceWith(div.firstElementChild)
+
+      if(attachments) {
+        attachments.forEach(attachmentUrl => {
+          const image = this.attachmentImageTarget.cloneNode(true)
+          image.src = attachmentUrl
+          image.style.display = 'block'
+
+          element.querySelector('[data-attachment-container]').appendChild(image)
+        })
+
+        element.querySelector('[data-attachment-container]').style.display = 'flex'
+      }
+
+      this.messagesContainerTarget.appendChild(element)
     })
 
     this.webChatChannel.onConversationAssignment((conversation) => {
@@ -79,30 +102,6 @@ export default class extends Controller {
         this.onlineStatusTarget.style.display = 'none'
       }
     })
-
-
-    // this.socket.onmessage = (event) => {
-    //   const data = JSON.parse(event.data);
-    //
-    //   if (data.type === "ping") {
-    //     return;
-    //   }
-    //
-    //   const { message } = data
-    //
-    //   const { body } = message
-    //
-    //   const div = document.createElement('div')
-    //   div.innerHTML = body
-    //
-    //   const element = this.messageTemplateTarget.cloneNode(true)
-    //   element.style.display = 'flex'
-    //
-    //   element.innerHTML = div.innerHTML
-    //
-    //   this.messagesContainerTarget.appendChild(element)
-    //   console.log("event received", message)
-    // }
 
     super.connect()
   }
