@@ -74,7 +74,7 @@ export default class extends Controller {
       const element = this.messageTemplateTarget.cloneNode(true)
       element.style.display = 'flex'
 
-      element.querySelector('[data-body]').replaceWith(div.firstElementChild)
+      element.querySelector('[data-body]').innerHTML = div.innerHTML
 
       if(attachments) {
         attachments.forEach(attachmentUrl => {
