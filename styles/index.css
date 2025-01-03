@@ -140,6 +140,46 @@ form[data-hello-form] {
     }
   }
 
+  & [data-hellotext--webchat-target="attachmentContainer"] {
+    column-gap: 1rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-top: 1rem;
+
+    :has(:not(:empty)) {
+      display: flex;
+    }
+
+    :has(:empty) {
+      display: none;
+    }
+  }
+
+  & [data-hellotext--webchat-target="footer"] {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    margin: 0 1rem;
+  }
+
+  & [data-hellotext--webchat-target="errorMessageContainer"] {
+    color: red;
+
+    :has(:empty) {
+      display: none;
+    }
+
+    :has(:not(:empty)) {
+      display: block;
+    }
+  }
+
+  & [data-hellotext--webchat-target="toolbar"] {
+    display: flex;
+    column-gap: 1rem;
+    margin-top: 0.5rem;
+  }
+
   .trix-content {
     & a {
      color: rgb(255, 76, 0);
