@@ -85,7 +85,7 @@ export default class extends Controller {
     const { next: nextPage, messages } = await response.json()
 
     this.nextPageValue = nextPage
-    this.oldScrollHeight = this.element.scrollHeight
+    this.oldScrollHeight = this.messagesContainerTarget.scrollHeight
 
     messages.forEach(message => {
       const { body, attachments } = message
