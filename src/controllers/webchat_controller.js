@@ -101,15 +101,6 @@ export default class extends Controller {
       }
     })
 
-    setTimeout(() => {
-      this.messagesContainerTarget.scroll({
-        top: this.messagesContainerTarget.scrollHeight,
-        behavior: 'instant',
-      })
-
-      console.log('scrolling')
-    }, 1000)
-
     super.connect()
   }
 
@@ -119,6 +110,15 @@ export default class extends Controller {
   }
 
   show() {
+    if(!this.scrolled) {
+      this.messagesContainerTarget.scroll({
+        top: this.messagesContainerTarget.scrollHeight,
+        behavior: 'instant',
+      })
+
+      this.scrolled = true
+    }
+
     this.openValue = true
   }
 
