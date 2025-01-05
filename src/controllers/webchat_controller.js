@@ -152,11 +152,14 @@ export default class extends Controller {
 
       this.inputTarget.focus()
 
-      console.log(this.messagesContainerTarget.scrollHeight)
-      this.messagesContainerTarget.scroll({
-        top: this.messagesContainerTarget.scrollHeight,
-        behavior: 'instant',
-      })
+      if(!this.scrolled) {
+        this.messagesContainerTarget.scroll({
+          top: this.messagesContainerTarget.scrollHeight,
+          behavior: 'instant',
+        })
+
+        this.scrolled = true
+      }
     } else {
       this.popoverTarget.hidePopover()
       this.popoverTarget.removeAttribute("aria-expanded")
