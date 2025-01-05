@@ -111,7 +111,8 @@ export default class extends Controller {
         })
       }
 
-      this.messagesContainerTarget.appendChild(element)
+      element.setAttribute('data-body', body)
+      this.messagesContainerTarget.insertAdjacentHTML('afterbegin', element)
     })
 
     this.fetchingNextPage = false
