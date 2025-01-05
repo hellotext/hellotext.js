@@ -106,7 +106,9 @@ export default class extends Controller {
         top: this.messagesContainerTarget.scrollHeight,
         behavior: 'instant',
       })
-    }, 100)
+
+      console.log('scrolling')
+    }, 1000)
 
     super.connect()
   }
