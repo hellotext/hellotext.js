@@ -86,6 +86,7 @@ export default class extends Controller {
 
     this.nextPageValue = nextPage
 
+    console.log(messages)
     messages.forEach(message => {
       const { body, attachments } = message
 
@@ -93,7 +94,9 @@ export default class extends Controller {
       div.innerHTML = body
 
       const element = this.messageTemplateTarget.cloneNode(true)
-      element.style.display = 'flex'
+
+      element.removeAttribute('[data-hellotext--webchat-target]')
+      element.style.removeProperty('display')
 
       element.querySelector('[data-body]').innerHTML = div.innerHTML
 
