@@ -1,6 +1,7 @@
 import { Controller } from '@hotwired/stimulus'
-
 import { Configuration } from '../../core'
+
+import Hellotext from '../../hellotext'
 import WebChatMessagesAPI from '../../api/web_chat/messages'
 
 export default class extends Controller {
@@ -31,7 +32,7 @@ export default class extends Controller {
     if(this.scrollableTarget.scrollTop > 300 || !this.nextPageValue) return
 
     console.log('fetching....')
-    const response = await this.messagesAPI.index({ page: this.nextPageValue })
+    const response = await this.messagesAPI.index({ page: this.nextPageValue, session: Hellotext.session })
 
     console.log(response)
   }

@@ -19,12 +19,10 @@ class WebChatMessagesAPI {
       url.searchParams.append(key, value)
     })
 
-    const response = await fetch(url, {
+    return await fetch(url, {
       method: 'GET',
       headers: Hellotext.headers,
     })
-
-    return response
   }
 
   async create(formData) {
