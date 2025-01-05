@@ -1,14 +1,19 @@
 import { Controller } from '@hotwired/stimulus'
 
+import { Configuration } from '../../core'
+import WebChatMessagesAPI from '../../api/web_chat/messages'
+
 export default class extends Controller {
   static values = {
-    page: { type: Number, default: undefined }
+    nextPage: { type: Number, default: undefined }
   }
 
   static targets = ['scrollable']
 
   initialize() {
+    this.messagesAPI = new WebChatMessagesAPI(Configuration.webChat.id)
     this.onScroll = this.onScroll.bind(this)
+
     super.initialize()
   }
 
@@ -22,9 +27,12 @@ export default class extends Controller {
     super.disconnect()
   }
 
-  onScroll() {
-    if(this.scrollableTarget.scrollTop > 200 || !this.pageValue) return
+  async onScroll() {
+    if(this.scrollableTarget.scrollTop > 300 || !this.nextPageValue) return
 
-    console.log(this.scrollableTarget.scrollTop)
+    console.log('fetching....')
+    const response = await this.messagesAPI.index({ page: this.nextPageValue })
+
+    console.log(response)
   }
 }
