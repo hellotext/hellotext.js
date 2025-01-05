@@ -42,6 +42,11 @@ export default class extends Controller {
     this.socket = new WebSocket('ws://localhost:3000/cable')
 
     super.initialize()
+
+    this.messagesContainerTarget.scroll({
+      top: this.messagesContainerTarget.scrollHeight,
+      behavior: 'instant',
+    })
   }
 
   connect() {
