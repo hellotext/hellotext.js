@@ -118,15 +118,6 @@ export default class extends Controller {
   }
 
   toggle() {
-    if(!this.scrolled) {
-      this.messagesContainerTarget.scroll({
-        top: this.messagesContainerTarget.scrollHeight,
-        behavior: 'instant',
-      })
-
-      this.scrolled = true
-    }
-
     this.openValue = !this.openValue
   }
 
