@@ -34,6 +34,6 @@ export default class extends Controller {
     console.log('fetching....')
     const response = await this.messagesAPI.index({ page: this.nextPageValue, session: Hellotext.session })
 
-    console.log(response)
+    console.log(await response.json())
   }
 }
