@@ -3,6 +3,7 @@ import { computePosition, autoUpdate, shift, flip, offset } from '@floating-ui/d
 
 import WebChatMessagesAPI from '../api/web_chat/messages'
 import WebChatChannel from '../channels/web_chat_channel'
+import Hellotext from "../hellotext";
 
 export default class extends Controller {
   static values = {
@@ -14,6 +15,7 @@ export default class extends Controller {
     open: { type: Boolean, default: false },
     autoPlacement: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
+    nextPage: { type: Number, default: undefined },
   }
 
   static targets = [
@@ -40,6 +42,7 @@ export default class extends Controller {
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onConversationAssignment = this.onConversationAssignment.bind(this)
+    this.onScroll = this.onScroll.bind(this)
 
     super.initialize()
   }
@@ -61,13 +64,25 @@ export default class extends Controller {
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
+    this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
 
     super.connect()
   }
 
   disconnect() {
+    this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
     this.floatingUICleanup()
+
     super.disconnect()
+  }
+
+  async onScroll() {
+    if(this.messagesContainerTarget.scrollTop > 300 || !this.nextPageValue) return
+
+    console.log('fetching....')
+    const response = await this.messagesAPI.index({ page: this.nextPageValue, session: Hellotext.session })
+
+    console.log(await response.json())
   }
 
   show() {
