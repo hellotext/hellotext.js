@@ -36,10 +36,10 @@ export default class extends Controller {
   initialize() {
     this.messagesAPI = new WebChatMessagesAPI(this.idValue)
     this.webChatChannel = new WebChatChannel(this.idValue, Hellotext.session)
-
     this.files = []
 
-    this.socket = new WebSocket('ws://localhost:3000/cable')
+    this.onMessageReceived = this.onMessageReceived.bind(this)
+    this.onConversationAssignment = this.onConversationAssignment.bind(this)
 
     super.initialize()
   }
@@ -59,47 +59,8 @@ export default class extends Controller {
       });
     })
 
-    const params = {
-      channel: "WebChatChannel",
-      id: this.idValue,
-      session: Hellotext.session
-    }
-
-    this.webChatChannel.onMessage((message) => {
-      const { body, attachments } = message
-
-      const div = document.createElement('div')
-      div.innerHTML = body
-
-      const element = this.messageTemplateTarget.cloneNode(true)
-      element.style.display = 'flex'
-
-      element.querySelector('[data-body]').innerHTML = div.innerHTML
-
-      if(attachments) {
-        attachments.forEach(attachmentUrl => {
-          const image = this.attachmentImageTarget.cloneNode(true)
-          image.src = attachmentUrl
-          image.style.display = 'block'
-
-          element.querySelector('[data-attachment-container]').appendChild(image)
-        })
-      }
-
-      this.messagesContainerTarget.appendChild(element)
-    })
-
-    this.webChatChannel.onConversationAssignment((conversation) => {
-      const { to: user } = conversation
-
-      this.titleTarget.innerText = user.name
-
-      if(user.online) {
-        this.onlineStatusTarget.style.display = 'flex'
-      } else {
-        this.onlineStatusTarget.style.display = 'none'
-      }
-    })
+    this.webChatChannel.onMessage(this.onMessageReceived)
+    this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
 
     super.connect()
   }
@@ -158,6 +119,43 @@ export default class extends Controller {
       this.dispatch("hidden")
 
       this.inputTarget.value = ""
+    }
+  }
+
+
+  onMessageReceived(message) {
+    const { body, attachments } = message
+
+    const div = document.createElement('div')
+    div.innerHTML = body
+
+    const element = this.messageTemplateTarget.cloneNode(true)
+    element.style.display = 'flex'
+
+    element.querySelector('[data-body]').innerHTML = div.innerHTML
+
+    if(attachments) {
+      attachments.forEach(attachmentUrl => {
+        const image = this.attachmentImageTarget.cloneNode(true)
+        image.src = attachmentUrl
+        image.style.display = 'block'
+
+        element.querySelector('[data-attachment-container]').appendChild(image)
+      })
+    }
+
+    this.messagesContainerTarget.appendChild(element)
+  }
+
+  onConversationAssignment(conversation) {
+    const { to: user } = conversation
+
+    this.titleTarget.innerText = user.name
+
+    if(user.online) {
+      this.onlineStatusTarget.style.display = 'flex'
+    } else {
+      this.onlineStatusTarget.style.display = 'none'
     }
   }
 
