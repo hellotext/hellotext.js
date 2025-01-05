@@ -23,6 +23,8 @@ export default class extends Controller {
   }
 
   onScroll() {
+    if(this.scrollableTarget.scrollTop > 200 || !this.pageValue) return
+
     console.log(this.scrollableTarget.scrollTop)
   }
 }
