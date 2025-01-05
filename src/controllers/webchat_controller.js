@@ -85,8 +85,8 @@ export default class extends Controller {
     const { next: nextPage, messages } = await response.json()
 
     this.nextPageValue = nextPage
+    this.oldScrollHeight = this.element.scrollHeight
 
-    console.log(messages)
     messages.forEach(message => {
       const { body, attachments } = message
 
@@ -121,6 +121,11 @@ export default class extends Controller {
 
       element.setAttribute('data-body', body)
       this.messagesContainerTarget.prepend(element)
+    })
+
+    this.messagesContainerTarget.scroll({
+      top: this.messagesContainerTarget.scrollHeight - this.oldScrollHeight,
+      behavior: 'instant',
     })
 
     this.fetchingNextPage = false
