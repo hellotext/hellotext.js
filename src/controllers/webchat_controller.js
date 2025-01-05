@@ -102,6 +102,8 @@ export default class extends Controller {
 
       if(message.state === 'received') {
         element.classList.add('received')
+      } else {
+        element.classList.remove('received')
       }
 
       if(attachments) {
