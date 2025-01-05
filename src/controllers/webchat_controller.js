@@ -42,11 +42,6 @@ export default class extends Controller {
     this.socket = new WebSocket('ws://localhost:3000/cable')
 
     super.initialize()
-
-    this.messagesContainerTarget.scroll({
-      top: this.messagesContainerTarget.scrollHeight,
-      behavior: 'instant',
-    })
   }
 
   connect() {
@@ -104,6 +99,11 @@ export default class extends Controller {
       } else {
         this.onlineStatusTarget.style.display = 'none'
       }
+    })
+
+    this.messagesContainerTarget.scroll({
+      top: this.messagesContainerTarget.scrollHeight,
+      behavior: 'instant',
     })
 
     super.connect()
