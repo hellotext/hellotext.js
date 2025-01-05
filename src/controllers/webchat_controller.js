@@ -110,6 +110,14 @@ export default class extends Controller {
   }
 
   show() {
+    this.openValue = true
+  }
+
+  hide() {
+    this.openValue = false
+  }
+
+  toggle() {
     if(!this.scrolled) {
       this.messagesContainerTarget.scroll({
         top: this.messagesContainerTarget.scrollHeight,
@@ -119,14 +127,6 @@ export default class extends Controller {
       this.scrolled = true
     }
 
-    this.openValue = true
-  }
-
-  hide() {
-    this.openValue = false
-  }
-
-  toggle() {
     this.openValue = !this.openValue
   }
 
