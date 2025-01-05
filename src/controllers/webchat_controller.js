@@ -101,10 +101,12 @@ export default class extends Controller {
       }
     })
 
-    this.messagesContainerTarget.scroll({
-      top: this.messagesContainerTarget.scrollHeight,
-      behavior: 'instant',
-    })
+    setTimeout(() => {
+      this.messagesContainerTarget.scroll({
+        top: this.messagesContainerTarget.scrollHeight,
+        behavior: 'instant',
+      })
+    }, 100)
 
     super.connect()
   }
