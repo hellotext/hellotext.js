@@ -77,12 +77,44 @@ export default class extends Controller {
   }
 
   async onScroll() {
-    if(this.messagesContainerTarget.scrollTop > 300 || !this.nextPageValue) return
+    if(this.messagesContainerTarget.scrollTop > 300 || !this.nextPageValue || this.fetchingNextPage) return
 
-    console.log('fetching....')
+    this.fetchingNextPage = true
     const response = await this.messagesAPI.index({ page: this.nextPageValue, session: Hellotext.session })
 
-    console.log(await response.json())
+    const { next: nextPage, messages } = await response.json()
+
+    this.nextPageValue = nextPage
+
+    messages.forEach(message => {
+      const { body, attachments } = message
+
+      const div = document.createElement('div')
+      div.innerHTML = body
+
+      const element = this.messageTemplateTarget.cloneNode(true)
+      element.style.display = 'flex'
+
+      element.querySelector('[data-body]').innerHTML = div.innerHTML
+
+      if(message.state === 'received') {
+        element.classList.add('received')
+      }
+
+      if(attachments) {
+        attachments.forEach(attachmentUrl => {
+          const image = this.attachmentImageTarget.cloneNode(true)
+          image.src = attachmentUrl
+          image.style.display = 'block'
+
+          element.querySelector('[data-attachment-container]').appendChild(image)
+        })
+      }
+
+      this.messagesContainerTarget.appendChild(element)
+    })
+
+    this.fetchingNextPage = false
   }
 
   show() {
