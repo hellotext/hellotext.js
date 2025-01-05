@@ -107,6 +107,9 @@ export default class extends Controller {
       if(attachments) {
         attachments.forEach(attachmentUrl => {
           const image = this.attachmentImageTarget.cloneNode(true)
+
+          image.removeAttribute('data-hellotext--webchat-target')
+
           image.src = attachmentUrl
           image.style.display = 'block'
 
