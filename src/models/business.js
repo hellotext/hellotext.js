@@ -42,7 +42,7 @@ class Business {
           linkTag.rel = 'stylesheet'
           linkTag.href = data.style_url
 
-          document.head.appendChild(linkTag)
+          document.head.append(linkTag)
         }
       })
   }
