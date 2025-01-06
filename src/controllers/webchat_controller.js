@@ -183,7 +183,6 @@ export default class extends Controller {
     }
   }
 
-
   onMessageReceived(message) {
     const { body, attachments } = message
 
@@ -206,6 +205,7 @@ export default class extends Controller {
     }
 
     this.messagesContainerTarget.appendChild(element)
+    Hellotext.eventEmitter.dispatch('webchat:message:received', message)
   }
 
   onConversationAssignment(conversation) {
@@ -222,6 +222,11 @@ export default class extends Controller {
 
   async sendMessage() {
     const formData = new FormData()
+
+    const message = {
+      body: this.inputTarget.value,
+      attachments: this.files
+    }
 
     formData.append('message[body]', this.inputTarget.value)
 
@@ -258,6 +263,7 @@ export default class extends Controller {
       this.attachmentContainerTarget.classList.add("hidden")
 
       this.inputTarget.focus()
+      Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
     }
   }
 
