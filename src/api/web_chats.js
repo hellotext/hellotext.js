@@ -15,6 +15,8 @@ class WebChatsAPI {
       url.searchParams.append(`style[${key}]`, value)
     })
 
+    url.searchParams.append('placement', Configuration.webChat.placement)
+
     const response = await fetch(url, {
       method: 'GET',
       headers: Hellotext.headers,

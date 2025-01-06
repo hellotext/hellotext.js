@@ -2,7 +2,6 @@ import Hellotext from '../hellotext';
 import { Configuration } from '../core'
 
 import API from '../api';
-import WebChatMessagesAPI from '../api/web_chat/messages'
 
 class WebChat {
   static async load(id) {
