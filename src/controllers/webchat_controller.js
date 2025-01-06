@@ -256,6 +256,7 @@ export default class extends Controller {
       }
 
       this.messagesContainerTarget.appendChild(element)
+      element.scrollIntoView({ behavior: 'smooth' })
 
       this.inputTarget.value = ""
       this.files = []
