@@ -148,6 +148,8 @@ export default class extends Controller {
   }
 
   onClickOutside(event) {
+    console.log(WebChatConfiguration.behaviour)
+
     if (WebChatConfiguration.behaviour === behaviors.POPOVER && this.openValue && event.target.nodeType && this.element.contains(event.target) === false) {
       this.openValue = false
     }
