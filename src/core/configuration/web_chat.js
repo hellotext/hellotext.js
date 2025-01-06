@@ -26,6 +26,7 @@ class WebChat {
   static _placement = 'bottom-right'
   static _classes
   static _triggerClasses
+  static _style = {}
 
   static set container(value) {
     this._container = value
@@ -73,6 +74,18 @@ class WebChat {
 
   static get isSet() {
     return !!this._id
+  }
+
+  static get style() {
+    return this._style
+  }
+
+  static set style(value) {
+    if(typeof value !== 'object') {
+      throw new Error('Style must be an object')
+    }
+
+    this._style = value
   }
 
   static assign(props) {

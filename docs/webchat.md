@@ -12,6 +12,11 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
     placement,
     classes,
     triggerClasses,
+    style: {
+      background,
+      foreground,
+      typography
+    }
   }
 })
 ```
@@ -23,6 +28,7 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | placement      | The placement of the webchat, determined according to the parent `container`.                                                            | Enum   | `bottom-right` |
 | classes        | Additional CSS classes to apply to the webchat element                                                                                   | String | null           |
 | triggerClasses | Additional CSS classes to apply to the webchat trigger                                                                                   | String | null           |
+| style          | Style overrides to the WebChat's style configuration as created on the dashboard.                                                        | Object | null           |
 
 ### Position 
 
@@ -32,6 +38,16 @@ The default position for a webchat is `bottom-right`, but you can specify any of
 - `bottom-right`
 - `top-left`
 - `top-right`
+
+### Style 
+
+The following properties are accepted for the `style` object.
+
+- `background` - The background color of the webchat, this is used on the scrollable area of the messages.
+- `foreground` - The foreground color of the webchat, this is used on the header of the webchat.
+- `typography` - The font family to use for the webchat.
+
+All properties accept a valid CSS value, for example, `background: 'red'` or `background: '#ff0000'`.
 
 ### Events 
 

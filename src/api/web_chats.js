@@ -8,7 +8,12 @@ class WebChatsAPI {
 
   static async get(id) {
     const url = new URL(`${this.endpoint}/${id}`)
+
     url.searchParams.append('session', Hellotext.session)
+
+    Object.entries(Configuration.webChat.style).forEach(([key, value]) => {
+      url.searchParams.append(`style[${key}]`, value)
+    })
 
     const response = await fetch(url, {
       method: 'GET',
