@@ -5,6 +5,8 @@ import WebChatMessagesAPI from '../api/web_chat/messages'
 import WebChatChannel from '../channels/web_chat_channel'
 import Hellotext from "../hellotext";
 
+import { WebChat as WebChatConfiguration, behaviors } from '../core/configuration/web_chat'
+
 export default class extends Controller {
   static values = {
     id: String,
@@ -65,6 +67,8 @@ export default class extends Controller {
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
+
+    Hellotext.eventEmitter.dispatch('webchat:mounted')
 
     super.connect()
   }
@@ -144,24 +148,17 @@ export default class extends Controller {
   }
 
   onClickOutside(event) {
-    if (event.target.nodeType && this.element.contains(event.target) === false) {
+    if (WebChatConfiguration.behaviour === behaviors.POPOVER && this.openValue && event.target.nodeType && this.element.contains(event.target) === false) {
       this.openValue = false
-      setTimeout(() => this.dispatch("aborted"), 400)
     }
   }
 
   openValueChanged() {
     if(this.disabledValue) return
 
-    this.dispatch("toggle", {
-      detail: this.openValue
-    })
-
     if(this.openValue) {
       this.popoverTarget.showPopover()
       this.popoverTarget.setAttribute("aria-expanded", "true")
-
-      this.dispatch("opened")
 
       this.inputTarget.focus()
 
@@ -173,6 +170,8 @@ export default class extends Controller {
 
         this.scrolled = true
       }
+
+      Hellotext.eventEmitter.dispatch('webchat:opened')
     } else {
       this.popoverTarget.hidePopover()
       this.popoverTarget.removeAttribute("aria-expanded")
@@ -180,6 +179,7 @@ export default class extends Controller {
       this.dispatch("hidden")
 
       this.inputTarget.value = ""
+      Hellotext.eventEmitter.dispatch('webchat:closed')
     }
   }
 

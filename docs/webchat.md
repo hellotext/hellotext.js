@@ -16,7 +16,8 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
       background,
       foreground,
       typography
-    }
+    },
+    behaviour,
   }
 })
 ```
@@ -24,11 +25,12 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | Property       | Description                                                                                                                              | Type   | Default        |
 |----------------|------------------------------------------------------------------------------------------------------------------------------------------|--------|----------------|
 | id             | The id of the webchat to load. **required**                                                                                              | String | null           |
-| container      | The container to append the webchat to, must me a valid CSS selector. If none specified, the webchat is appended at the end of the body. | String | `body`           |
+| container      | The container to append the webchat to, must me a valid CSS selector. If none specified, the webchat is appended at the end of the body. | String | `body`         |
 | placement      | The placement of the webchat, determined according to the parent `container`.                                                            | Enum   | `bottom-right` |
 | classes        | Additional CSS classes to apply to the webchat element                                                                                   | String | null           |
 | triggerClasses | Additional CSS classes to apply to the webchat trigger                                                                                   | String | null           |
 | style          | Style overrides to the WebChat's style configuration as created on the dashboard.                                                        | Object | null           |
+| behaviour      | The behaviour of the webchat when it is open and a click was made outside of it                                                          | Enum   | `popover`      |
 
 ### Position 
 
@@ -48,6 +50,13 @@ The following properties are accepted for the `style` object.
 - `typography` - The font family to use for the webchat.
 
 All properties accept a valid CSS value, for example, `background: 'red'` or `background: '#ff0000'`.
+
+### behaviour
+
+Determines how the webchat functions when it is open and a click is made outside of it. The following values are accepted.
+
+- `popover` - Closes the webchat when a click is made outside of it. This is the default behaviour.
+- `modal` - Prevents the webchat from closing when a click is made outside of it. The webchat can only be closed by clicking on the trigger.
 
 ### Events 
 
