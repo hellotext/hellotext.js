@@ -205,7 +205,13 @@ export default class extends Controller {
     }
 
     this.messagesContainerTarget.appendChild(element)
-    Hellotext.eventEmitter.dispatch('webchat:message:received', message)
+
+    Hellotext.eventEmitter.dispatch('webchat:message:received', {
+      ...message,
+      body: element.querySelector('[data-body]').innerText,
+    })
+
+    element.scrollIntoView({ behavior: 'smooth' })
   }
 
   onConversationAssignment(conversation) {
