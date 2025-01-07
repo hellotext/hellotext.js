@@ -360,6 +360,13 @@ export default class extends Controller {
 
   onEmojiSelect({ detail: emoji }) {
     console.log(emoji)
+    console.log(this.inputTarget.selectionStart)
+
+    const value = this.inputTarget.value
+    const start = this.inputTarget.selectionStart
+    const end = this.inputTarget.selectionEnd
+
+    this.inputTarget.value = value.slice(0, start) + emoji + value.slice(end)
   }
 
   byteToMegabyte(bytes) {
