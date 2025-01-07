@@ -46,6 +46,8 @@ export default class extends Controller {
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onConversationAssignment = this.onConversationAssignment.bind(this)
+    this.onAgentOnline = this.onAgentOnline.bind(this)
+
     this.onScroll = this.onScroll.bind(this)
 
     super.initialize()
@@ -62,9 +64,7 @@ export default class extends Controller {
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
 
-    this.webChatChannel.onAgentOnline(() => {
-      console.log('agent became online')
-    })
+    this.webChatChannel.onAgentOnline(this.onAgentOnline)
 
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
 
@@ -205,6 +205,14 @@ export default class extends Controller {
     } else {
       this.onlineStatusTarget.style.display = 'none'
     }
+  }
+
+  onAgentOnline() {
+    this.onlineStatusTarget.style.display = 'flex'
+
+    this.offlineTimeout = setTimeout(() => {
+      this.onlineStatusTarget.style.display = 'none'
+    }, this.fiveMinutes)
   }
 
   async sendMessage() {
@@ -350,6 +358,10 @@ export default class extends Controller {
 
   byteToMegabyte(bytes) {
     return Math.ceil(bytes / 1024 / 1024)
+  }
+
+  get fiveMinutes() {
+    return 300000
   }
 
   get middlewares() {
