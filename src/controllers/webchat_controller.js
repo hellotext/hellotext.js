@@ -358,6 +358,10 @@ export default class extends Controller {
     return element
   }
 
+  onEmojiSelect({ detail: emoji }) {
+    console.log(emoji)
+  }
+
   byteToMegabyte(bytes) {
     return Math.ceil(bytes / 1024 / 1024)
   }

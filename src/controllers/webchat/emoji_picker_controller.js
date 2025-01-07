@@ -43,7 +43,11 @@ export default class extends Controller {
   }
 
   onEmojiSelect(emoji) {
+    this.dispatch('selected', {
+      detail: emoji
+    })
 
+    this.hide()
   }
 
   get pickerObject() {
