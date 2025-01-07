@@ -72,18 +72,6 @@ export default class extends Controller {
     })
   }
 
-  openValueChanged() {
-    if(this.disabledValue) return
-
-    if(this.openValue) {
-      this.popoverTarget.showPopover()
-      this.popoverTarget.setAttribute("aria-expanded", "true")
-    } else {
-      this.popoverTarget.hidePopover()
-      this.popoverTarget.removeAttribute("aria-expanded")
-    }
-  }
-
   get middlewares() {
     return [
       offset(5),

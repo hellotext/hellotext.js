@@ -34,12 +34,16 @@ export const usePopover = (controller) => {
         this.popoverTarget.showPopover()
         this.popoverTarget.setAttribute("aria-expanded", "true")
 
-        this.onPopoverOpened()
+        if(this['onPopoverOpened']) {
+          this.onPopoverOpened()
+        }
       } else {
         this.popoverTarget.hidePopover()
         this.popoverTarget.removeAttribute("aria-expanded")
 
-        this.onPopoverClosed()
+        if(this['onPopoverClosed']) {
+          this.onPopoverClosed()
+        }
       }
     }
   })

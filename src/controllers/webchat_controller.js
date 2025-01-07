@@ -152,8 +152,11 @@ export default class extends Controller {
   }
 
   onPopoverClosed() {
-    this.inputTarget.value = ""
     Hellotext.eventEmitter.dispatch('webchat:closed')
+
+    setTimeout(() => {
+      this.inputTarget.value = ""
+    })
   }
 
   onMessageReceived(message) {
