@@ -136,34 +136,24 @@ export default class extends Controller {
     }
   }
 
-  openValueChanged() {
-    if(this.disabledValue) return
+  onPopoverOpened() {
+    this.inputTarget.focus()
 
-    if(this.openValue) {
-      this.popoverTarget.showPopover()
-      this.popoverTarget.setAttribute("aria-expanded", "true")
+    if(!this.scrolled) {
+      this.messagesContainerTarget.scroll({
+        top: this.messagesContainerTarget.scrollHeight,
+        behavior: 'instant',
+      })
 
-      this.inputTarget.focus()
-
-      if(!this.scrolled) {
-        this.messagesContainerTarget.scroll({
-          top: this.messagesContainerTarget.scrollHeight,
-          behavior: 'instant',
-        })
-
-        this.scrolled = true
-      }
-
-      Hellotext.eventEmitter.dispatch('webchat:opened')
-    } else {
-      this.popoverTarget.hidePopover()
-      this.popoverTarget.removeAttribute("aria-expanded")
-
-      this.dispatch("hidden")
-
-      this.inputTarget.value = ""
-      Hellotext.eventEmitter.dispatch('webchat:closed')
+      this.scrolled = true
     }
+
+    Hellotext.eventEmitter.dispatch('webchat:opened')
+  }
+
+  onPopoverClosed() {
+    this.inputTarget.value = ""
+    Hellotext.eventEmitter.dispatch('webchat:closed')
   }
 
   onMessageReceived(message) {

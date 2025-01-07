@@ -1,4 +1,5 @@
 import { autoUpdate, computePosition } from '@floating-ui/dom'
+import Hellotext from "../../hellotext";
 
 export const usePopover = (controller) => {
   Object.assign(controller, {
@@ -25,6 +26,21 @@ export const usePopover = (controller) => {
           Object.assign(popover.style, newStyle)
         });
       })
+    },
+    openValueChanged() {
+      if(this.disabledValue) return
+
+      if(this.openValue) {
+        this.popoverTarget.showPopover()
+        this.popoverTarget.setAttribute("aria-expanded", "true")
+
+        this.onPopoverOpened()
+      } else {
+        this.popoverTarget.hidePopover()
+        this.popoverTarget.removeAttribute("aria-expanded")
+
+        this.onPopoverClosed()
+      }
     }
   })
 }
