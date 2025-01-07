@@ -50,6 +50,9 @@ export default class extends Controller {
   }
 
   connect() {
+    this.popoverTarget.classList.add(...WebChatConfiguration.classes)
+    this.triggerTarget.classList.add(...WebChatConfiguration.triggerClasses)
+
     this.floatingUICleanup = autoUpdate(this.triggerTarget, this.popoverTarget, () => {
       computePosition(this.triggerTarget, this.popoverTarget, {
         placement: this.placementValue,

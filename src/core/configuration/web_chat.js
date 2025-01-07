@@ -51,8 +51,8 @@ class WebChat {
   static _id
   static _container = 'body'
   static _placement = 'bottom-right'
-  static _classes
-  static _triggerClasses
+  static _classes = []
+  static _triggerClasses = []
   static _style = {}
   static _behaviour = behaviors.POPOVER
 
@@ -155,4 +155,4 @@ class WebChat {
   }
 }
 
-export { WebChat }
+export { WebChat, behaviors }
