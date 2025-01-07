@@ -193,6 +193,7 @@ export default class extends Controller {
     })
 
     element.scrollIntoView({ behavior: 'smooth' })
+    this.setOfflineTimeout()
   }
 
   onConversationAssignment(conversation) {
@@ -209,10 +210,7 @@ export default class extends Controller {
 
   onAgentOnline() {
     this.onlineStatusTarget.style.display = 'flex'
-
-    this.offlineTimeout = setTimeout(() => {
-      this.onlineStatusTarget.style.display = 'none'
-    }, this.fiveMinutes)
+    this.setOfflineTimeout()
   }
 
   async sendMessage() {
@@ -354,6 +352,14 @@ export default class extends Controller {
 
     this.inputTarget.selectionStart = this.inputTarget.selectionEnd = start + emoji.length
     this.inputTarget.focus()
+  }
+
+  setOfflineTimeout() {
+    clearTimeout(this.offlineTimeout)
+
+    this.offlineTimeout = setTimeout(() => {
+      this.onlineStatusTarget.style.display = 'none'
+    }, this.fiveMinutes)
   }
 
   byteToMegabyte(bytes) {
