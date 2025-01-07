@@ -3,6 +3,8 @@ import { computePosition, autoUpdate, shift, autoPlacement, offset } from '@floa
 
 import { Picker } from 'emoji-mart'
 
+import { usePopover } from '../mixins/usePopover'
+
 export default class extends Controller {
   static targets = [
     'button',
@@ -37,6 +39,8 @@ export default class extends Controller {
         Object.assign(this.popoverTarget.style, newStyle);
       });
     })
+
+    usePopover(this)
 
     this.popoverTarget.appendChild(this.pickerObject)
     super.connect()
@@ -73,18 +77,6 @@ export default class extends Controller {
         return response.json()
       }
     })
-  }
-
-  show() {
-    this.openValue = true
-  }
-
-  hide() {
-    this.openValue = false
-  }
-
-  toggle() {
-    this.openValue = !this.openValue
   }
 
   openValueChanged() {

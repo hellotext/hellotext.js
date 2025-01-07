@@ -7,6 +7,8 @@ import Hellotext from "../hellotext";
 
 import { WebChat as WebChatConfiguration, behaviors } from '../core/configuration/web_chat'
 
+import { usePopover } from './mixins/usePopover'
+
 export default class extends Controller {
   static values = {
     id: String,
@@ -73,6 +75,7 @@ export default class extends Controller {
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
 
+    usePopover(this)
     super.connect()
   }
 
@@ -136,18 +139,6 @@ export default class extends Controller {
     })
 
     this.fetchingNextPage = false
-  }
-
-  show() {
-    this.openValue = true
-  }
-
-  hide() {
-    this.openValue = false
-  }
-
-  toggle() {
-    this.openValue = !this.openValue
   }
 
   onClickOutside(event) {
