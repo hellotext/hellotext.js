@@ -50,6 +50,12 @@ export default class extends Controller {
     this.hide()
   }
 
+  onClickOutside(event) {
+    if (this.openValue && event.target.nodeType && this.element.contains(event.target) === false) {
+      this.openValue = false
+    }
+  }
+
   get pickerObject() {
     return new Picker({
       onEmojiSelect: this.onEmojiSelect,
