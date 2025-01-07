@@ -5,16 +5,23 @@ import API from '../api';
 
 class WebChat {
   static async load(id) {
-    return new WebChat(await API.webChats.get(id))
+    return new WebChat({
+      id,
+      html: await API.webChats.get(id),
+    })
   }
 
   constructor(data) {
     this.data = data
+    this.render()
+  }
 
-    Hellotext.eventEmitter.dispatch('webchat:loaded', this)
+  render() {
+    this.containerToAppendTo.appendChild(this.data.html)
+  }
 
-    const container = document.querySelector(Configuration.webChat.container)
-    container.appendChild(this.data)
+  get containerToAppendTo() {
+    return document.querySelector(Configuration.webChat.container)
   }
 }
 

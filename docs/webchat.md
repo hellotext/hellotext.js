@@ -62,7 +62,6 @@ Determines how the webchat functions when it is open and a click is made outside
 
 The webchat emits the following events which can be listened to, to add an event listener you can `Hellotext.addEventListener(event, callback)`.
 
-- `webchat:loaded` - Emitted when the webchat is loaded
 - `webchat:mounted` - Emitted when the webchat is mounted
 - `webchat:opened` - Emitted when the webchat is opened
 - `webchat:closed` - Emitted when the webchat is closed

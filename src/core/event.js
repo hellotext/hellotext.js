@@ -5,7 +5,6 @@ export default class Event {
     'session-set',
     'forms:collected',
     'form:completed',
-    'webchat:loaded',
     'webchat:mounted',
     'webchat:opened',
     'webchat:closed',
