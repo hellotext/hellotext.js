@@ -28,10 +28,15 @@ export default class extends Controller {
   connect() {
     usePopover(this)
 
-    this.floatingUICleanup = this.setupFloatingUI({ trigger: this.buttonTarget, popover: this.popoverTarget })
+    this.setupFloatingUI({ trigger: this.buttonTarget, popover: this.popoverTarget })
     this.popoverTarget.appendChild(this.pickerObject)
 
     super.connect()
+  }
+
+  disconnect() {
+    this.floatingUICleanup()
+    super.disconnect()
   }
 
   onEmojiSelect(emoji) {

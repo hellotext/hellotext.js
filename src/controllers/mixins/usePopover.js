@@ -12,7 +12,7 @@ export const usePopover = (controller) => {
       this.openValue = !this.openValue
     },
     setupFloatingUI({ trigger, popover }) {
-      autoUpdate(trigger, popover, () => {
+      this.floatingUICleanup = autoUpdate(trigger, popover, () => {
         computePosition(trigger, popover, {
           placement: this.placementValue,
           middleware: this.middlewares,

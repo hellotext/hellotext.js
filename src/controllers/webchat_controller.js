@@ -52,22 +52,12 @@ export default class extends Controller {
   }
 
   connect() {
+    usePopover(this)
+
     this.popoverTarget.classList.add(...WebChatConfiguration.classes)
     this.triggerTarget.classList.add(...WebChatConfiguration.triggerClasses)
 
-    this.floatingUICleanup = autoUpdate(this.triggerTarget, this.popoverTarget, () => {
-      computePosition(this.triggerTarget, this.popoverTarget, {
-        placement: this.placementValue,
-        middleware: this.middlewares,
-      }).then(({x, y}) => {
-        const newStyle = {
-          left: `${x}px`,
-          top: `${y}px`
-        }
-
-        Object.assign(this.popoverTarget.style, newStyle);
-      });
-    })
+    this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
@@ -75,7 +65,6 @@ export default class extends Controller {
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
 
-    usePopover(this)
     super.connect()
   }
 
