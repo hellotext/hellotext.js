@@ -1,5 +1,7 @@
 import { Controller } from '@hotwired/stimulus'
-import { computePosition, autoUpdate, shift, flip, offset } from '@floating-ui/dom'
+import { computePosition, autoUpdate, shift, autoPlacement, offset } from '@floating-ui/dom'
+
+import { Picker } from 'emoji-mart'
 
 export default class extends Controller {
   static targets = [
@@ -12,7 +14,13 @@ export default class extends Controller {
     open: { type: Boolean, default: false },
     autoPlacement: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
-    nextPage: { type: Number, default: undefined },
+    size: { type: Number, default: 24 },
+    perLine: { type: Number, default: 9 }
+  }
+
+  initialize() {
+    this.onEmojiSelect = this.onEmojiSelect.bind(this)
+    super.initialize()
   }
 
   connect() {
@@ -30,7 +38,31 @@ export default class extends Controller {
       });
     })
 
+    this.popoverTarget.appendChild(this.pickerObject)
     super.connect()
+  }
+
+  onEmojiSelect(emoji) {
+
+  }
+
+  get pickerObject() {
+    return new Picker({
+      onEmojiSelect: this.onEmojiSelect,
+      theme: 'light',
+      dynamicWidth: true,
+      previewPosition: 'none',
+      skinTonePosition: 'none',
+      emojiSize: this.sizeValue,
+      perLine: this.perLineValue,
+      data: async () => {
+        const response = await fetch(
+          'https://cdn.jsdelivr.net/npm/@emoji-mart/data',
+        )
+
+        return response.json()
+      }
+    })
   }
 
   show() {
@@ -61,7 +93,7 @@ export default class extends Controller {
     return [
       offset(5),
       shift({ padding: 24 }),
-      flip(),
+      autoPlacement({ allowedPlacements: ['top', 'bottom' ]}),
     ]
   }
 }
