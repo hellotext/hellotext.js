@@ -206,6 +206,8 @@ export default class extends Controller {
     } else {
       this.onlineStatusTarget.style.display = 'none'
     }
+
+    this.webChatChannel.updateSubscription()
   }
 
   onAgentOnline() {
