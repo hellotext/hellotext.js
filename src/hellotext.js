@@ -33,22 +33,22 @@ class Hellotext {
     if(Configuration.session) {
       this.#session = Configuration.session
 
-      if(Configuration.webchat.isSet) {
-        this.webChat = await WebChat.load(Configuration.webchat.id)
+      if(Configuration.webChat.isSet) {
+        this.webChat = await WebChat.load(Configuration.webChat.id)
       }
     } else if (this.#query.session) {
       this.#session = Cookies.set('hello_session', this.#query.session)
 
-      if(Configuration.webchat.isSet) {
-        this.webChat = await WebChat.load(Configuration.webchat.id)
+      if(Configuration.webChat.isSet) {
+        this.webChat = await WebChat.load(Configuration.webChat.id)
       }
 
     } else if (Configuration.autoGenerateSession) {
       this.#mintAnonymousSession().then(async response => {
         this.#session = Cookies.set('hello_session', response.id)
 
-        if(Configuration.webchat.isSet) {
-          this.webChat = await WebChat.load(Configuration.webchat.id)
+        if(Configuration.webChat.isSet) {
+          this.webChat = await WebChat.load(Configuration.webChat.id)
         }
       })
     }

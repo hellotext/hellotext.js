@@ -77,19 +77,35 @@ class WebChat {
   }
 
   static set classes(value) {
+    if(!Array.isArray(value) && typeof value !== 'string') {
+      throw new Error('classes must be an array or a string')
+    }
+
     this._classes = value;
   }
 
   static get classes() {
-    return this._classes;
+    if(typeof this._classes === 'string') {
+      return this._classes.split(',').map(c => c.trim())
+    } else {
+      return this._classes;
+    }
   }
 
   static set triggerClasses(value) {
+    if(!Array.isArray(value) && typeof value !== 'string') {
+      throw new Error('triggerClasses must be an array or a string')
+    }
+
     this._triggerClasses = value;
   }
 
   static get triggerClasses() {
-    return this._triggerClasses;
+    if(typeof this._triggerClasses === 'string') {
+      return this._triggerClasses.split(',').map(c => c.trim())
+    } else {
+      return this._triggerClasses;
+    }
   }
 
   static set id(value) {
@@ -139,4 +155,4 @@ class WebChat {
   }
 }
 
-export { WebChat, placements, behaviors }
+export { WebChat }

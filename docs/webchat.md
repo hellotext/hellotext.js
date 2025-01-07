@@ -27,8 +27,8 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | id             | The id of the webchat to load. **required**                                                                                              | String | null           |
 | container      | The container to append the webchat to, must me a valid CSS selector. If none specified, the webchat is appended at the end of the body. | String | `body`         |
 | placement      | The placement of the webchat, determined according to the parent `container`.                                                            | Enum   | `bottom-right` |
-| classes        | Additional CSS classes to apply to the webchat element                                                                                   | String | null           |
-| triggerClasses | Additional CSS classes to apply to the webchat trigger                                                                                   | String | null           |
+| classes        | An array or comma separated String of additional CSS classes to apply to the webchat popover.                                            | String | null           |
+| triggerClasses | An array or comma separated String of additional CSS classes to apply to the webchat trigger.                                            | String | null           |
 | style          | Style overrides to the WebChat's style configuration as created on the dashboard.                                                        | Object | null           |
 | behaviour      | The behaviour of the webchat when it is open and a click was made outside of it                                                          | Enum   | `popover`      |
 
