@@ -365,6 +365,7 @@ export default class extends Controller {
 
     this.inputTarget.value = value.slice(0, start) + emoji + value.slice(end)
 
+    this.inputTarget.selectionStart = this.inputTarget.selectionEnd = start + emoji.length
     this.inputTarget.focus()
   }
 
