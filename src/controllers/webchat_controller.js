@@ -220,32 +220,33 @@ export default class extends Controller {
 
     const response = await this.messagesAPI.create(formData)
 
+    const element = this.messageTemplateTarget.cloneNode(true)
+
+    element.classList.add('received')
+    element.style.removeProperty('display')
+
+    element.setAttribute('data-hellotext--webchat-target', 'message')
+    element.querySelector('[data-body]').innerText = this.inputTarget.value
+
+    const attachments =  this.attachmentContainerTarget.querySelectorAll('img')
+
+    if(attachments.length > 0) {
+      attachments.forEach(attachment => {
+        element.querySelector('[data-attachment-container]').appendChild(attachment)
+      })
+    }
+
+    this.messagesContainerTarget.appendChild(element)
+    element.scrollIntoView({ behavior: 'smooth' })
+
+    this.inputTarget.value = ""
+    this.files = []
+    this.attachmentContainerTarget.innerHTML = ""
+    this.attachmentContainerTarget.classList.add("hidden")
+
+    this.inputTarget.focus()
+
     if(response.succeeded) {
-      const element = this.messageTemplateTarget.cloneNode(true)
-
-      element.classList.add('received')
-      element.style.removeProperty('display')
-
-      element.setAttribute('data-hellotext--webchat-target', 'message')
-      element.querySelector('[data-body]').innerText = this.inputTarget.value
-
-      const attachments =  this.attachmentContainerTarget.querySelectorAll('img')
-
-      if(attachments.length > 0) {
-        attachments.forEach(attachment => {
-          element.querySelector('[data-attachment-container]').appendChild(attachment)
-        })
-      }
-
-      this.messagesContainerTarget.appendChild(element)
-      element.scrollIntoView({ behavior: 'smooth' })
-
-      this.inputTarget.value = ""
-      this.files = []
-      this.attachmentContainerTarget.innerHTML = ""
-      this.attachmentContainerTarget.classList.add("hidden")
-
-      this.inputTarget.focus()
       Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
     }
   }
