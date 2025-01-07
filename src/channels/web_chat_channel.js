@@ -20,6 +20,16 @@ class WebChatChannel extends ApplicationChannel {
     this.send( { command: 'subscribe',  identifier: params })
   }
 
+  unsubscribe() {
+    const params = {
+      channel: "WebChatChannel",
+      id: this.id,
+      session: this.session
+    }
+
+    this.send({ command: 'unsubscribe', identifier: params })
+  }
+
   onMessage(callback) {
     super.onMessage((message) => {
       if(message.type !== 'message') return
@@ -35,14 +45,16 @@ class WebChatChannel extends ApplicationChannel {
     })
   }
 
-  updateSubscription() {
-    const params = {
-      channel: "WebChatChannel",
-      id: this.id,
-      session: this.session
-    }
+  onAgentOnline(callback) {
+    super.onMessage((message) => {
+      if(message.type === 'agent_is_online') {
+        callback(message)
+      }
+    })
+  }
 
-    this.send({ command: 'unsubscribe', identifier: params })
+  updateSubscription() {
+    this.unsubscribe()
     this.subscribe()
   }
 }

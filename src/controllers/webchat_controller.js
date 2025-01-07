@@ -61,6 +61,11 @@ export default class extends Controller {
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
+
+    this.webChatChannel.onAgentOnline(() => {
+      console.log('agent became online')
+    })
+
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
