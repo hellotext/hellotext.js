@@ -65,5 +65,21 @@ The webchat emits the following events which can be listened to, to add an event
 - `webchat:mounted` - Emitted when the webchat is mounted
 - `webchat:opened` - Emitted when the webchat is opened
 - `webchat:closed` - Emitted when the webchat is closed
-- `webchat:message:sent` - Emitted when a message is sent by the user.
-- `webchat:message:received` - Emitted when a message is received by the webchat from Hellotext.
+
+- `webchat:message:sent` - Emitted when a message is sent by the user. The message is passed as an argument to the callback, containing the following properties
+
+```javascript
+{
+  body: 'The message the client sent',
+  attachments: [], // An array of File objects that reference the attachments the user sent.
+}
+```
+
+- `webchat:message:received` - Emitted when a message is received by the webchat from Hellotext. The message is passed as an argument to the callback, containing the following properties
+
+```javascript
+{
+  body: 'The message the client received from Hellotext',
+  attachments: [], // An Array of URLs referencing the attachments the user received.
+}
+```
