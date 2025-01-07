@@ -1,3 +1,5 @@
+import { autoUpdate, computePosition } from '@floating-ui/dom'
+
 export const usePopover = (controller) => {
   Object.assign(controller, {
     show() {
@@ -8,6 +10,21 @@ export const usePopover = (controller) => {
     },
     toggle() {
       this.openValue = !this.openValue
+    },
+    setupFloatingUI({ trigger, popover }) {
+      autoUpdate(trigger, popover, () => {
+        computePosition(trigger, popover, {
+          placement: this.placementValue,
+          middleware: this.middlewares,
+        }).then(({x, y}) => {
+          const newStyle = {
+            left: `${x}px`,
+            top: `${y}px`
+          }
+
+          Object.assign(popover.style, newStyle)
+        });
+      })
     }
   })
 }

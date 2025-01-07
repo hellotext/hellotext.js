@@ -26,23 +26,11 @@ export default class extends Controller {
   }
 
   connect() {
-    this.floatingUICleanup = autoUpdate(this.buttonTarget, this.popoverTarget, () => {
-      computePosition(this.buttonTarget, this.popoverTarget, {
-        placement: this.placementValue,
-        middleware: this.middlewares,
-      }).then(({x, y}) => {
-        const newStyle = {
-          left: `${x}px`,
-          top: `${y}px`
-        }
-
-        Object.assign(this.popoverTarget.style, newStyle);
-      });
-    })
-
     usePopover(this)
 
+    this.floatingUICleanup = this.setupFloatingUI({ trigger: this.buttonTarget, popover: this.popoverTarget })
     this.popoverTarget.appendChild(this.pickerObject)
+
     super.connect()
   }
 
