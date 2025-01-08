@@ -39,6 +39,7 @@ export default class extends Controller {
     'onlineStatus',
     'attachmentImage',
     'footer',
+    'toolbar'
   ]
 
   initialize() {
@@ -73,7 +74,7 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:mounted')
 
     if (!Hellotext.business.features.white_label) {
-      this.footerTarget.appendChild(LogoBuilder.build())
+      this.toolbarTarget.appendChild(LogoBuilder.build())
     }
 
     super.connect()
