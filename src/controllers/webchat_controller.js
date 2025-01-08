@@ -1,13 +1,14 @@
 import { Controller } from '@hotwired/stimulus'
-import { computePosition, autoUpdate, shift, flip, offset } from '@floating-ui/dom'
+import { shift, flip, offset } from '@floating-ui/dom'
 
 import WebChatMessagesAPI from '../api/web_chat/messages'
 import WebChatChannel from '../channels/web_chat_channel'
-import Hellotext from "../hellotext";
+import Hellotext from "../hellotext"
 
 import { WebChat as WebChatConfiguration, behaviors } from '../core/configuration/web_chat'
 
 import { usePopover } from './mixins/usePopover'
+import {LogoBuilder} from "../builders/logo_builder";
 
 export default class extends Controller {
   static values = {
@@ -37,6 +38,7 @@ export default class extends Controller {
     'title',
     'onlineStatus',
     'attachmentImage',
+    'footer',
   ]
 
   initialize() {
@@ -69,6 +71,10 @@ export default class extends Controller {
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
+
+    if (!Hellotext.business.features.white_label) {
+      this.footerTarget.appendChild(LogoBuilder.build())
+    }
 
     super.connect()
   }
