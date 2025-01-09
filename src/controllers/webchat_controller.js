@@ -8,7 +8,7 @@ import Hellotext from "../hellotext"
 import { Webchat as WebchatConfiguration, behaviors } from '../core/configuration/webchat'
 
 import { usePopover } from './mixins/usePopover'
-import {LogoBuilder} from "../builders/logo_builder";
+import { LogoBuilder } from '../builders/logo_builder'
 
 export default class extends Controller {
   static values = {

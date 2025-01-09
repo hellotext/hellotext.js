@@ -12,7 +12,7 @@ class WebchatChannel extends ApplicationChannel {
 
   subscribe() {
     const params = {
-      channel: "WebChatChannel",
+      channel: "WebchatChannel",
       id: this.id,
       session: this.session
     }
@@ -22,7 +22,7 @@ class WebchatChannel extends ApplicationChannel {
 
   unsubscribe() {
     const params = {
-      channel: "WebChatChannel",
+      channel: "WebchatChannel",
       id: this.id,
       session: this.session
     }
