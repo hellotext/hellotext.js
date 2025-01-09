@@ -59,8 +59,8 @@ export default class extends Controller {
   connect() {
     usePopover(this)
 
-    this.popoverTarget.classList.add(...WebChatConfiguration.classes)
-    this.triggerTarget.classList.add(...WebChatConfiguration.triggerClasses)
+    this.popoverTarget.classList.add(...WebchatConfiguration.classes)
+    this.triggerTarget.classList.add(...WebchatConfiguration.triggerClasses)
 
     this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
 
