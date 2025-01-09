@@ -35,7 +35,7 @@ const behaviors = {
 
 
 /**
- * @class WebChat
+ * @class Webchat
  * @classdesc
  * Configuration for webchat
  * @property {String} id - the id of the webchat.
@@ -47,7 +47,7 @@ const behaviors = {
  * @property {Style} style - the style of the webchat.
  */
 
-class WebChat {
+class Webchat {
   static _id
   static _container = 'body'
   static _placement = 'bottom-right'
@@ -155,4 +155,4 @@ class WebChat {
   }
 }
 
-export { WebChat, behaviors }
+export { Webchat, behaviors }

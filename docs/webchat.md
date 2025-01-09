@@ -6,7 +6,7 @@ to the configuration option.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', {
-  webChat: {
+  webchat: {
     id,
     container,
     placement,
