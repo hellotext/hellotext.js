@@ -1,6 +1,6 @@
 import ApplicationChannel from './application_channel'
 
-class WebChatChannel extends ApplicationChannel {
+class WebchatChannel extends ApplicationChannel {
   constructor(id, session) {
     super()
 
@@ -59,4 +59,4 @@ class WebChatChannel extends ApplicationChannel {
   }
 }
 
-export default WebChatChannel
+export default WebchatChannel

@@ -1,11 +1,11 @@
 import { Controller } from '@hotwired/stimulus'
 import { shift, flip, offset } from '@floating-ui/dom'
 
-import WebChatMessagesAPI from '../api/web_chat/messages'
-import WebChatChannel from '../channels/web_chat_channel'
+import WebchatMessagesAPI from '../api/webchat/messages'
+import WebchatChannel from '../channels/webchat_channel'
 import Hellotext from "../hellotext"
 
-import { WebChat as WebChatConfiguration, behaviors } from '../core/configuration/web_chat'
+import { Webchat as WebchatConfiguration, behaviors } from '../core/configuration/webchat'
 
 import { usePopover } from './mixins/usePopover'
 import {LogoBuilder} from "../builders/logo_builder";
@@ -43,8 +43,8 @@ export default class extends Controller {
   ]
 
   initialize() {
-    this.messagesAPI = new WebChatMessagesAPI(this.idValue)
-    this.webChatChannel = new WebChatChannel(this.idValue, Hellotext.session)
+    this.messagesAPI = new WebchatMessagesAPI(this.idValue)
+    this.webChatChannel = new WebchatChannel(this.idValue, Hellotext.session)
     this.files = []
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
@@ -143,7 +143,7 @@ export default class extends Controller {
   }
 
   onClickOutside(event) {
-    if (WebChatConfiguration.behaviour === behaviors.POPOVER && this.openValue && event.target.nodeType && this.element.contains(event.target) === false) {
+    if (WebchatConfiguration.behaviour === behaviors.POPOVER && this.openValue && event.target.nodeType && this.element.contains(event.target) === false) {
       this.openValue = false
     }
   }
