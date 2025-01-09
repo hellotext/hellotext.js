@@ -3,11 +3,11 @@ import { Configuration } from '../core'
 
 import API from '../api';
 
-class WebChat {
+class Webchat {
   static async load(id) {
-    return new WebChat({
+    return new Webchat({
       id,
-      html: await API.webChats.get(id),
+      html: await API.webchats.get(id),
     })
   }
 
@@ -21,8 +21,8 @@ class WebChat {
   }
 
   get containerToAppendTo() {
-    return document.querySelector(Configuration.webChat.container)
+    return document.querySelector(Configuration.webchat.container)
   }
 }
 
-export { WebChat }
+export { Webchat }

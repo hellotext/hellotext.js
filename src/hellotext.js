@@ -1,7 +1,7 @@
 import { Event, Configuration } from './core'
 
 import API from './api'
-import { Business, Query, Cookies, FormCollection, WebChat } from './models'
+import { Business, Query, Cookies, FormCollection, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -13,7 +13,7 @@ class Hellotext {
   static eventEmitter = new Event()
   static forms
   static business
-  static webChat
+  static webchat
 
   /**
    * initialize the module.
@@ -33,22 +33,22 @@ class Hellotext {
     if(Configuration.session) {
       this.#session = Configuration.session
 
-      if(Configuration.webChat.isSet) {
-        this.webChat = await WebChat.load(Configuration.webChat.id)
+      if(Configuration.webchat.isSet) {
+        this.webchat = await Webchat.load(Configuration.webchat.id)
       }
     } else if (this.#query.session) {
       this.#session = Cookies.set('hello_session', this.#query.session)
 
-      if(Configuration.webChat.isSet) {
-        this.webChat = await WebChat.load(Configuration.webChat.id)
+      if(Configuration.webchat.isSet) {
+        this.webchat = await Webchat.load(Configuration.webchat.id)
       }
 
     } else if (Configuration.autoGenerateSession) {
       this.#mintAnonymousSession().then(async response => {
         this.#session = Cookies.set('hello_session', response.id)
 
-        if(Configuration.webChat.isSet) {
-          this.webChat = await WebChat.load(Configuration.webChat.id)
+        if(Configuration.webchat.isSet) {
+          this.webchat = await Webchat.load(Configuration.webchat.id)
         }
       })
     }

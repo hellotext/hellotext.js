@@ -2,7 +2,7 @@ import SessionsAPI from './sessions'
 import BusinessesAPI from './businesses'
 import EventsAPI from './events'
 import FormsAPI from './forms'
-import WebChatsAPI from './web_chats'
+import WebchatsAPI from './webchats'
 
 export default class API {
   static sessions(businessId) {
@@ -21,8 +21,8 @@ export default class API {
     return FormsAPI
   }
 
-  static get webChats() {
-    return WebChatsAPI
+  static get webchats() {
+    return WebchatsAPI
   }
 }
 
