@@ -27,4 +27,4 @@ class WebchatsAPI {
   }
 }
 
-export default WebChatsAPI
+export default WebchatsAPI

@@ -47,8 +47,8 @@ describe('Webchat', () => {
   })
 
   describe('classes', () => {
-    it('is undefined by default', () => {
-      expect(Webchat.classes).toEqual(undefined)
+    it('is an empty array by default', () => {
+      expect(Webchat.classes).toEqual([])
     });
 
     describe('setting value to a String', () => {
@@ -75,8 +75,8 @@ describe('Webchat', () => {
   })
 
   describe('triggerClasses', () => {
-    it('is undefined by default', () => {
-      expect(Webchat.triggerClasses).toEqual(undefined)
+    it('is an empty array by default', () => {
+      expect(Webchat.triggerClasses).toEqual([undefined])
     });
 
     describe('setting value to a String', () => {
