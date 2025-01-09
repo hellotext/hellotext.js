@@ -3,13 +3,13 @@ import { Configuration } from '../../core'
 
 import { Response } from '../response'
 
-class WebChatMessagesAPI {
+class WebchatMessagesAPI {
   static get endpoint() {
     return Configuration.endpoint(`public/webchats/:id/messages`)
   }
 
-  constructor(webChatId) {
-    this.webChatId = webChatId
+  constructor(webchatId) {
+    this.webchatId = webchatId
   }
 
   async index(params) {
@@ -38,8 +38,8 @@ class WebChatMessagesAPI {
   }
 
   get url() {
-    return WebChatMessagesAPI.endpoint.replace(':id', this.webChatId)
+    return WebchatMessagesAPI.endpoint.replace(':id', this.webchatId)
   }
 }
 
-export default WebChatMessagesAPI
+export default WebchatMessagesAPI

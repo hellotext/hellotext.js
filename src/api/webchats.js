@@ -1,7 +1,7 @@
 import Hellotext from '../hellotext'
 import { Configuration } from '../core'
 
-class WebChatsAPI {
+class WebchatsAPI {
   static get endpoint() {
     return Configuration.endpoint('public/webchats')
   }
@@ -11,11 +11,11 @@ class WebChatsAPI {
 
     url.searchParams.append('session', Hellotext.session)
 
-    Object.entries(Configuration.webChat.style).forEach(([key, value]) => {
+    Object.entries(Configuration.webchat.style).forEach(([key, value]) => {
       url.searchParams.append(`style[${key}]`, value)
     })
 
-    url.searchParams.append('placement', Configuration.webChat.placement)
+    url.searchParams.append('placement', Configuration.webchat.placement)
 
     const response = await fetch(url, {
       method: 'GET',
