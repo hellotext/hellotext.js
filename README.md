@@ -96,7 +96,7 @@ An event is tracked in the following cases
 
 ```javascript
 Hellotext.session
-// Returns bBJn9vR15yPaYkWmR2QK0jopMeNxrA6l
+// Returns da834c54-97fa-44ef-bafd-2bd4fec60636
 ```
 
 If the session has not been set yet, the result returned will be `undefined`.

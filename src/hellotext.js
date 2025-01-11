@@ -32,12 +32,14 @@ class Hellotext {
     } else if (this.#query.session) {
       this.#session = Cookies.set('hello_session', this.#query.session)
     } else if (Configuration.autoGenerateSession) {
-      this.#session = Cookies.set('hello_session', crypto.randomUUID())
+      this.#session = crypto.randomUUID()
+      Cookies.set('hello_session', crypto.randomUUID())
     }
   }
 
   static setSession(value) {
-    this.#session = Cookies.set('hello_session', value)
+    this.#session = value
+    Cookies.set('hello_session', value)
   }
 
   /**
