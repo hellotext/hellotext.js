@@ -1,7 +1,7 @@
 import { Event, Configuration } from './core'
 
-import API from './api'
-import { Business, Query, Cookies, FormCollection } from './models'
+import API, { Response } from './api'
+import { Business, Query, FormCollection, Session } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -21,27 +21,12 @@ class Hellotext {
    */
   static initialize(business, config) {
     Configuration.assign(config)
+    Session.initialize()
 
     this.#query = new Query()
 
     this.business = new Business(business)
     this.forms = new FormCollection()
-
-    if (this.#query.inPreviewMode) return
-
-    if(Configuration.session) {
-      this.#session = Configuration.session
-    } else if (this.#query.session) {
-      this.#session = Cookies.set('hello_session', this.#query.session)
-    } else if (Configuration.autoGenerateSession) {
-      this.#mintAnonymousSession().then(response => {
-        this.#session = Cookies.set('hello_session', response.id)
-      })
-    }
-  }
-
-  static setSession(value) {
-    this.#session = Cookies.set('hello_session', value)
   }
 
   /**
@@ -99,11 +84,7 @@ class Hellotext {
    * @returns {String}
    */
   static get session() {
-    if (this.notInitialized) {
-      throw new NotInitializedError()
-    }
-
-    return this.#session
+    return Session.session
   }
 
   /**
@@ -111,21 +92,13 @@ class Hellotext {
    * @returns {boolean}
    */
   static get isInitialized() {
-    return this.#session !== undefined
+    return Session.session !== undefined
   }
 
   // private
 
   static get notInitialized() {
     return this.business.id === undefined
-  }
-
-  static async #mintAnonymousSession() {
-    if (this.notInitialized) {
-      throw new NotInitializedError()
-    }
-
-    return API.sessions(this.business.id).create()
   }
 
   static get headers() {

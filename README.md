@@ -85,11 +85,18 @@ Short links redirections attaches a session identifier to the destination url as
 
 ### Get session
 
-It is possible to obtain the current session by simply calling `Hellotext.session`.
+It is possible to obtain the current session by simply calling `Hellotext.session`. When the session is present in the cookies,
+the value stored in the cookies is returned. Otherwise, a new session is generated via [crypto.randomUUID()](https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID).
+The session is kept in the client and not sent to Hellotext's servers until an event is tracked.
+
+An event is tracked in the following cases
+
+- Explicitly calling `Hellotext.track` method.
+- When a form is submitted and the form data is sent to Hellotext.
 
 ```javascript
-await Hellotext.session
-// Returns bBJn9vR15yPaYkWmR2QK0jopMeNxrA6l
+Hellotext.session
+// Returns da834c54-97fa-44ef-bafd-2bd4fec60636
 ```
 
 If the session has not been set yet, the result returned will be `undefined`.
