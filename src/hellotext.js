@@ -27,16 +27,12 @@ class Hellotext {
     this.business = new Business(business)
     this.forms = new FormCollection()
 
-    if (this.#query.inPreviewMode) return
-
     if(Configuration.session) {
       this.#session = Configuration.session
     } else if (this.#query.session) {
       this.#session = Cookies.set('hello_session', this.#query.session)
     } else if (Configuration.autoGenerateSession) {
-      this.#mintAnonymousSession().then(response => {
-        this.#session = Cookies.set('hello_session', response.id)
-      })
+      this.#session = Cookies.set('hello_session', crypto.randomUUID())
     }
   }
 
@@ -52,6 +48,8 @@ class Hellotext {
    * @returns {Promise<Response>}
    */
   static async track(action, params = {}) {
+    if (this.#query.inPreviewMode) return Promise.resolve()
+
     if (this.notInitialized) {
       throw new NotInitializedError()
     }
@@ -118,14 +116,6 @@ class Hellotext {
 
   static get notInitialized() {
     return this.business.id === undefined
-  }
-
-  static async #mintAnonymousSession() {
-    if (this.notInitialized) {
-      throw new NotInitializedError()
-    }
-
-    return API.sessions(this.business.id).create()
   }
 
   static get headers() {
