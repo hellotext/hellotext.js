@@ -1,3 +1,11 @@
+/**
+ * Response class
+ * @class
+ * @classdesc Represents a response from the API
+ * @property {Boolean} succeeded
+ * @property {Object} data
+ */
+
 class Response {
   #success
 

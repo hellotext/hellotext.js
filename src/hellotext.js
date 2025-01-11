@@ -37,10 +37,6 @@ class Hellotext {
    * @returns {Promise<Response>}
    */
   static async track(action, params = {}) {
-    if (this.#query.inPreviewMode) {
-      return Promise.resolve().then(() => new Response(true, { received: true }))
-    }
-
     if (this.notInitialized) {
       throw new NotInitializedError()
     }
