@@ -1,7 +1,7 @@
 import { Event, Configuration } from './core'
 
-import API from './api'
-import { Business, Query, Cookies, FormCollection } from './models'
+import API, { Response } from './api'
+import { Business, Query, FormCollection, Session } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -21,25 +21,12 @@ class Hellotext {
    */
   static initialize(business, config) {
     Configuration.assign(config)
+    Session.initialize()
 
     this.#query = new Query()
 
     this.business = new Business(business)
     this.forms = new FormCollection()
-
-    if(Configuration.session) {
-      this.#session = Configuration.session
-    } else if (this.#query.session) {
-      this.#session = Cookies.set('hello_session', this.#query.session)
-    } else if (Configuration.autoGenerateSession) {
-      this.#session = crypto.randomUUID()
-      Cookies.set('hello_session', crypto.randomUUID())
-    }
-  }
-
-  static setSession(value) {
-    this.#session = value
-    Cookies.set('hello_session', value)
   }
 
   /**
@@ -50,7 +37,9 @@ class Hellotext {
    * @returns {Promise<Response>}
    */
   static async track(action, params = {}) {
-    if (this.#query.inPreviewMode) return Promise.resolve()
+    if (this.#query.inPreviewMode) {
+      return Promise.resolve().then(() => new Response(true, { received: true }))
+    }
 
     if (this.notInitialized) {
       throw new NotInitializedError()
@@ -103,7 +92,7 @@ class Hellotext {
       throw new NotInitializedError()
     }
 
-    return this.#session
+    return Session.session
   }
 
   /**
@@ -111,7 +100,7 @@ class Hellotext {
    * @returns {boolean}
    */
   static get isInitialized() {
-    return this.#session !== undefined
+    return Session.session !== undefined
   }
 
   // private

@@ -196,23 +196,10 @@ describe("when hello_preview query parameter is present", () => {
     Hellotext.initialize(123)
   })
 
-  describe(".initialize", () => {
-    it("does not attempt to set the session", () => {
-      expect(getCookieValue("hello_session")).toEqual(undefined)
-    });
-  })
-
   describe(".track", () => {
     it("returns a success response without interacting with the API", async () => {
       const response = await Hellotext.track("page.viewed")
       expect(response.succeeded).toEqual(true)
     });
-  })
-})
-
-describe('setSession', () => {
-  it('sets the session', () => {
-    Hellotext.setSession("12345")
-    expect(Hellotext.session).toEqual("12345")
   })
 })
