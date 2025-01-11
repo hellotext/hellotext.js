@@ -66,10 +66,6 @@ export default class extends Controller {
     this.buttonTarget.style.display = 'none'
     this.element.querySelectorAll('input').forEach(input => (input.disabled = true))
 
-    if (!data.identified) {
-      Hellotext.setSession(data.session)
-    }
-
     this.completed()
   }
 
