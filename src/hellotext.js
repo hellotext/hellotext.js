@@ -88,10 +88,6 @@ class Hellotext {
    * @returns {String}
    */
   static get session() {
-    if (this.notInitialized) {
-      throw new NotInitializedError()
-    }
-
     return Session.session
   }
 

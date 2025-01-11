@@ -20,10 +20,6 @@ afterEach(() => {
 });
 
 describe("when trying to call methods before initializing the class", () => {
-  it("raises an error when Hellotext.session is called",  () => {
-    expect(() => Hellotext.session).toThrowError()
-  });
-
   it("raises an error when Hellotext.track is called",  () => {
     expect(Hellotext.track("page.viewed")).rejects.toThrowError()
   });
