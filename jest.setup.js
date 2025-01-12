@@ -1,3 +1,5 @@
+require('whatwg-fetch');
+
 global.crypto.randomUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
@@ -5,3 +7,10 @@ global.crypto.randomUUID = () => {
     return v.toString(16);
   });
 };
+
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+  })
+);

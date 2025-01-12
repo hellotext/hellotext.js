@@ -29,7 +29,9 @@ class Hellotext {
     this.business = new Business(business)
     this.forms = new FormCollection()
 
-    this.webchat = await Webchat.load(Configuration.webchat.id)
+    if (Configuration.webchat.id) {
+      this.webchat = await Webchat.load(Configuration.webchat.id)
+    }
   }
 
   /**
