@@ -243,7 +243,9 @@ export default class extends Controller {
     if(this.openValue) return
 
     this.unreadCounterTarget.style.display = 'flex'
-    this.unreadCounterTarget.innerText = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
+
+    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
+    this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
   }
 
   onConversationAssignment(conversation) {
