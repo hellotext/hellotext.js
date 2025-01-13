@@ -242,7 +242,7 @@ export default class extends Controller {
 
     if(this.openValue) return
 
-    this.unreadCounterTarget.style.display = 'block'
+    this.unreadCounterTarget.style.display = 'flex'
     this.unreadCounterTarget.innerText = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
   }
 
