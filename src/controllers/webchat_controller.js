@@ -172,6 +172,9 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:opened')
 
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
+
+    this.unreadCounterTarget.style.display = 'none'
+    this.unreadCounterTarget.innerText = '0'
   }
 
   onPopoverClosed() {
