@@ -266,8 +266,6 @@ export default class extends Controller {
 
     formData.append('session', Hellotext.session)
 
-    const response = await this.messagesAPI.create(formData)
-
     const element = this.messageTemplateTarget.cloneNode(true)
 
     element.classList.add('received')
@@ -294,7 +292,13 @@ export default class extends Controller {
 
     this.inputTarget.focus()
 
+    const response = await this.messagesAPI.create(formData)
+
     if(response.succeeded) {
+      const data = await response.json()
+      element.setAttribute('data-id', data.id)
+      message.id = data.id
+
       Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
     }
   }
