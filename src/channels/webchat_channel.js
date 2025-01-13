@@ -22,6 +22,17 @@ class WebchatChannel extends ApplicationChannel {
     this.send( { command: 'subscribe',  identifier: params })
   }
 
+  unsubscribe() {
+    const params = {
+      channel: "WebchatChannel",
+      id: this.id,
+      session: this.session,
+      conversation: this.conversation,
+    }
+
+    this.send({ command: 'unsubscribe', identifier: params })
+  }
+
   onMessage(callback) {
     super.onMessage((message) => {
       if(message.type !== 'message') return
@@ -54,8 +65,12 @@ class WebchatChannel extends ApplicationChannel {
   }
 
   updateSubscriptionWith(conversation) {
-    this.conversation = conversation
-    this.subscribe()
+    this.unsubscribe()
+
+    setTimeout(() => {
+      this.conversation = conversation
+      this.subscribe()
+    }, 1000)
   }
 }
 
