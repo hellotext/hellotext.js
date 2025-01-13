@@ -10,11 +10,12 @@ class WebchatChannel extends ApplicationChannel {
     this.subscribe()
   }
 
-  subscribe() {
+  subscribe(conversation) {
     const params = {
       channel: "WebchatChannel",
       id: this.id,
-      session: this.session
+      session: this.session,
+      conversation,
     }
 
     this.send( { command: 'subscribe',  identifier: params })

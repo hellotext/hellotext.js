@@ -327,7 +327,7 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
 
     this.conversationIdValue = data.conversation
-    this.webChatChannel.updateSubscription()
+    this.webChatChannel.subscribe(this.conversationIdValue)
   }
 
   openAttachment() {
