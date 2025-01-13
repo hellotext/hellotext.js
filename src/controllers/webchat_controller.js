@@ -319,10 +319,15 @@ export default class extends Controller {
     }
 
     const data = await response.json()
+
+    console.log(data)
     element.setAttribute('data-id', data.id)
     message.id = data.id
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
+
+    this.conversationIdValue = data.conversation
+    this.webChatChannel.updateSubscription()
   }
 
   openAttachment() {

@@ -62,7 +62,6 @@ class WebchatChannel extends ApplicationChannel {
   }
 
   updateSubscription() {
-    this.unsubscribe()
     this.subscribe()
   }
 }
