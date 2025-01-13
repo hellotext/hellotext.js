@@ -53,6 +53,14 @@ class WebchatChannel extends ApplicationChannel {
     })
   }
 
+  onReaction(callback) {
+    super.onMessage((message) => {
+      if(message.type === 'reaction.create' || message.type === 'reaction.destroy') {
+        callback(message)
+      }
+    })
+  }
+
   updateSubscription() {
     this.unsubscribe()
     this.subscribe()

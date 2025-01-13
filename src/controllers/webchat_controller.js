@@ -50,6 +50,7 @@ export default class extends Controller {
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onConversationAssignment = this.onConversationAssignment.bind(this)
     this.onAgentOnline = this.onAgentOnline.bind(this)
+    this.onMessageReaction = this.onMessageReaction.bind(this)
 
     this.onScroll = this.onScroll.bind(this)
 
@@ -68,6 +69,7 @@ export default class extends Controller {
     this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
 
     this.webChatChannel.onAgentOnline(this.onAgentOnline)
+    this.webChatChannel.onReaction(this.onMessageReaction)
 
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
 
@@ -169,6 +171,10 @@ export default class extends Controller {
     setTimeout(() => {
       this.inputTarget.value = ""
     })
+  }
+
+  onMessageReaction(message) {
+    console.log(message)
   }
 
   onMessageReceived(message) {
