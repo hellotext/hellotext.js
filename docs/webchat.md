@@ -13,8 +13,8 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
     classes,
     triggerClasses,
     style: {
-      primary_color,
-      secondary_color,
+      primaryColor,
+      secondaryColor,
       typography
     },
     behaviour,
@@ -25,7 +25,7 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | Property       | Description                                                                                                                              | Type   | Default        |
 |----------------|------------------------------------------------------------------------------------------------------------------------------------------|--------|----------------|
 | id             | The id of the webchat to load. **required**                                                                                              | String | null           |
-| container      | The container to append the webchat to, must me a valid CSS selector. If none specified, the webchat is appended at the end of the body. | String | `body`         |
+| container      | The container to append the webchat to, must be a valid CSS selector. If none specified, the webchat is appended at the end of the body. | String | `body`         |
 | placement      | The placement of the webchat, determined according to the parent `container`.                                                            | Enum   | `bottom-right` |
 | classes        | An array or comma separated String of additional CSS classes to apply to the webchat popover.                                            | String | null           |
 | triggerClasses | An array or comma separated String of additional CSS classes to apply to the webchat trigger.                                            | String | null           |
@@ -51,13 +51,18 @@ The following properties are accepted for the `style` object.
   - Agent icon color
   - Toolbar button hover
   - Incoming message background
+
+The primary color is controlled via a `--webchat-primary-color` CSS variable.
+
 - `secondaryColor` - The secondary color of the webchat. Must be either in hex or rgb/a formats. Affects the following elements:
   - Trigger icon color
   - Popover header text color
   - Agent icon background
+
+The secondary color is controlled via a `--webchat-secondary-color` CSS variable.
 - `typography` - The font family to use for the webchat.
 
-All properties accept a valid CSS value, for example, `primary_color: 'red'` or `secondary_color: '#ff0000'`.
+All properties accept a valid CSS value, for example, `primaryColor: '#EEEEEE'` or `secondary_color: '#ff0000'`.
 
 ### behaviour
 
