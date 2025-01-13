@@ -180,16 +180,21 @@ export default class extends Controller {
 
     const reactionsContainer = messageElement.querySelector('[data-reactions]')
 
-    if(type === 'reaction.create') {
+    if(type === 'reaction.destroy') {
+      const reactionElement = reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)
+      return reactionElement.remove()
+    }
+
+    if(reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)) {
+      const reactionElement = reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)
+      reactionElement.innerText = reaction.emoji
+    } else {
       const reactionElement = document.createElement('span')
 
       reactionElement.innerText = reaction.emoji
       reactionElement.setAttribute('data-id', reaction.id)
 
       reactionsContainer.appendChild(reactionElement)
-    } else {
-      const reactionElement = reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)
-      reactionElement.remove()
     }
   }
 
