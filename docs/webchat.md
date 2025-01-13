@@ -62,7 +62,7 @@ The primary color is controlled via a `--webchat-primary-color` CSS variable.
 The secondary color is controlled via a `--webchat-secondary-color` CSS variable.
 - `typography` - The font family to use for the webchat.
 
-All properties accept a valid CSS value, for example, `primaryColor: '#EEEEEE'` or `secondary_color: '#ff0000'`.
+All properties accept a valid CSS value, for example, `primaryColor: '#EEEEEE'` or `secondaryColor: '#ff0000'`.
 
 ### behaviour
 
