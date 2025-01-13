@@ -1,36 +1,25 @@
 import ApplicationChannel from './application_channel'
 
 class WebchatChannel extends ApplicationChannel {
-  constructor(id, session) {
+  constructor(id, session, conversation) {
     super()
 
     this.id = id
     this.session = session
+    this.conversation = conversation
 
     this.subscribe()
   }
 
-  subscribe(conversation) {
+  subscribe() {
     const params = {
       channel: "WebchatChannel",
       id: this.id,
       session: this.session,
-      conversation,
+      conversation: this.conversation,
     }
-
-    console.log(params)
 
     this.send( { command: 'subscribe',  identifier: params })
-  }
-
-  unsubscribe() {
-    const params = {
-      channel: "WebchatChannel",
-      id: this.id,
-      session: this.session
-    }
-
-    this.send({ command: 'unsubscribe', identifier: params })
   }
 
   onMessage(callback) {
@@ -64,7 +53,8 @@ class WebchatChannel extends ApplicationChannel {
     })
   }
 
-  updateSubscription() {
+  updateSubscriptionWith(conversation) {
+    this.conversation = conversation
     this.subscribe()
   }
 }

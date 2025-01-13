@@ -47,7 +47,7 @@ export default class extends Controller {
 
   initialize() {
     this.messagesAPI = new WebchatMessagesAPI(this.idValue)
-    this.webChatChannel = new WebchatChannel(this.idValue, Hellotext.session)
+    this.webChatChannel = new WebchatChannel(this.idValue, Hellotext.session, this.conversationIdValue)
     this.files = []
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
@@ -261,8 +261,6 @@ export default class extends Controller {
     } else {
       this.onlineStatusTarget.style.display = 'none'
     }
-
-    this.webChatChannel.updateSubscription()
   }
 
   onAgentOnline() {
@@ -319,16 +317,15 @@ export default class extends Controller {
     }
 
     const data = await response.json()
-
-    console.log(data)
     element.setAttribute('data-id', data.id)
     message.id = data.id
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
 
-    this.conversationIdValue = data.conversation
-    console.log(this.conversationIdValue)
-    this.webChatChannel.subscribe(this.conversationIdValue)
+    if(data.conversation !== this.conversationIdValue) {
+      this.conversationIdValue = data.conversation
+      this.webChatChannel.subscribe(this.conversationIdValue)
+    }
   }
 
   openAttachment() {
