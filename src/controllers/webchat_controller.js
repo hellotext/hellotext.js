@@ -39,7 +39,8 @@ export default class extends Controller {
     'onlineStatus',
     'attachmentImage',
     'footer',
-    'toolbar'
+    'toolbar',
+    'message',
   ]
 
   initialize() {
@@ -108,7 +109,7 @@ export default class extends Controller {
 
       const element = this.messageTemplateTarget.cloneNode(true)
 
-      element.removeAttribute('[data-hellotext--webchat-target]')
+      element.setAttribute('data-hellotext--webchat-target', 'message')
       element.style.removeProperty('display')
 
       element.querySelector('[data-body]').innerHTML = div.innerHTML
@@ -174,7 +175,22 @@ export default class extends Controller {
   }
 
   onMessageReaction(message) {
-    console.log(message)
+    const { message: messageId, reaction, type } = message
+    const messageElement = this.messageTargets.find(element => element.dataset.id === messageId)
+
+    const reactionsContainer = messageElement.querySelector('[data-reactions]')
+
+    if(type === 'reaction.create') {
+      const reactionElement = document.createElement('span')
+
+      reactionElement.innerText = reaction.emoji
+      reactionElement.setAttribute('data-id', reaction.id)
+
+      reactionsContainer.appendChild(reactionElement)
+    } else {
+      const reactionElement = reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)
+      reactionElement.remove()
+    }
   }
 
   onMessageReceived(message) {
@@ -187,6 +203,7 @@ export default class extends Controller {
     element.style.display = 'flex'
 
     element.querySelector('[data-body]').innerHTML = div.innerHTML
+    element.setAttribute('data-hellotext--webchat-target', 'message')
 
     if(attachments) {
       attachments.forEach(attachmentUrl => {
