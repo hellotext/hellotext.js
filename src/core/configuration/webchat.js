@@ -129,9 +129,17 @@ class Webchat {
       throw new Error('Style must be an object')
     }
 
-    Object.keys(value).forEach(key => {
+    Object.entries(value).forEach(([key, value]) => {
       if(!['primaryColor', 'secondaryColor', 'typography'].includes(key)) {
-        throw new Error(`Invalid style key: ${key}`)
+        throw new Error(`Invalid style property: ${key}`)
+      }
+
+      if(key === 'typography') {
+        return
+      }
+
+      if(!this.isHexOrRgba(value)) {
+        throw new Error(`Invalid color value: ${value} for ${key}. Colors must be hex or rgb/a.`)
       }
     })
 
@@ -158,6 +166,10 @@ class Webchat {
     }
 
     return this
+  }
+
+  static isHexOrRgba(value) {
+    return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) || /^rgba?\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3},?\s*(0|1|0?\.\d+)?\s*\)$/.test(value);
   }
 }
 

@@ -107,4 +107,57 @@ describe('Webchat', () => {
       }).toThrowError('triggerClasses must be an array or a string')
     });
   })
+
+  describe('styles', () => {
+    it('raises an exception when an invalid style is set', () => {
+      expect(() => {
+        Webchat.style = { fill: 'value' }
+      }).toThrowError('Invalid style property: fill')
+    })
+    describe('primaryColor', () => {
+      it('can be set to a hex string', () => {
+        Webchat.style = { primaryColor: '#EEEEEE' }
+        expect(Webchat.style.primaryColor).toEqual('#EEEEEE')
+      });
+
+      it('can be set to an rgb string', () => {
+        Webchat.style = { primaryColor: 'rgb(255, 255, 255)' }
+        expect(Webchat.style.primaryColor).toEqual('rgb(255, 255, 255)')
+      });
+
+      it('can be set to an rgba string', () => {
+        Webchat.style = { primaryColor: 'rgba(255, 255, 255, 0.5)' }
+        expect(Webchat.style.primaryColor).toEqual('rgba(255, 255, 255, 0.5)')
+      });
+
+      it('throws an exception when an invalid value is supplied', () => {
+        expect(() => {
+          Webchat.style = { primaryColor: 'red' }
+        }).toThrowError('Invalid color value: red for primaryColor. Colors must be hex or rgb/a.')
+      });
+    })
+
+    describe('secondaryColor', () => {
+      it('can be set to a hex string', () => {
+        Webchat.style = { secondaryColor: '#EEEEEE' }
+        expect(Webchat.style.secondaryColor).toEqual('#EEEEEE')
+      });
+
+      it('can be set to an rgb string', () => {
+        Webchat.style = { secondaryColor: 'rgb(255, 255, 255)' }
+        expect(Webchat.style.secondaryColor).toEqual('rgb(255, 255, 255)')
+      });
+
+      it('can be set to an rgba string', () => {
+        Webchat.style = { secondaryColor: 'rgba(255, 255, 255, 0.5)' }
+        expect(Webchat.style.secondaryColor).toEqual('rgba(255, 255, 255, 0.5)')
+      });
+
+      it('throws an exception when an invalid value is supplied', () => {
+        expect(() => {
+          Webchat.style = { secondaryColor: 'red' }
+        }).toThrowError('Invalid color value: red for secondaryColor. Colors must be hex or rgb/a.')
+      });
+    })
+  })
 })

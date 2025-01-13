@@ -45,13 +45,13 @@ The default position for a webchat is `bottom-right`, but you can specify any of
 
 The following properties are accepted for the `style` object.
 
-- `primaryColor` - The primary color of the Webchat. Affects the following elements:
+- `primaryColor` - The primary color of the Webchat. Must be either in hex or rgb/a formats. Affects the following elements:
   - Trigger background
   - Popover header background
   - Agent icon color
   - Toolbar button hover
   - Incoming message background
-- `secondaryColor` - The secondary color of the webchat. Affects the following elements:
+- `secondaryColor` - The secondary color of the webchat. Must be either in hex or rgb/a formats. Affects the following elements:
   - Trigger icon color
   - Popover header text color
   - Agent icon background
