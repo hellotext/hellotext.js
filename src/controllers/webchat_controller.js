@@ -42,6 +42,7 @@ export default class extends Controller {
     'footer',
     'toolbar',
     'message',
+    'unreadCounter',
   ]
 
   initialize() {
@@ -238,6 +239,11 @@ export default class extends Controller {
 
     element.scrollIntoView({ behavior: 'smooth' })
     this.setOfflineTimeout()
+
+    if(this.openValue) return
+
+    this.unreadCounterTarget.style.display = 'block'
+    this.unreadCounterTarget.innerText = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
   }
 
   onConversationAssignment(conversation) {
