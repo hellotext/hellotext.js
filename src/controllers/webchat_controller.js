@@ -9,6 +9,7 @@ import { Webchat as WebchatConfiguration, behaviors } from '../core/configuratio
 
 import { usePopover } from './mixins/usePopover'
 import { LogoBuilder } from '../builders/logo_builder'
+import locales from "../locales";
 
 export default class extends Controller {
   static values = {
@@ -78,6 +79,10 @@ export default class extends Controller {
 
     if (!Hellotext.business.features.white_label) {
       this.toolbarTarget.appendChild(LogoBuilder.build())
+    }
+
+    if(localStorage.getItem(`hellotext--webchat--${this.idValue}`) === 'opened') {
+      this.openValue = true
     }
 
     super.connect()
@@ -164,6 +169,8 @@ export default class extends Controller {
     }
 
     Hellotext.eventEmitter.dispatch('webchat:opened')
+
+    localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
   }
 
   onPopoverClosed() {
@@ -172,6 +179,8 @@ export default class extends Controller {
     setTimeout(() => {
       this.inputTarget.value = ""
     })
+
+    localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
   }
 
   onMessageReaction(message) {
