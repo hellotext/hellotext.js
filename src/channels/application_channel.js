@@ -25,8 +25,6 @@ class ApplicationChannel {
         return;
       }
 
-      console.log(event)
-
       callback(message)
     })
   }
@@ -40,7 +38,7 @@ class ApplicationChannel {
   }
 
   get ignoredEvents() {
-    return ['ping', 'welcome']
+    return ['ping', 'confirm_subscription', 'welcome']
   }
 }
 

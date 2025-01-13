@@ -324,7 +324,7 @@ export default class extends Controller {
 
     if(data.conversation !== this.conversationIdValue) {
       this.conversationIdValue = data.conversation
-      this.webChatChannel.subscribe(this.conversationIdValue)
+      this.webChatChannel.updateSubscriptionWith(this.conversationIdValue)
     }
   }
 
