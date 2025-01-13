@@ -13,8 +13,8 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
     classes,
     triggerClasses,
     style: {
-      background,
-      foreground,
+      primary_color,
+      secondary_color,
       typography
     },
     behaviour,
@@ -45,11 +45,19 @@ The default position for a webchat is `bottom-right`, but you can specify any of
 
 The following properties are accepted for the `style` object.
 
-- `background` - The background color of the webchat, this is used on the scrollable area of the messages.
-- `foreground` - The foreground color of the webchat, this is used on the header of the webchat.
+- `primaryColor` - The primary color of the Webchat. Affects the following elements:
+  - Trigger background
+  - Popover header background
+  - Agent icon color
+  - Toolbar button hover
+  - Incoming message background
+- `secondaryColor` - The secondary color of the webchat. Affects the following elements:
+  - Trigger icon color
+  - Popover header text color
+  - Agent icon background
 - `typography` - The font family to use for the webchat.
 
-All properties accept a valid CSS value, for example, `background: 'red'` or `background: '#ff0000'`.
+All properties accept a valid CSS value, for example, `primary_color: 'red'` or `secondary_color: '#ff0000'`.
 
 ### behaviour
 

@@ -28,8 +28,8 @@ const behaviors = {
 
 /**
  * @typedef {Object} Style
- * @property {string} background - The background color or style (e.g., a hex code or color name).
- * @property {string} foreground - The foreground color or style (e.g., a hex code or color name).
+ * @property {string} primaryColor - The primary webchat color (e.g., a hex code or color name).
+ * @property {string} secondaryColor - The secondary webchat color or style (e.g., a hex code or color name).
  * @property {string} typography - The typography style (e.g., font family).
  */
 
@@ -128,6 +128,12 @@ class Webchat {
     if(typeof value !== 'object') {
       throw new Error('Style must be an object')
     }
+
+    Object.keys(value).forEach(key => {
+      if(!['primaryColor', 'secondaryColor', 'typography'].includes(key)) {
+        throw new Error(`Invalid style key: ${key}`)
+      }
+    })
 
     this._style = value
   }
