@@ -18,6 +18,8 @@ class WebchatChannel extends ApplicationChannel {
       conversation,
     }
 
+    console.log(params)
+
     this.send( { command: 'subscribe',  identifier: params })
   }
 

@@ -327,6 +327,7 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
 
     this.conversationIdValue = data.conversation
+    console.log(this.conversationIdValue)
     this.webChatChannel.subscribe(this.conversationIdValue)
   }
 

@@ -21,10 +21,11 @@ class ApplicationChannel {
       const data = JSON.parse(event.data)
       const { type, message } = data
 
-      console.log(event)
       if (this.ignoredEvents.includes(type)) {
         return;
       }
+
+      console.log(event)
 
       callback(message)
     })
@@ -39,7 +40,7 @@ class ApplicationChannel {
   }
 
   get ignoredEvents() {
-    return ['ping', 'confirm_subscription', 'welcome']
+    return ['ping', 'welcome']
   }
 }
 
