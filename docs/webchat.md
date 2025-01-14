@@ -58,6 +58,7 @@ The primary color is controlled via a `--webchat-primary-color` CSS variable.
   - Trigger icon color
   - Popover header text color
   - Agent icon background
+  - Incoming message text color
 
 The secondary color is controlled via a `--webchat-secondary-color` CSS variable.
 - `typography` - The font family to use for the webchat.
@@ -83,6 +84,7 @@ The webchat emits the following events which can be listened to, to add an event
 
 ```javascript
 {
+  id: 'xxxxxx'
   body: 'The message the client sent',
   attachments: [], // An array of File objects that reference the attachments the user sent.
 }
@@ -92,6 +94,7 @@ The webchat emits the following events which can be listened to, to add an event
 
 ```javascript
 {
+  id: 'xxxxxx',
   body: 'The message the client received from Hellotext',
   attachments: [], // An Array of URLs referencing the attachments the user received.
 }

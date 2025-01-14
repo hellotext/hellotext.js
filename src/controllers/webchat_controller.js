@@ -76,8 +76,6 @@ export default class extends Controller {
 
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
 
-    Hellotext.eventEmitter.dispatch('webchat:mounted')
-
     if (!Hellotext.business.features.white_label) {
       this.toolbarTarget.appendChild(LogoBuilder.build())
     }
@@ -86,6 +84,7 @@ export default class extends Controller {
       this.openValue = true
     }
 
+    Hellotext.eventEmitter.dispatch('webchat:mounted')
     super.connect()
   }
 
