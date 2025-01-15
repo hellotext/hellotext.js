@@ -9,7 +9,6 @@ import { Webchat as WebchatConfiguration, behaviors } from '../core/configuratio
 
 import { usePopover } from './mixins/usePopover'
 import { LogoBuilder } from '../builders/logo_builder'
-import locales from "../locales";
 
 export default class extends Controller {
   static values = {
@@ -172,8 +171,12 @@ export default class extends Controller {
 
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
 
+    if(this.unreadCounterTarget.style.display === 'none') return
+
     this.unreadCounterTarget.style.display = 'none'
     this.unreadCounterTarget.innerText = '0'
+
+    this.messagesAPI.markAsSeen()
   }
 
   onPopoverClosed() {

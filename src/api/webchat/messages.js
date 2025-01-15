@@ -37,6 +37,13 @@ class WebchatMessagesAPI {
     return new Response(response.ok, response)
   }
 
+  markAsSeen() {
+    fetch(this.url + '/seen', {
+      method: 'PATCH',
+      headers: Hellotext.headers,
+    })
+  }
+
   get url() {
     return WebchatMessagesAPI.endpoint.replace(':id', this.webchatId)
   }
