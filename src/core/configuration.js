@@ -1,4 +1,5 @@
 import { Forms } from './configuration/forms'
+import { Webchat } from './configuration/webchat'
 
 /**
  * @class Configuration
@@ -7,6 +8,7 @@ import { Forms } from './configuration/forms'
  * @property {Boolean} [autoGenerateSession=true] - whether to auto generate session or not
  * @property {String} [session] - session id
  * @property {Forms} [forms] - form configuration
+ * @property {Webchat} [webchat] - webchat configuration
  */
 class Configuration {
   static apiRoot = 'https://api.hellotext.com/v1'
@@ -15,6 +17,7 @@ class Configuration {
   static session = null
 
   static forms = Forms
+  static webchat = Webchat
 
   /**
    *
@@ -29,6 +32,8 @@ class Configuration {
       Object.entries(props).forEach(([key, value]) => {
         if (key === 'forms') {
           this.forms = Forms.assign(value)
+        } else if(key === 'webChat') {
+          this.webchat = Webchat.assign(value)
         } else {
           this[key] = value
         }

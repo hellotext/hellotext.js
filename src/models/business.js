@@ -34,7 +34,17 @@ class Business {
   fetchPublicData() {
     API.get(this.id)
       .then(response => response.json())
-      .then(data => (this.data = data))
+      .then(data => {
+        this.data = data
+
+        if(typeof document !== 'undefined') {
+          const linkTag = document.createElement('link')
+          linkTag.rel = 'stylesheet'
+          linkTag.href = data.style_url
+
+          document.head.append(linkTag)
+        }
+      })
   }
 }
 
