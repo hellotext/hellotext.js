@@ -41,6 +41,9 @@ class WebchatMessagesAPI {
     fetch(this.url + '/seen', {
       method: 'PATCH',
       headers: Hellotext.headers,
+      body: JSON.stringify({
+        session: Hellotext.session
+      })
     })
   }
 
