@@ -6,6 +6,7 @@ This library allows you the following,
 
 - Track events happening on your site to [Hellotext](https://www.hellotext.com) in real-time.
 - Use Hellotext Forms to dynamically collect data from your customers based on your specific business requirements.
+- Use Hellotext Webchat to interact with your customers in real-time.
 
 ## Installation
 
@@ -76,6 +77,7 @@ Hellotext.removeEventListener(eventName, callback)
 - `session-set`: This event is fired when the session value for `Hellotext.session` is set. Either through an API request, or if the session was found in the cookie.
 - `forms:collected` This event is fired when forms are collected. The callback will receive the array of forms collected.
 - `form:completed` This event is fired when a form has been completed. A form is completed when the user fills all required inputs and verifies their OTP(One-Time Password). The callback will receive the form object that was completed, alongside the data the user filled in the form.
+- View Webchat events [here](/docs/webchat.md#events)
 
 ## Understanding Sessions
 
@@ -136,3 +138,4 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 | session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null                                      |
 | autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true                                      |
 | forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object  | { autoMount: true, successMessage: true } |
+| webchat             | An object that controls how Hellotext should control the webchat on the page. See [Webchat](/docs/webchat.md) documentation for more information.                                               | Object  | { autoMount: true, successMessage: true } |
