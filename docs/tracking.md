@@ -92,9 +92,9 @@ Every tracked event has the following parameters which you can pass to the `trac
 
 
 | Property       | Description                                                                                                                                                                           | Type     | Default |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| -------------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| -------- | ------- |
 | **amount**     | Monetary amount that represents the revenue associated to this tracked event.                                                                                                         | float    | `0`     |
-| **currency**   | Currency for the `amount` given in ISO 4217 format.                                                                                                                                   | currency | `USD`   |
+| **currency**   | Currency for the `amount` given in ISO 4217 format. If not specified, the currency default to the business' configured reporting currency.                                            | currency | `USD`   |
 | **metadata**   | Set of key-value pairs that you can attach to an event. This can be useful for storing additional information about the object in a structured format.                                | hash     | `{}`    |
 | **tracked_at** | Original date when the event happened. This is useful if you want to record an event that happened in the past. If no value is provided its value will be the same from `created_at`. | epoch    | `null`  |
 
@@ -107,7 +107,7 @@ Associated objects are represented by three possible parameters:
 
 - `object`: An ID of an existing object of the same type. For example, when tracking app events, the `object` must be a previously created app object.
 - `object_parameters`: A set of parameters for creating a new object of the same type. For example, when tracking app events, the `object_parameters` must be a set of parameters for creating a new app object.
-- `object_type`: An ID or `name` of an existing custom object. Only required when tracking custom objects. Lets Hellotext know which type of object is being tracked.
+- `object_type`: An ID or `name` of an existing custom object. Only required when tracking custom objects. Lets Hellotext know which type of object is being tracked. Learn more about [Objects](https://www.hellotext.com/api#objects).
 
 You can create the associated object directly by defining its parameters in a hash:
 
@@ -167,3 +167,37 @@ The following is a complete list of built-in actions and their required associat
 | **refund.received**   | A refund was issued by you to your customer.             | `object` or [object_parameters](https://www.hellotext.com/api#refunds)    |
 
 You can also create your **[own defined actions](https://www.hellotext.com/api#actions)**.
+
+### Tracking Custom Actions
+
+Once you have created a custom action, you track it by specifying the action's name. Custom actions do not require an associated object to be present in order to be tracked.
+However, it's possible to track custom actions alongside existing Objects, or new objects you introduce. 
+
+```javascript
+// Custom Action without an associated object
+
+Hellotext.track('appointment.booked')
+
+// Custom Action with an existing custom object instance.
+
+Hellotext.track('appointment.booked', {
+  object_type: 'appointment',
+  object: 'erA2RAXE',
+})
+
+// Custom Action with a new custom object instance.
+Hellotext.track('appointment.booked', {
+  object_type: 'appointment',
+  object_parameters: {
+    room: 'AA-101',
+    booked_at: 1632313200,
+  }
+})
+
+// Custom Action with a builtin object instance.
+
+Hellotext.track('appointment.booked', {
+  object_type: 'product',
+  object: 'erA2RAXE',
+})
+```
