@@ -21,12 +21,12 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config) {
+    this.business = new Business(business)
+
     Configuration.assign(config)
     Session.initialize()
 
     this.#query = new Query()
-
-    this.business = new Business(business)
     this.forms = new FormCollection()
 
     if (Configuration.webchat.id) {
