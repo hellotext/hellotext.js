@@ -3,6 +3,7 @@
   "version": "1.8.7",
   "description": "Hellotext JavaScript Client",
   "source": "src/index.js",
+  "main": "lib/index.cjs",
   "module": "lib/index.js",
   "browser": "dist/hellotext.js",
   "unpkg": "dist/hellotext.js",
@@ -12,14 +13,19 @@
   "exports": {
     ".": {
       "import": "./lib/index.js",
+      "require": "./lib/index.cjs",
       "default": "./dist/hellotext.js"
     },
-    "./vanilla": "./lib/vanilla.js",
+    "./vanilla": {
+      "import": "./lib/vanilla.js",
+      "require": "./lib/vanilla.cjs"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": [
     "*.css",
-    "./lib/index.js"
+    "./lib/index.js",
+    "./lib/index.cjs"
   ],
   "devDependencies": {
     "@babel/cli": "^7.20.7",
@@ -48,8 +54,9 @@
   ],
   "scripts": {
     "test": "NODE_ENV=test jest",
-    "build": "npm run clean && npm run build:esm && npm run build:bundle",
+    "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:bundle",
     "build:esm": "babel src -d lib",
+    "build:cjs": "BABEL_ENV=cjs babel src -d lib --out-file-extension .cjs",
     "build:bundle": "webpack",
     "clean": "rm -rf lib dist"
   },
