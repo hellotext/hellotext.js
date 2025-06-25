@@ -1,10 +1,9 @@
-import { Event, Configuration } from './core'
+import { Configuration, Event } from './core'
 
 import API, { Response } from './api'
-import { Business, Query, FormCollection, Session, Webchat } from './models'
+import { Business, FormCollection, Query, Session, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
-
 
 class Hellotext {
   static #session
@@ -47,7 +46,7 @@ class Hellotext {
     }
 
     const headers = {
-      ...(params && params.headers) || {},
+      ...((params && params.headers) || {}),
       ...this.headers,
     }
 

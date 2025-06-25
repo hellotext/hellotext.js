@@ -1,5 +1,6 @@
-import {Configuration} from '../core';
-import {Cookies, Query} from './index'
+import { Configuration } from '../core'
+import { Cookies } from './cookies'
+import { Query } from './query'
 
 class Session {
   static #session
@@ -29,4 +30,4 @@ class Session {
   }
 }
 
-export {Session}
+export { Session }
