@@ -1,24 +1,63 @@
 {
-  "presets": [
-    [
-      "@babel/preset-env",
-      {
-        "targets": {
-          "esmodules": true
-        }
-      }
-    ]
-  ],
-  "plugins": [
-    [
-      "@babel/plugin-proposal-private-methods",
-      {
-        "loose": true
-      }
-    ],
-    ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
-    ["@babel/plugin-proposal-class-properties", { "loose": true }],
-    "@babel/plugin-transform-classes",
-    "@babel/plugin-proposal-export-default-from"
-  ]
+  "env": {
+    "test": {
+      "presets": [
+        [
+          "@babel/preset-env",
+          {
+            "targets": {
+              "node": "current"
+            }
+          }
+        ]
+      ],
+      "plugins": [
+        ["@babel/plugin-proposal-private-methods", { "loose": true }],
+        ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
+        ["@babel/plugin-proposal-class-properties", { "loose": true }],
+        "@babel/plugin-transform-classes",
+        "@babel/plugin-proposal-export-default-from"
+      ]
+    },
+    "cjs": {
+      "presets": [
+        [
+          "@babel/preset-env",
+          {
+            "targets": {
+              "node": "14"
+            },
+            "modules": "commonjs"
+          }
+        ]
+      ],
+      "plugins": [
+        ["@babel/plugin-proposal-private-methods", { "loose": true }],
+        ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
+        ["@babel/plugin-proposal-class-properties", { "loose": true }],
+        "@babel/plugin-transform-classes",
+        "@babel/plugin-proposal-export-default-from"
+      ]
+    },
+    "esm": {
+      "presets": [
+        [
+          "@babel/preset-env",
+          {
+            "targets": {
+              "esmodules": true
+            },
+            "modules": false
+          }
+        ]
+      ],
+      "plugins": [
+        ["@babel/plugin-proposal-private-methods", { "loose": true }],
+        ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
+        ["@babel/plugin-proposal-class-properties", { "loose": true }],
+        "@babel/plugin-transform-classes",
+        "@babel/plugin-proposal-export-default-from"
+      ]
+    }
+  }
 }

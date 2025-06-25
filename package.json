@@ -3,14 +3,24 @@
   "version": "1.8.7",
   "description": "Hellotext JavaScript Client",
   "source": "src/index.js",
-  "main": "lib/index.js",
+  "module": "lib/index.js",
+  "browser": "dist/hellotext.js",
+  "unpkg": "dist/hellotext.js",
   "author": "Hellotext",
   "license": "MIT",
   "homepage": "https://github.com/hellotext/hellotext.js",
   "exports": {
-    ".": "./lib/index.js",
-    "./vanilla": "./lib/vanilla.js"
+    ".": {
+      "import": "./lib/index.js",
+      "default": "./dist/hellotext.js"
+    },
+    "./vanilla": "./lib/vanilla.js",
+    "./package.json": "./package.json"
   },
+  "sideEffects": [
+    "*.css",
+    "./lib/index.js"
+  ],
   "devDependencies": {
     "@babel/cli": "^7.20.7",
     "@babel/core": "^7.20.12",
@@ -38,9 +48,10 @@
   ],
   "scripts": {
     "test": "NODE_ENV=test jest",
-    "build": "npm run build:babel && npm run build:webpack",
-    "build:babel": "babel src -d lib",
-    "build:webpack": "webpack"
+    "build": "npm run clean && npm run build:esm && npm run build:bundle",
+    "build:esm": "babel src -d lib",
+    "build:bundle": "webpack",
+    "clean": "rm -rf lib dist"
   },
   "bugs": {
     "url": "https://github.com/hellotext/hellotext.js/issues"
