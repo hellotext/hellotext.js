@@ -10,6 +10,11 @@
   "author": "Hellotext",
   "license": "MIT",
   "homepage": "https://github.com/hellotext/hellotext.js",
+  "files": [
+    "lib",
+    "dist",
+    "src"
+  ],
   "exports": {
     ".": {
       "import": "./lib/index.js",
@@ -27,6 +32,9 @@
     "./lib/index.js",
     "./lib/index.cjs"
   ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "devDependencies": {
     "@babel/cli": "^7.20.7",
     "@babel/core": "^7.20.12",
@@ -58,7 +66,8 @@
     "build:esm": "babel src -d lib",
     "build:cjs": "BABEL_ENV=cjs babel src -d lib --out-file-extension .cjs",
     "build:bundle": "webpack",
-    "clean": "rm -rf lib dist"
+    "clean": "rm -rf lib dist",
+    "prepublishOnly": "npm test && npm run build"
   },
   "bugs": {
     "url": "https://github.com/hellotext/hellotext.js/issues"
