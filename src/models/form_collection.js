@@ -1,5 +1,5 @@
-import Hellotext from '../hellotext'
 import API from '../api/forms'
+import Hellotext from '../hellotext'
 
 import { Configuration } from '../core'
 import { Form } from './form'
@@ -15,7 +15,7 @@ class FormCollection {
 
     this.add = this.add.bind(this)
 
-    if(typeof MutationObserver !== 'undefined') {
+    if (typeof MutationObserver !== 'undefined') {
       this.mutationObserver = new MutationObserver(this.formMutationObserver.bind(this))
       this.mutationObserver.observe(document.body, { childList: true, subtree: true })
     }
@@ -40,7 +40,13 @@ class FormCollection {
       throw new NotInitializedError()
     }
 
-    if(this.fetching) return
+    if (this.fetching) return
+
+    if (typeof document === 'undefined' || !('querySelectorAll' in document)) {
+      return console.warn(
+        'Document is not defined, collection is not possible. Please make sure to initialize the library after the document is loaded.',
+      )
+    }
 
     const formsIdsToFetch = this.#formIdsToFetch
     if (formsIdsToFetch.length === 0) return
@@ -60,7 +66,7 @@ class FormCollection {
     await Promise.all(promises)
       .then(forms => forms.forEach(this.add))
       .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
-      .then(() => this.fetching = false)
+      .then(() => (this.fetching = false))
 
     if (Configuration.forms.autoMount) {
       this.forms.forEach(form => form.mount())

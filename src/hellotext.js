@@ -31,6 +31,8 @@ class Hellotext {
     if (Configuration.webchat.id) {
       this.webchat = await Webchat.load(Configuration.webchat.id)
     }
+
+    this.forms.collect()
   }
 
   /**

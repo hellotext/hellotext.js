@@ -6,7 +6,6 @@ class Business {
   constructor(id) {
     this.id = id
     this.data = {}
-    this.fetchPublicData()
   }
 
   get subscription() {
@@ -29,15 +28,13 @@ class Business {
     return this.data.features
   }
 
-  // private
-
-  fetchPublicData() {
-    API.get(this.id)
+  async fetchPublicData() {
+    return API.get(this.id)
       .then(response => response.json())
       .then(data => {
         this.data = data
 
-        if(typeof document !== 'undefined') {
+        if (typeof document !== 'undefined') {
           const linkTag = document.createElement('link')
           linkTag.rel = 'stylesheet'
           linkTag.href = data.style_url
