@@ -1,14 +1,14 @@
+import { flip, offset, shift } from '@floating-ui/dom'
 import { Controller } from '@hotwired/stimulus'
-import { shift, flip, offset } from '@floating-ui/dom'
 
 import WebchatMessagesAPI from '../api/webchat/messages'
 import WebchatChannel from '../channels/webchat_channel'
-import Hellotext from "../hellotext"
+import Hellotext from '../hellotext'
 
 import { Webchat as WebchatConfiguration, behaviors } from '../core/configuration/webchat'
 
-import { usePopover } from './mixins/usePopover'
 import { LogoBuilder } from '../builders/logo_builder'
+import { usePopover } from './mixins/usePopover'
 
 export default class extends Controller {
   static values = {
@@ -16,7 +16,7 @@ export default class extends Controller {
     conversationId: String,
     media: Object,
     fileSizeErrorMessage: String,
-    placement: { type: String, default: "bottom-end" },
+    placement: { type: String, default: 'bottom-end' },
     open: { type: Boolean, default: false },
     autoPlacement: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
@@ -46,7 +46,13 @@ export default class extends Controller {
 
   initialize() {
     this.messagesAPI = new WebchatMessagesAPI(this.idValue)
-    this.webChatChannel = new WebchatChannel(this.idValue, Hellotext.session, this.conversationIdValue)
+
+    this.webChatChannel = new WebchatChannel(
+      this.idValue,
+      Hellotext.session,
+      this.conversationIdValue,
+    )
+
     this.files = []
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
@@ -79,7 +85,7 @@ export default class extends Controller {
       this.toolbarTarget.appendChild(LogoBuilder.build())
     }
 
-    if(localStorage.getItem(`hellotext--webchat--${this.idValue}`) === 'opened') {
+    if (localStorage.getItem(`hellotext--webchat--${this.idValue}`) === 'opened') {
       this.openValue = true
     }
 
@@ -95,10 +101,18 @@ export default class extends Controller {
   }
 
   async onScroll() {
-    if(this.messagesContainerTarget.scrollTop > 300 || !this.nextPageValue || this.fetchingNextPage) return
+    if (
+      this.messagesContainerTarget.scrollTop > 300 ||
+      !this.nextPageValue ||
+      this.fetchingNextPage
+    )
+      return
 
     this.fetchingNextPage = true
-    const response = await this.messagesAPI.index({ page: this.nextPageValue, session: Hellotext.session })
+    const response = await this.messagesAPI.index({
+      page: this.nextPageValue,
+      session: Hellotext.session,
+    })
 
     const { next: nextPage, messages } = await response.json()
 
@@ -118,13 +132,13 @@ export default class extends Controller {
 
       element.querySelector('[data-body]').innerHTML = div.innerHTML
 
-      if(message.state === 'received') {
+      if (message.state === 'received') {
         element.classList.add('received')
       } else {
         element.classList.remove('received')
       }
 
-      if(attachments) {
+      if (attachments) {
         attachments.forEach(attachmentUrl => {
           const image = this.attachmentImageTarget.cloneNode(true)
 
@@ -150,7 +164,12 @@ export default class extends Controller {
   }
 
   onClickOutside(event) {
-    if (WebchatConfiguration.behaviour === behaviors.POPOVER && this.openValue && event.target.nodeType && this.element.contains(event.target) === false) {
+    if (
+      WebchatConfiguration.behaviour === behaviors.POPOVER &&
+      this.openValue &&
+      event.target.nodeType &&
+      this.element.contains(event.target) === false
+    ) {
       this.openValue = false
     }
   }
@@ -158,7 +177,7 @@ export default class extends Controller {
   onPopoverOpened() {
     this.inputTarget.focus()
 
-    if(!this.scrolled) {
+    if (!this.scrolled) {
       this.messagesContainerTarget.scroll({
         top: this.messagesContainerTarget.scrollHeight,
         behavior: 'instant',
@@ -171,7 +190,7 @@ export default class extends Controller {
 
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
 
-    if(this.unreadCounterTarget.style.display === 'none') return
+    if (this.unreadCounterTarget.style.display === 'none') return
 
     this.unreadCounterTarget.style.display = 'none'
     this.unreadCounterTarget.innerText = '0'
@@ -183,7 +202,7 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:closed')
 
     setTimeout(() => {
-      this.inputTarget.value = ""
+      this.inputTarget.value = ''
     })
 
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
@@ -195,12 +214,12 @@ export default class extends Controller {
 
     const reactionsContainer = messageElement.querySelector('[data-reactions]')
 
-    if(type === 'reaction.destroy') {
+    if (type === 'reaction.destroy') {
       const reactionElement = reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)
       return reactionElement.remove()
     }
 
-    if(reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)) {
+    if (reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)) {
       const reactionElement = reactionsContainer.querySelector(`[data-id="${reaction.id}"]`)
       reactionElement.innerText = reaction.emoji
     } else {
@@ -225,7 +244,7 @@ export default class extends Controller {
     element.querySelector('[data-body]').innerHTML = div.innerHTML
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
-    if(attachments) {
+    if (attachments) {
       attachments.forEach(attachmentUrl => {
         const image = this.attachmentImageTarget.cloneNode(true)
         image.src = attachmentUrl
@@ -245,7 +264,7 @@ export default class extends Controller {
     element.scrollIntoView({ behavior: 'smooth' })
     this.setOfflineTimeout()
 
-    if(this.openValue) return
+    if (this.openValue) return
 
     this.unreadCounterTarget.style.display = 'flex'
 
@@ -258,7 +277,7 @@ export default class extends Controller {
 
     this.titleTarget.innerText = user.name
 
-    if(user.online) {
+    if (user.online) {
       this.onlineStatusTarget.style.display = 'flex'
     } else {
       this.onlineStatusTarget.style.display = 'none'
@@ -275,7 +294,7 @@ export default class extends Controller {
 
     const message = {
       body: this.inputTarget.value,
-      attachments: this.files
+      attachments: this.files,
     }
 
     formData.append('message[body]', this.inputTarget.value)
@@ -294,9 +313,9 @@ export default class extends Controller {
     element.setAttribute('data-hellotext--webchat-target', 'message')
     element.querySelector('[data-body]').innerText = this.inputTarget.value
 
-    const attachments =  this.attachmentContainerTarget.querySelectorAll('img')
+    const attachments = this.attachmentContainerTarget.querySelectorAll('img')
 
-    if(attachments.length > 0) {
+    if (attachments.length > 0) {
       attachments.forEach(attachment => {
         element.querySelector('[data-attachment-container]').appendChild(attachment)
       })
@@ -305,16 +324,16 @@ export default class extends Controller {
     this.messagesContainerTarget.appendChild(element)
     element.scrollIntoView({ behavior: 'smooth' })
 
-    this.inputTarget.value = ""
+    this.inputTarget.value = ''
     this.files = []
-    this.attachmentContainerTarget.innerHTML = ""
-    this.attachmentContainerTarget.classList.add("hidden")
+    this.attachmentContainerTarget.style.display = 'none'
+    this.errorMessageContainerTarget.style.display = 'none'
 
     this.inputTarget.focus()
 
     const response = await this.messagesAPI.create(formData)
 
-    if(response.failed) {
+    if (response.failed) {
       return element.classList.add('failed')
     }
 
@@ -324,10 +343,12 @@ export default class extends Controller {
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
 
-    if(data.conversation !== this.conversationIdValue) {
+    if (data.conversation !== this.conversationIdValue) {
       this.conversationIdValue = data.conversation
       this.webChatChannel.updateSubscriptionWith(this.conversationIdValue)
     }
+
+    this.attachmentContainerTarget.style.display = ''
   }
 
   openAttachment() {
@@ -335,29 +356,32 @@ export default class extends Controller {
   }
 
   onFileInputChange() {
-    this.errorMessageContainerTarget.classList.add('hidden')
+    this.errorMessageContainerTarget.style.display = 'none'
 
     this.files = Array.from(this.attachmentInputTarget.files)
 
     const fileMaxSizeTooMuch = this.files.find(file => {
-      const type = file.type.split("/")[0]
+      const type = file.type.split('/')[0]
 
-      if(['image', 'video', 'audio'].includes(type)) {
+      if (['image', 'video', 'audio'].includes(type)) {
         return this.mediaValue[type].max_size < file.size
       } else {
         return this.mediaValue.document.max_size < file.size
       }
     })
 
-    if(fileMaxSizeTooMuch) {
-      const type = fileMaxSizeTooMuch.type.split("/")[0]
+    if (fileMaxSizeTooMuch) {
+      const type = fileMaxSizeTooMuch.type.split('/')[0]
       const mediaType = ['image', 'audio', 'video'].includes(type) ? type : 'document'
 
-      this.errorMessageContainerTarget.innerText = this.fileSizeErrorMessageValue.replace('%{limit}', this.byteToMegabyte(this.mediaValue[mediaType].max_size))
+      this.errorMessageContainerTarget.innerText = this.fileSizeErrorMessageValue.replace(
+        '%{limit}',
+        this.byteToMegabyte(this.mediaValue[mediaType].max_size),
+      )
       return
     }
 
-    this.errorMessageContainerTarget.innerText = ""
+    this.errorMessageContainerTarget.innerText = ''
     this.files.forEach(file => this.createAttachmentElement(file))
     this.inputTarget.focus()
   }
@@ -365,11 +389,11 @@ export default class extends Controller {
   createAttachmentElement(file) {
     const element = this.attachmentElement()
 
-    this.attachmentContainerTarget.classList.remove('hidden')
+    this.attachmentContainerTarget.style.display = ''
 
     element.setAttribute('data-name', file.name)
 
-    if(file.type.startsWith("image/")) {
+    if (file.type.startsWith('image/')) {
       const thumbnail = this.attachmentImageTarget.cloneNode(true)
 
       thumbnail.src = URL.createObjectURL(file)
@@ -380,8 +404,13 @@ export default class extends Controller {
       this.attachmentContainerTarget.appendChild(element)
       this.attachmentContainerTarget.style.display = 'flex'
     } else {
-      element.querySelector("main").classList.add(...this.widthClasses, "h-20", "rounded-md", "bg-gray-200", "p-1")
-      element.querySelector("p[data-attachment-name]").innerText = file.name
+      const main = element.querySelector('main')
+      main.style.height = '5rem'
+      main.style.borderRadius = '0.375rem'
+      main.style.backgroundColor = '#e5e7eb'
+      main.style.padding = '0.25rem'
+
+      element.querySelector('p[data-attachment-name]').innerText = file.name
     }
   }
 
@@ -395,18 +424,18 @@ export default class extends Controller {
   }
 
   attachmentTargetDisconnected() {
-    if(this.attachmentTargets.length === 0) {
-      this.attachmentContainerTarget.innerHTML = ""
+    if (this.attachmentTargets.length === 0) {
+      this.attachmentContainerTarget.innerHTML = ''
       this.attachmentContainerTarget.style.display = 'none'
     }
   }
 
   attachmentElement() {
     const element = this.attachmentTemplateTarget.cloneNode(true)
-    element.removeAttribute("hidden")
+    element.removeAttribute('hidden')
     element.style.display = 'flex'
 
-    element.setAttribute("data-hellotext--webchat-target", "attachment")
+    element.setAttribute('data-hellotext--webchat-target', 'attachment')
 
     return element
   }
@@ -439,10 +468,6 @@ export default class extends Controller {
   }
 
   get middlewares() {
-    return [
-      offset(5),
-      shift({ padding: 24 }),
-      flip(),
-    ]
+    return [offset(5), shift({ padding: 24 }), flip()]
   }
 }
