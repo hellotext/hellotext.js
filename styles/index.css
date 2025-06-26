@@ -4,35 +4,31 @@
 
 form[data-hello-form] {
   position: relative;
+}
 
-  & article {
-    & [data-error-container] {
-      font-size: 0.875rem;
-      line-height: 1.25rem;
-      display: none;
-    }
+form[data-hello-form] article [data-error-container] {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  display: none;
+}
 
-    &:has(input:invalid) {
-      & [data-error-container] {
-        display: block;
-      }
-    }
-  }
+form[data-hello-form] article:has(input:invalid) [data-error-container] {
+  display: block;
+}
 
-  & [data-logo-container] {
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
+form[data-hello-form] [data-logo-container] {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+}
 
-    & small {
-      margin: 0 0.3rem;
-    }
+form[data-hello-form] [data-logo-container] small {
+  margin: 0 0.3rem;
+}
 
-    & [data-hello-brand] {
-      width: 4rem;
-    }
-  }
+form[data-hello-form] [data-logo-container] [data-hello-brand] {
+  width: 4rem;
 }

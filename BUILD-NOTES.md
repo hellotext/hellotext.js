@@ -24,7 +24,7 @@ Hellotext.js is a browser-only library that provides multiple build formats for 
 - **Format**: Universal Module Definition, creates `window.Hellotext`
 - **Benefits**: Works everywhere, no build step required
 
-## Why Include CommonJS for a Browser Library?
+## Why Include CommonJS for a Browser Library?b
 
 Even though this library only runs in browsers, CommonJS is included for:
 
