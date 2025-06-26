@@ -30,7 +30,7 @@ Import the library into your app.
 import Hellotext from '@hellotext/hellotext'
 ```
 
-If you're running in a non-browser environment, such as Node.js, you can import the vanilla implementation which only includes 
+If you're running in a non-browser environment, such as Node.js, you can import the vanilla implementation which only includes
 Hellotext.js class without initializing other libraries that rely on the browser environment.
 
 ```javascript
@@ -54,6 +54,31 @@ Learn how to leverage the library to track events and collect forms.
 - [Tracking Events](/docs/tracking.md)
 - [Forms](/docs/forms.md)
 - [Webchat](/docs/webchat.md)
+
+## CSS
+
+The library ships with a minimal CSS file that is used for [Forms](/docs/forms.md). It is pre-bundled but you control when to import it.
+
+## For Bundler Users (Vite, Webpack, etc.)
+
+The CSS is not automatically imported to avoid issues with SSR frameworks. Import it separately:
+
+```javascript
+// Import the library
+import Hellotext from '@hellotext/hellotext'
+
+// Import the CSS separately
+import '@hellotext/hellotext/styles/index.css'
+```
+
+## For Script Tag Users
+
+The UMD bundle (`dist/hellotext.js`) includes the CSS automatically:
+
+```html
+<script src="https://unpkg.com/@hellotext/hellotext"></script>
+<!-- CSS is included in the bundle -->
+```
 
 ## Events
 
@@ -134,7 +159,7 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 #### Configuration Options
 
 | Property            | Description                                                                                                                                                                                     | Type    | Default                                   |
-|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|-------------------------------------------|
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------- |
 | session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null                                      |
 | autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true                                      |
 | forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object  | { autoMount: true, successMessage: true } |

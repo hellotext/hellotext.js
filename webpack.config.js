@@ -1,6 +1,6 @@
 module.exports = {
   mode: 'production',
-  entry: ['@hotwired/stimulus', './src/index.js'],
+  entry: ['@hotwired/stimulus', './src/index.bundle.js'],
   output: {
     filename: 'hellotext.js',
     library: 'Hellotext',
