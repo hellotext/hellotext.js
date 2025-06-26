@@ -1,8 +1,12 @@
 module.exports = {
   mode: 'production',
-  entry: ['@hotwired/stimulus', './lib/index.js'],
+  entry: ['@hotwired/stimulus', './src/index.js'],
   output: {
     filename: 'hellotext.js',
+    library: 'Hellotext',
+    libraryTarget: 'umd',
+    libraryExport: 'default',
+    globalObject: "typeof self !== 'undefined' ? self : this",
   },
   module: {
     rules: [
@@ -20,5 +24,8 @@ module.exports = {
         use: ['style-loader', 'css-loader'],
       },
     ],
+  },
+  resolve: {
+    extensions: ['.js', '.mjs'],
   },
 }
