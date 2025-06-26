@@ -64,8 +64,8 @@
   "scripts": {
     "test": "NODE_ENV=test jest",
     "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:bundle",
-    "build:esm": "babel src -d lib",
-    "build:cjs": "BABEL_ENV=cjs babel src -d lib --out-file-extension .cjs",
+    "build:esm": "babel src -d lib --ignore src/index.bundle.js",
+    "build:cjs": "BABEL_ENV=cjs babel src -d lib --out-file-extension .cjs --ignore src/index.bundle.js",
     "build:bundle": "webpack",
     "clean": "rm -rf lib dist",
     "prepublishOnly": "npm test && npm run build"
