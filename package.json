@@ -7,6 +7,7 @@
   "module": "lib/index.js",
   "browser": "dist/hellotext.js",
   "unpkg": "dist/hellotext.js",
+  "types": "index.d.ts",
   "author": "Hellotext",
   "license": "MIT",
   "homepage": "https://github.com/hellotext/hellotext.js",
@@ -14,7 +15,8 @@
     "lib",
     "dist",
     "src",
-    "styles"
+    "styles",
+    "index.d.ts"
   ],
   "exports": {
     ".": {
@@ -26,6 +28,8 @@
       "import": "./lib/vanilla.js",
       "require": "./lib/vanilla.cjs"
     },
+    "./styles/*": "./styles/*",
+    "./styles/index.css": "./styles/index.css",
     "./package.json": "./package.json"
   },
   "sideEffects": [
