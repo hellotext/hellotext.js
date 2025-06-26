@@ -20,11 +20,13 @@
   ],
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "import": "./lib/index.js",
       "require": "./lib/index.cjs",
       "default": "./dist/hellotext.js"
     },
     "./vanilla": {
+      "types": "./index.d.ts",
       "import": "./lib/vanilla.js",
       "require": "./lib/vanilla.cjs"
     },
