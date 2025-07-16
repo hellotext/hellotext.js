@@ -40,7 +40,7 @@
     "./lib/index.cjs"
   ],
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.20.7",
@@ -65,7 +65,18 @@
   },
   "keywords": [
     "hellotext",
-    "javascript"
+    "javascript",
+    "sms",
+    "whatsapp",
+    "messaging",
+    "chat",
+    "webchat",
+    "customer-engagement",
+    "sdk",
+    "client-library",
+    "typescript",
+    "browser",
+    "node"
   ],
   "scripts": {
     "test": "NODE_ENV=test jest",
@@ -83,5 +94,6 @@
     "@floating-ui/dom": "^1.6.12",
     "@hotwired/stimulus": "^3.0.0",
     "emoji-mart": "^5.6.0"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }
