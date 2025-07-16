@@ -40,7 +40,7 @@
     "./lib/index.cjs"
   ],
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.20.7",
