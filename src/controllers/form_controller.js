@@ -72,11 +72,11 @@ export default class extends Controller {
   completed() {
     this.form.markAsCompleted(this.formData)
 
-    if(!Configuration.forms.shouldShowSuccessMessage) {
+    if (!Configuration.forms.shouldShowSuccessMessage) {
       return this.element.remove()
     }
 
-    if(typeof Configuration.forms.successMessage === 'string') {
+    if (typeof Configuration.forms.successMessage === 'string') {
       this.element.innerHTML = Configuration.forms.successMessage
     } else {
       this.element.innerHTML = Hellotext.business.locale.forms[this.form.localeAuthKey]
@@ -86,17 +86,21 @@ export default class extends Controller {
   // private
 
   showErrorMessages() {
-    this.element.querySelectorAll('input:invalid').forEach(input => {
-      const parent = input.closest('article')
-      parent.querySelector('[data-error-container]').innerText = input.validationMessage
+    this.inputTargets.forEach(input => {
+      const errorsContainer = input.closest('article').querySelector('[data-error-container]')
+
+      if (input.validity.valid) {
+        errorsContainer.innerText = ''
+      } else {
+        errorsContainer.innerText = input.validationMessage
+      }
     })
   }
 
   clearErrorMessages() {
-    this.element.querySelectorAll('input').forEach(input => {
+    this.inputTargets.forEach(input => {
       input.setCustomValidity('')
-      const parent = input.closest('article')
-      parent.querySelector('[data-error-container]').innerText = ''
+      input.closest('article').querySelector('[data-error-container]').innerText = ''
     })
   }
 
