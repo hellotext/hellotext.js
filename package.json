@@ -65,7 +65,18 @@
   },
   "keywords": [
     "hellotext",
-    "javascript"
+    "javascript",
+    "sms",
+    "whatsapp",
+    "messaging",
+    "chat",
+    "webchat",
+    "customer-engagement",
+    "sdk",
+    "client-library",
+    "typescript",
+    "browser",
+    "node"
   ],
   "scripts": {
     "test": "NODE_ENV=test jest",
