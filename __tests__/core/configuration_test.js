@@ -25,4 +25,11 @@ describe('Configuration', () => {
       expect(Configuration.forms.successMessage).toEqual(false)
     })
   })
+
+  describe('.webchat', () => {
+    it('can be modified', () => {
+      Configuration.assign({ webchat: { id: '123' } })
+      expect(Configuration.webchat.id).toEqual('123')
+    })
+  })
 })

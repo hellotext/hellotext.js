@@ -32,7 +32,7 @@ class Configuration {
       Object.entries(props).forEach(([key, value]) => {
         if (key === 'forms') {
           this.forms = Forms.assign(value)
-        } else if(key === 'webChat') {
+        } else if (key === 'webchat') {
           this.webchat = Webchat.assign(value)
         } else {
           this[key] = value
@@ -48,4 +48,4 @@ class Configuration {
   }
 }
 
-export {Configuration}
+export { Configuration }
