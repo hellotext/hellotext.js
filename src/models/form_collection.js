@@ -55,12 +55,6 @@ class FormCollection {
       return API.get(id).then(response => response.json())
     })
 
-    if (!Hellotext.business.enabledWhitelist) {
-      console.warn(
-        'No whitelist has been configured. It is advised to whitelist the domain to avoid bots from submitting forms.',
-      )
-    }
-
     this.fetching = true
 
     await Promise.all(promises)
@@ -83,7 +77,18 @@ class FormCollection {
 
   add(data) {
     if (this.includes(data.id)) return
+
     this.forms.push(new Form(data))
+
+    if (!Hellotext.business.data) {
+      Hellotext.business.setData(data.business)
+    }
+
+    if (!Hellotext.business.enabledWhitelist) {
+      console.warn(
+        'No whitelist has been configured. It is advised to whitelist the domain to avoid bots from submitting forms.',
+      )
+    }
   }
 
   getById(id) {

@@ -26,8 +26,6 @@ class Hellotext {
     Configuration.assign(config)
     Session.initialize()
 
-    this.business.fetchPublicData().then(() => this.forms.collect())
-
     this.#query = new Query()
 
     if (Configuration.webchat.id) {

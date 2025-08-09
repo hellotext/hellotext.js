@@ -1,5 +1,5 @@
-import Hellotext from '../hellotext'
 import { Configuration } from '../core'
+import Hellotext from '../hellotext'
 
 class WebchatsAPI {
   static get endpoint() {
@@ -22,8 +22,13 @@ class WebchatsAPI {
       headers: Hellotext.headers,
     })
 
-    const htmlText = await response.text()
-    return (new DOMParser()).parseFromString(htmlText, "text/html").querySelector('article');
+    const data = await response.json()
+
+    if (!Hellotext.business.data) {
+      Hellotext.business.setData(data.business)
+    }
+
+    return new DOMParser().parseFromString(data.html, 'text/html').querySelector('article')
   }
 }
 
