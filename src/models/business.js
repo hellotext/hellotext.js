@@ -3,7 +3,7 @@ import locales from '../locales'
 class Business {
   constructor(id) {
     this.id = id
-    this.data = {}
+    this.data = null
   }
 
   setData(data) {
