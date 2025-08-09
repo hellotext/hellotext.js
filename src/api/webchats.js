@@ -1,5 +1,5 @@
-import Hellotext from '../hellotext'
 import { Configuration } from '../core'
+import Hellotext from '../hellotext'
 
 class WebchatsAPI {
   static get endpoint() {
@@ -23,7 +23,20 @@ class WebchatsAPI {
     })
 
     const htmlText = await response.text()
-    return (new DOMParser()).parseFromString(htmlText, "text/html").querySelector('article');
+    const webchatHTML = new DOMParser()
+      .parseFromString(htmlText, 'text/html')
+      .querySelector('article')
+
+    if (!Hellotext.business.data) {
+      const jsonData = webchatHTML.querySelector('data-business')
+
+      console.log(jsonData)
+
+      Hellotext.business.setData(JSON.parse(jsonData))
+      webchatHTML.removeAttribute('data-business')
+    }
+
+    return new DOMParser().parseFromString(htmlText, 'text/html').querySelector('article')
   }
 }
 
