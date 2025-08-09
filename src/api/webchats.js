@@ -22,21 +22,13 @@ class WebchatsAPI {
       headers: Hellotext.headers,
     })
 
-    const htmlText = await response.text()
-    const webchatHTML = new DOMParser()
-      .parseFromString(htmlText, 'text/html')
-      .querySelector('article')
+    const data = await response.json()
 
     if (!Hellotext.business.data) {
-      const jsonData = webchatHTML.querySelector('data-business')
-
-      console.log(jsonData)
-
-      Hellotext.business.setData(JSON.parse(jsonData))
-      webchatHTML.removeAttribute('data-business')
+      Hellotext.business.setData(data.business)
     }
 
-    return new DOMParser().parseFromString(htmlText, 'text/html').querySelector('article')
+    return new DOMParser().parseFromString(data.html, 'text/html').querySelector('article')
   }
 }
 

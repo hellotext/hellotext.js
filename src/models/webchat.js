@@ -1,7 +1,6 @@
-import Hellotext from '../hellotext';
 import { Configuration } from '../core'
 
-import API from '../api';
+import API from '../api'
 
 class Webchat {
   static async load(id) {
