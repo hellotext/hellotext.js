@@ -32,7 +32,9 @@ class Hellotext {
       this.webchat = await Webchat.load(Configuration.webchat.id)
     }
 
-    this.forms.collectExistingFormsOnPage()
+    if (typeof MutationObserver !== 'undefined') {
+      this.forms.collectExistingFormsOnPage()
+    }
   }
 
   /**
