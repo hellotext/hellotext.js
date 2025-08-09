@@ -7,6 +7,8 @@ import { Form, FormCollection } from '../../src/models'
 
 beforeEach(() => {
   jest.spyOn(Form.prototype, 'mount').mockImplementation(() => Promise.resolve())
+  jest.spyOn(FormCollection.prototype, 'collectExistingFormsOnPage').mockImplementation(() => {})
+  jest.spyOn(FormCollection.prototype, 'formMutationObserver').mockImplementation(() => {})
 
   Hellotext.initialize('M01az53K', {
     autoGenerateSession: false,
@@ -24,6 +26,7 @@ beforeEach(() => {
   }
 
   Hellotext.business.setData = jest.fn()
+
 })
 
 afterEach(() => {
@@ -476,6 +479,9 @@ describe('add with business data', () => {
 
 describe('MutationObserver functionality', () => {
   beforeEach(() => {
+    // Restore original mutation observer behavior for these tests
+    FormCollection.prototype.formMutationObserver.mockRestore()
+
     // Ensure autoMount is enabled for these tests
     Hellotext.initialize('M01az53K', {
       autoGenerateSession: false,
