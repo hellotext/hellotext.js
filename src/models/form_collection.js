@@ -26,9 +26,13 @@ class FormCollection {
       mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0,
     )
 
+    console.log(mutations)
+
     if (!mutation) return
 
     const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
+
+    console.log(Configuration.forms)
 
     if (forms && Configuration.forms.autoMount) {
       this.collect()
@@ -39,6 +43,8 @@ class FormCollection {
     if (Hellotext.notInitialized) {
       throw new NotInitializedError()
     }
+
+    console.log('is fetching')
 
     if (this.fetching) return
 

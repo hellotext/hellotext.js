@@ -20,8 +20,8 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config) {
-    this.forms = new FormCollection()
     this.business = new Business(business)
+    this.forms = new FormCollection()
 
     Configuration.assign(config)
     Session.initialize()
