@@ -2,18 +2,31 @@
  * @jest-environment jsdom
  */
 
-import { Business, FormCollection } from '../../src/models'
 import Hellotext from '../../src/hellotext'
+import { FormCollection } from '../../src/models'
 
 beforeEach(() => {
-  Business.prototype.fetchPublicData = jest.fn().mockResolvedValue({ whitelist: 'disabled' })
-
   Hellotext.initialize('M01az53K', {
     autoGenerateSession: false,
     forms: {
       autoMount: false,
     }
   })
+
+  Hellotext.business.data = {
+    whitelist: 'enabled',
+    features: {},
+    subscription: 'basic',
+    country: 'US',
+    locale: 'en'
+  }
+
+  Hellotext.business.setData = jest.fn()
+})
+
+afterEach(() => {
+  jest.clearAllMocks()
+  jest.restoreAllMocks()
 })
 
 describe('collect', () => {
@@ -40,15 +53,26 @@ describe('collect', () => {
 })
 
 describe('add', () => {
-  const forms = new FormCollection()
-  const form = { id: 1, name: 'Form 1' }
+  const form = {
+    id: 1,
+    name: 'Form 1',
+    business: {
+      whitelist: 'enabled',
+      features: {},
+      subscription: 'basic',
+      country: 'US',
+      locale: 'en'
+    }
+  }
 
   it('adds a form to the forms array', () => {
+    const forms = new FormCollection()
     forms.add(form)
     expect(forms.length).toEqual(1)
   })
 
   it('does not add a form that is already in the forms array', () => {
+    const forms = new FormCollection()
     forms.add(form)
     forms.add(form)
 
@@ -57,46 +81,78 @@ describe('add', () => {
 })
 
 describe('getting elements', () => {
-  const forms = new FormCollection()
-  forms.add({ id: 1, name: 'Form 1' })
-  forms.add({ id: 2, name: 'Form 1' })
+  const mockBusiness = {
+    whitelist: 'enabled',
+    features: {},
+    subscription: 'basic',
+    country: 'US',
+    locale: 'en'
+  }
 
   describe('getById', () => {
     it('returns the form with the given id', () => {
+      const forms = new FormCollection()
+      forms.add({ id: 1, name: 'Form 1', business: mockBusiness })
+      forms.add({ id: 2, name: 'Form 2', business: mockBusiness })
       expect(forms.getById(1).id).toEqual(1)
     })
   })
 
   describe('getByIndex', () => {
     it('returns the form at the given index', () => {
+      const forms = new FormCollection()
+      forms.add({ id: 1, name: 'Form 1', business: mockBusiness })
+      forms.add({ id: 2, name: 'Form 2', business: mockBusiness })
       expect(forms.getByIndex(1).id).toEqual(2)
     })
   })
 })
 
 describe('includes', () => {
-  const forms = new FormCollection()
-  const form = { id: 1, name: 'Form 1' }
+  const form = {
+    id: 1,
+    name: 'Form 1',
+    business: {
+      whitelist: 'enabled',
+      features: {},
+      subscription: 'basic',
+      country: 'US',
+      locale: 'en'
+    }
+  }
 
   it('is true when the form is in the forms array', () => {
+    const forms = new FormCollection()
     forms.add(form)
     expect(forms.includes(1)).toEqual(true)
   })
 
   it('is false when the form is not in the forms array', () => {
+    const forms = new FormCollection()
     expect(forms.includes(2)).toEqual(false)
   })
 })
 
 describe('excludes', () => {
-  const forms = new FormCollection()
-  const form = { id: 1, name: 'Form 1' }
+  const form = {
+    id: 1,
+    name: 'Form 1',
+    business: {
+      whitelist: 'enabled',
+      features: {},
+      subscription: 'basic',
+      country: 'US',
+      locale: 'en'
+    }
+  }
 
   it('is true when the form is not in the forms array', () => {
+    const forms = new FormCollection()
     expect(forms.excludes(2)).toEqual(true)
   })
 
   it('is false when the form is in the forms array', () => {
+    const forms = new FormCollection()
     forms.add(form)
     expect(forms.excludes(1)).toEqual(false)
   })
