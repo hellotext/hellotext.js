@@ -21,6 +21,12 @@ class FormCollection {
     }
   }
 
+  collectExistingFormsOnPage() {
+    if (Array.from(document.querySelectorAll('[data-hello-form]')).length > 0) {
+      this.collect()
+    }
+  }
+
   formMutationObserver(mutations) {
     const mutation = mutations.find(
       mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0,
@@ -28,9 +34,7 @@ class FormCollection {
 
     if (!mutation) return
 
-    const forms = Array.from(document.querySelectorAll('[data-hello-form]'))
-
-    if (forms && Configuration.forms.autoMount) {
+    if (Array.from(document.querySelectorAll('[data-hello-form]')).length > 0) {
       this.collect()
     }
   }
@@ -78,8 +82,6 @@ class FormCollection {
   add(data) {
     if (this.includes(data.id)) return
 
-    this.forms.push(new Form(data))
-
     if (!Hellotext.business.data) {
       Hellotext.business.setData(data.business)
     }
@@ -89,6 +91,8 @@ class FormCollection {
         'No whitelist has been configured. It is advised to whitelist the domain to avoid bots from submitting forms.',
       )
     }
+
+    this.forms.push(new Form(data))
   }
 
   getById(id) {

@@ -20,17 +20,19 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config) {
-    this.business = new Business(business)
-    this.forms = new FormCollection()
-
     Configuration.assign(config)
     Session.initialize()
+
+    this.business = new Business(business)
+    this.forms = new FormCollection()
 
     this.#query = new Query()
 
     if (Configuration.webchat.id) {
       this.webchat = await Webchat.load(Configuration.webchat.id)
     }
+
+    this.forms.collectExistingFormsOnPage()
   }
 
   /**
