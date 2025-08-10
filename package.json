@@ -1,6 +1,6 @@
 {
   "name": "@hellotext/hellotext",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Hellotext JavaScript Client",
   "source": "src/index.js",
   "main": "lib/index.cjs",
