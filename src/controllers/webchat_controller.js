@@ -209,9 +209,11 @@ export default class extends Controller {
     this.inputTarget.focus()
 
     if (!this.scrolled) {
-      this.messagesContainerTarget.scroll({
-        top: this.messagesContainerTarget.scrollHeight,
-        behavior: 'instant',
+      requestAnimationFrame(() => {
+        this.messagesContainerTarget.scroll({
+          top: this.messagesContainerTarget.scrollHeight,
+          behavior: 'instant',
+        })
       })
 
       this.scrolled = true
@@ -328,7 +330,15 @@ export default class extends Controller {
       attachments: this.files,
     }
 
-    formData.append('message[body]', this.inputTarget.value)
+    if (this.inputTarget.value.trim().length === 0 && this.files.length === 0) {
+      return
+    }
+
+    if (this.inputTarget.value.trim().length > 0) {
+      formData.append('message[body]', this.inputTarget.value)
+    } else {
+      delete message.body
+    }
 
     this.files.forEach(file => {
       formData.append('message[attachments][]', file)
@@ -344,7 +354,12 @@ export default class extends Controller {
     element.style.removeProperty('display')
 
     element.setAttribute('data-hellotext--webchat-target', 'message')
-    element.querySelector('[data-body]').innerText = this.inputTarget.value
+
+    if (this.inputTarget.value.trim().length > 0) {
+      element.querySelector('[data-body]').innerText = this.inputTarget.value
+    } else {
+      element.querySelector('[data-message-bubble]').remove()
+    }
 
     const attachments = this.attachmentContainerTarget.querySelectorAll('img')
 
@@ -364,6 +379,10 @@ export default class extends Controller {
 
     this.inputTarget.value = ''
     this.files = []
+
+    this.attachmentInputTarget.value = ''
+    this.attachmentContainerTarget.innerHTML = ''
+
     this.attachmentContainerTarget.style.display = 'none'
     this.errorMessageContainerTarget.style.display = 'none'
 
@@ -401,9 +420,10 @@ export default class extends Controller {
   onFileInputChange() {
     this.errorMessageContainerTarget.style.display = 'none'
 
-    this.files = Array.from(this.attachmentInputTarget.files)
+    const newFiles = Array.from(this.attachmentInputTarget.files)
+    this.attachmentInputTarget.value = ''
 
-    const fileMaxSizeTooMuch = this.files.find(file => {
+    const fileMaxSizeTooMuch = newFiles.find(file => {
       const type = file.type.split('/')[0]
 
       if (['image', 'video', 'audio'].includes(type)) {
@@ -421,11 +441,14 @@ export default class extends Controller {
         '%{limit}',
         this.byteToMegabyte(this.mediaValue[mediaType].max_size),
       )
-      return
+
+      return (this.errorMessageContainerTarget.style.display = 'block')
     }
 
+    this.files = [...this.files, ...newFiles]
     this.errorMessageContainerTarget.innerText = ''
-    this.files.forEach(file => this.createAttachmentElement(file))
+
+    newFiles.forEach(file => this.createAttachmentElement(file))
     this.inputTarget.focus()
   }
 
@@ -448,12 +471,16 @@ export default class extends Controller {
       this.attachmentContainerTarget.style.display = 'flex'
     } else {
       const main = element.querySelector('main')
+
       main.style.height = '5rem'
       main.style.borderRadius = '0.375rem'
       main.style.backgroundColor = '#e5e7eb'
       main.style.padding = '0.25rem'
 
       element.querySelector('p[data-attachment-name]').innerText = file.name
+
+      this.attachmentContainerTarget.appendChild(element)
+      this.attachmentContainerTarget.style.display = 'flex'
     }
   }
 
@@ -461,6 +488,7 @@ export default class extends Controller {
     const attachment = currentTarget.closest("[data-hellotext--webchat-target='attachment']")
 
     this.files = this.files.filter(file => file.name !== attachment.dataset.name)
+    this.attachmentInputTarget.value = ''
 
     attachment.remove()
     this.inputTarget.focus()
