@@ -99,7 +99,10 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
+
+    this.broadcastChannel.close()
     this.floatingUICleanup()
 
     super.disconnect()
