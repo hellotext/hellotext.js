@@ -17,7 +17,7 @@ export const usePopover = controller => {
         computePosition(trigger, popover, {
           placement: this.placementValue,
           middleware: this.middlewares,
-          strategy: Configuration.webchat.container == 'body' ? 'fixed' : 'absolute',
+          strategy: Configuration.webchat.strategy,
         }).then(({ x, y, strategy }) => {
           const newStyle = {
             left: `${x}px`,

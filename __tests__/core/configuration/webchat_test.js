@@ -1,4 +1,8 @@
-import { Webchat } from '../../../src/core/configuration/webchat'
+import { Webchat } from '../../../src/core/configuration/webchat';
+
+beforeEach(() => {
+  Webchat.strategy = null
+})
 
 describe('Webchat', () => {
   describe('behaviour', () => {
@@ -43,6 +47,40 @@ describe('Webchat', () => {
       expect(() => {
         Webchat.placement = 'invalid'
       }).toThrowError('Invalid placement value: invalid')
+    });
+  })
+
+  describe('strategy', () => {
+    it('can be set to fixed', () => {
+      Webchat.strategy = 'fixed'
+      expect(Webchat.strategy).toEqual('fixed')
+    });
+
+    it('can be set to absolute', () => {
+      Webchat.strategy = 'absolute'
+      expect(Webchat.strategy).toEqual('absolute')
+    });
+
+    describe('when the value is not set', () => {
+      it('is fixed when the container is body', () => {
+        Webchat.container = 'body'
+        expect(Webchat.strategy).toEqual('fixed')
+      });
+
+      it('is fixed when the container is not specified', () => {
+        expect(Webchat.strategy).toEqual('fixed')
+      });
+
+      it('is absolute when the container is not body', () => {
+        Webchat.container = '#container'
+        expect(Webchat.strategy).toEqual('absolute')
+      });
+    })
+
+    it('throws an exception when an invalid value is supplied', () => {
+      expect(() => {
+        Webchat.strategy = 'invalid'
+      }).toThrowError('Invalid strategy value: invalid')
     });
   })
 
