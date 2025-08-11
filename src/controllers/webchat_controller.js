@@ -108,12 +108,23 @@ export default class extends Controller {
   onOutboundMessageSent(event) {
     const { data } = event
 
-    if (data.type === 'outbound-message') {
-      const element = new DOMParser().parseFromString(data.element, 'text/html').body
-        .firstElementChild
+    const callbacks = {
+      'message:sent': data => {
+        const element = new DOMParser().parseFromString(data.element, 'text/html').body
+          .firstElementChild
 
-      this.messagesContainerTarget.appendChild(element)
-      element.scrollIntoView({ behavior: 'instant' })
+        this.messagesContainerTarget.appendChild(element)
+        element.scrollIntoView({ behavior: 'instant' })
+      },
+      'message:failed': data => {
+        this.messagesContainerTarget.querySelector(`#${data.id}`)?.classList.add('failed')
+      },
+    }
+
+    if (callbacks[data.type]) {
+      callbacks[data.type](data)
+    } else {
+      console.log(`Unhandled message event: ${data.type}`)
     }
   }
 
@@ -324,6 +335,8 @@ export default class extends Controller {
 
     const element = this.messageTemplateTarget.cloneNode(true)
 
+    element.id = `hellotext--webchat--${this.idValue}--message--${Date.now()}`
+
     element.classList.add('received')
     element.style.removeProperty('display')
 
@@ -342,7 +355,7 @@ export default class extends Controller {
     element.scrollIntoView({ behavior: 'smooth' })
 
     this.broadcastChannel.postMessage({
-      type: 'outbound-message',
+      type: 'message:sent',
       element: element.outerHTML,
     })
 
@@ -356,6 +369,11 @@ export default class extends Controller {
     const response = await this.messagesAPI.create(formData)
 
     if (response.failed) {
+      this.broadcastChannel.postMessage({
+        type: 'message:failed',
+        id: element.id,
+      })
+
       return element.classList.add('failed')
     }
 
