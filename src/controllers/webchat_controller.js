@@ -106,7 +106,15 @@ export default class extends Controller {
   }
 
   onOutboundMessageSent(event) {
-    console.log(event)
+    const { data } = event
+
+    if (data.type === 'outbound-message') {
+      const element = new DOMParser().parseFromString(data.element, 'text/html').body
+        .firstElementChild
+
+      this.messagesContainerTarget.appendChild(element)
+      element.scrollIntoView({ behavior: 'instant' })
+    }
   }
 
   async onScroll() {
