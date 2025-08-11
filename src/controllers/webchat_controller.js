@@ -95,8 +95,6 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:mounted')
     this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
 
-    this.messagesContainerTarget.scrollTop = this.messagesContainerTarget.scrollHeight
-
     super.connect()
   }
 
@@ -211,9 +209,11 @@ export default class extends Controller {
     this.inputTarget.focus()
 
     if (!this.scrolled) {
-      this.messagesContainerTarget.scroll({
-        top: this.messagesContainerTarget.scrollHeight,
-        behavior: 'instant',
+      requestAnimationFrame(() => {
+        this.messagesContainerTarget.scroll({
+          top: this.messagesContainerTarget.scrollHeight,
+          behavior: 'instant',
+        })
       })
 
       this.scrolled = true
