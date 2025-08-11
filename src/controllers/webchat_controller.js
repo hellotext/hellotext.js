@@ -62,6 +62,9 @@ export default class extends Controller {
 
     this.onScroll = this.onScroll.bind(this)
 
+    this.onOutboundMessageSent = this.onOutboundMessageSent.bind(this)
+    this.broadcastChannel = new BroadcastChannel(`hellotext--webchat--${this.idValue}`)
+
     super.initialize()
   }
 
@@ -90,14 +93,42 @@ export default class extends Controller {
     }
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
+    this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
+
     super.connect()
   }
 
   disconnect() {
+    this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
+
+    this.broadcastChannel.close()
     this.floatingUICleanup()
 
     super.disconnect()
+  }
+
+  onOutboundMessageSent(event) {
+    const { data } = event
+
+    const callbacks = {
+      'message:sent': data => {
+        const element = new DOMParser().parseFromString(data.element, 'text/html').body
+          .firstElementChild
+
+        this.messagesContainerTarget.appendChild(element)
+        element.scrollIntoView({ behavior: 'instant' })
+      },
+      'message:failed': data => {
+        this.messagesContainerTarget.querySelector(`#${data.id}`)?.classList.add('failed')
+      },
+    }
+
+    if (callbacks[data.type]) {
+      callbacks[data.type](data)
+    } else {
+      console.log(`Unhandled message event: ${data.type}`)
+    }
   }
 
   async onScroll() {
@@ -307,6 +338,8 @@ export default class extends Controller {
 
     const element = this.messageTemplateTarget.cloneNode(true)
 
+    element.id = `hellotext--webchat--${this.idValue}--message--${Date.now()}`
+
     element.classList.add('received')
     element.style.removeProperty('display')
 
@@ -324,6 +357,11 @@ export default class extends Controller {
     this.messagesContainerTarget.appendChild(element)
     element.scrollIntoView({ behavior: 'smooth' })
 
+    this.broadcastChannel.postMessage({
+      type: 'message:sent',
+      element: element.outerHTML,
+    })
+
     this.inputTarget.value = ''
     this.files = []
     this.attachmentContainerTarget.style.display = 'none'
@@ -334,6 +372,11 @@ export default class extends Controller {
     const response = await this.messagesAPI.create(formData)
 
     if (response.failed) {
+      this.broadcastChannel.postMessage({
+        type: 'message:failed',
+        id: element.id,
+      })
+
       return element.classList.add('failed')
     }
 
