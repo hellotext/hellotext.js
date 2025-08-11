@@ -76,7 +76,7 @@ Determines how the webchat functions when it is open and a click is made outside
 
 ### Strategy
 
-Determines the positioning strategy for popovers (tooltips, dropdowns) within the webchat when the page is scrolled.
+Determines the positioning strategy for the webchat when the page is scrolled.
 
 - `absolute` - Popover scrolls with its container. Use when webchat is inside a scrollable element.
 - `fixed` - Popover stays fixed to viewport. Use when webchat is directly in the body.
