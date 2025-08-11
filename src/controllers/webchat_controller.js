@@ -480,6 +480,7 @@ export default class extends Controller {
       element.querySelector('p[data-attachment-name]').innerText = file.name
 
       this.attachmentContainerTarget.appendChild(element)
+      this.attachmentContainerTarget.style.display = 'flex'
     }
   }
 
