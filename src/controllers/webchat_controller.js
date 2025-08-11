@@ -420,7 +420,10 @@ export default class extends Controller {
   onFileInputChange() {
     this.errorMessageContainerTarget.style.display = 'none'
 
-    this.files = Array.from(this.attachmentInputTarget.files)
+    const newFiles = Array.from(this.attachmentInputTarget.files)
+    this.attachmentInputTarget.value = ''
+
+    this.files = [...this.files, ...newFiles]
 
     const fileMaxSizeTooMuch = this.files.find(file => {
       const type = file.type.split('/')[0]
@@ -444,7 +447,8 @@ export default class extends Controller {
     }
 
     this.errorMessageContainerTarget.innerText = ''
-    this.files.forEach(file => this.createAttachmentElement(file))
+
+    newFiles.forEach(file => this.createAttachmentElement(file))
     this.inputTarget.focus()
   }
 
@@ -483,6 +487,7 @@ export default class extends Controller {
     const attachment = currentTarget.closest("[data-hellotext--webchat-target='attachment']")
 
     this.files = this.files.filter(file => file.name !== attachment.dataset.name)
+    this.attachmentInputTarget.value = ''
 
     attachment.remove()
     this.inputTarget.focus()
