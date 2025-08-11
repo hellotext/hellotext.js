@@ -353,6 +353,8 @@ export default class extends Controller {
 
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
+    console.log(this.inputTarget.value.trim().length)
+
     if (this.inputTarget.value.trim().length > 0) {
       element.querySelector('[data-body]').innerText = this.inputTarget.value
     } else {
@@ -377,6 +379,8 @@ export default class extends Controller {
 
     this.inputTarget.value = ''
     this.files = []
+    this.attachmentInputTarget.value = ''
+
     this.attachmentContainerTarget.style.display = 'none'
     this.errorMessageContainerTarget.style.display = 'none'
 
