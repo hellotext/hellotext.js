@@ -10,9 +10,22 @@ const placements = {
   TOP_LEFT: 'top-left',
   TOP_RIGHT: 'top-right',
   BOTTOM_LEFT: 'bottom-left',
-  BOTTOM_RIGHT: 'bottom-right'
+  BOTTOM_RIGHT: 'bottom-right',
 }
 
+/**
+ * @typedef {'absolute' | 'fixed'} Strategy
+ * @description Valid strategies for the webchat.
+ */
+
+/**
+ * @enum {Strategy}
+ */
+
+const strategies = {
+  ABSOLUTE: 'absolute',
+  FIXED: 'fixed',
+}
 
 /**
  * @typedef {'modal' | 'popover'} Behaviour
@@ -23,7 +36,7 @@ const placements = {
  */
 const behaviors = {
   MODAL: 'modal',
-  POPOVER: 'popover'
+  POPOVER: 'popover',
 }
 
 /**
@@ -32,7 +45,6 @@ const behaviors = {
  * @property {string} secondaryColor - The secondary webchat color or style (e.g., a hex code or color name).
  * @property {string} typography - The typography style (e.g., font family).
  */
-
 
 /**
  * @class Webchat
@@ -45,6 +57,7 @@ const behaviors = {
  * @property {String} triggerClasses - additional classes to apply to the webchat popup trigger.
  * @property {Behaviour} behaviour - the behaviour of the webchat, defaults to 'popover'.
  * @property {Style} style - the style of the webchat.
+ * @property {Strategy} strategy - the strategy used to position the webchat. Defaults to 'absolute'
  */
 
 class Webchat {
@@ -55,6 +68,7 @@ class Webchat {
   static _triggerClasses = []
   static _style = {}
   static _behaviour = behaviors.POPOVER
+  static _strategy = null
 
   static set container(value) {
     this._container = value
@@ -65,7 +79,7 @@ class Webchat {
   }
 
   static set placement(value) {
-    if(!Object.values(placements).includes(value)) {
+    if (!Object.values(placements).includes(value)) {
       throw new Error(`Invalid placement value: ${value}`)
     }
 
@@ -77,34 +91,34 @@ class Webchat {
   }
 
   static set classes(value) {
-    if(!Array.isArray(value) && typeof value !== 'string') {
+    if (!Array.isArray(value) && typeof value !== 'string') {
       throw new Error('classes must be an array or a string')
     }
 
-    this._classes = value;
+    this._classes = value
   }
 
   static get classes() {
-    if(typeof this._classes === 'string') {
+    if (typeof this._classes === 'string') {
       return this._classes.split(',').map(c => c.trim())
     } else {
-      return this._classes;
+      return this._classes
     }
   }
 
   static set triggerClasses(value) {
-    if(!Array.isArray(value) && typeof value !== 'string') {
+    if (!Array.isArray(value) && typeof value !== 'string') {
       throw new Error('triggerClasses must be an array or a string')
     }
 
-    this._triggerClasses = value;
+    this._triggerClasses = value
   }
 
   static get triggerClasses() {
-    if(typeof this._triggerClasses === 'string') {
+    if (typeof this._triggerClasses === 'string') {
       return this._triggerClasses.split(',').map(c => c.trim())
     } else {
-      return this._triggerClasses;
+      return this._triggerClasses
     }
   }
 
@@ -125,20 +139,20 @@ class Webchat {
   }
 
   static set style(value) {
-    if(typeof value !== 'object') {
+    if (typeof value !== 'object') {
       throw new Error('Style must be an object')
     }
 
     Object.entries(value).forEach(([key, value]) => {
-      if(!['primaryColor', 'secondaryColor', 'typography'].includes(key)) {
+      if (!['primaryColor', 'secondaryColor', 'typography'].includes(key)) {
         throw new Error(`Invalid style property: ${key}`)
       }
 
-      if(key === 'typography') {
+      if (key === 'typography') {
         return
       }
 
-      if(!this.isHexOrRgba(value)) {
+      if (!this.isHexOrRgba(value)) {
         throw new Error(`Invalid color value: ${value} for ${key}. Colors must be hex or rgb/a.`)
       }
     })
@@ -151,15 +165,31 @@ class Webchat {
   }
 
   static set behaviour(value) {
-    if(!Object.values(behaviors).includes(value)) {
+    if (!Object.values(behaviors).includes(value)) {
       throw new Error(`Invalid behaviour value: ${value}`)
     }
 
     this._behaviour = value
   }
 
+  static get strategy() {
+    if (this._strategy) {
+      return this._strategy
+    }
+
+    return this.container == 'body' ? strategies.FIXED : strategies.ABSOLUTE
+  }
+
+  static set strategy(value) {
+    if (value && !Object.values(strategies).includes(value)) {
+      throw new Error(`Invalid strategy value: ${value}`)
+    }
+
+    this._strategy = value
+  }
+
   static assign(props) {
-    if(props) {
+    if (props) {
       Object.entries(props).forEach(([key, value]) => {
         this[key] = value
       })
@@ -169,8 +199,11 @@ class Webchat {
   }
 
   static isHexOrRgba(value) {
-    return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) || /^rgba?\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3},?\s*(0|1|0?\.\d+)?\s*\)$/.test(value);
+    return (
+      /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ||
+      /^rgba?\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3},?\s*(0|1|0?\.\d+)?\s*\)$/.test(value)
+    )
   }
 }
 
-export { Webchat, behaviors }
+export { behaviors, Webchat }

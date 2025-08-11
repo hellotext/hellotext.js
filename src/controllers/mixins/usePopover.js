@@ -13,11 +13,17 @@ export const usePopover = controller => {
       this.openValue = !this.openValue
     },
     setupFloatingUI({ trigger, popover }) {
+      let strategy = Configuration.webchat.strategy
+
+      if (!strategy) {
+        strategy = Configuration.webchat.container == 'body' ? 'fixed' : 'absolute'
+      }
+
       this.floatingUICleanup = autoUpdate(trigger, popover, () => {
         computePosition(trigger, popover, {
           placement: this.placementValue,
           middleware: this.middlewares,
-          strategy: Configuration.webchat.container == 'body' ? 'fixed' : 'absolute',
+          strategy,
         }).then(({ x, y, strategy }) => {
           const newStyle = {
             left: `${x}px`,
