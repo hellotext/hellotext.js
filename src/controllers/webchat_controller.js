@@ -333,6 +333,11 @@ export default class extends Controller {
     this.messagesContainerTarget.appendChild(element)
     element.scrollIntoView({ behavior: 'smooth' })
 
+    this.broadcastChannel.postMessage({
+      type: 'outbound-message',
+      element: element.outerHTML,
+    })
+
     this.inputTarget.value = ''
     this.files = []
     this.attachmentContainerTarget.style.display = 'none'
