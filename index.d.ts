@@ -17,6 +17,7 @@ export interface HellotextConfig {
       secondaryColor?: string
       typography?: string
     }
+    strategy?: 'absolute' | 'fixed'
   }
   session?: string
   autoGenerateSession?: boolean

@@ -18,6 +18,7 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
       typography,
     },
     behaviour,
+    strategy,
   },
 })
 ```
