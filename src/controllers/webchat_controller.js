@@ -355,6 +355,8 @@ export default class extends Controller {
 
     if (this.inputTarget.value.trim().length > 0) {
       element.querySelector('[data-body]').innerText = this.inputTarget.value
+    } else {
+      element.querySelector('[data-bubble]').remove()
     }
 
     const attachments = this.attachmentContainerTarget.querySelectorAll('img')
