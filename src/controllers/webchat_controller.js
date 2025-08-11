@@ -353,12 +353,10 @@ export default class extends Controller {
 
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
-    console.log(this.inputTarget.value.trim().length)
-
     if (this.inputTarget.value.trim().length > 0) {
       element.querySelector('[data-body]').innerText = this.inputTarget.value
     } else {
-      element.querySelector('[data-bubble]').remove()
+      element.querySelector('[data-message-bubble]').remove()
     }
 
     const attachments = this.attachmentContainerTarget.querySelectorAll('img')
