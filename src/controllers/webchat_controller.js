@@ -377,7 +377,9 @@ export default class extends Controller {
 
     this.inputTarget.value = ''
     this.files = []
+
     this.attachmentInputTarget.value = ''
+    this.attachmentContainerTarget.innerHTML = ''
 
     this.attachmentContainerTarget.style.display = 'none'
     this.errorMessageContainerTarget.style.display = 'none'
