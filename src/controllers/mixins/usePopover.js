@@ -1,7 +1,7 @@
 import { autoUpdate, computePosition } from '@floating-ui/dom'
-import Hellotext from "../../hellotext";
+import { Configuration } from '../../core'
 
-export const usePopover = (controller) => {
+export const usePopover = controller => {
   Object.assign(controller, {
     show() {
       this.openValue = true
@@ -17,34 +17,36 @@ export const usePopover = (controller) => {
         computePosition(trigger, popover, {
           placement: this.placementValue,
           middleware: this.middlewares,
-        }).then(({x, y}) => {
+          strategy: Configuration.webchat.container == 'body' ? 'fixed' : 'absolute',
+        }).then(({ x, y, strategy }) => {
           const newStyle = {
             left: `${x}px`,
-            top: `${y}px`
+            top: `${y}px`,
+            position: strategy,
           }
 
           Object.assign(popover.style, newStyle)
-        });
+        })
       })
     },
     openValueChanged() {
-      if(this.disabledValue) return
+      if (this.disabledValue) return
 
-      if(this.openValue) {
+      if (this.openValue) {
         this.popoverTarget.showPopover()
-        this.popoverTarget.setAttribute("aria-expanded", "true")
+        this.popoverTarget.setAttribute('aria-expanded', 'true')
 
-        if(this['onPopoverOpened']) {
+        if (this['onPopoverOpened']) {
           this.onPopoverOpened()
         }
       } else {
         this.popoverTarget.hidePopover()
-        this.popoverTarget.removeAttribute("aria-expanded")
+        this.popoverTarget.removeAttribute('aria-expanded')
 
-        if(this['onPopoverClosed']) {
+        if (this['onPopoverClosed']) {
           this.onPopoverClosed()
         }
       }
-    }
+    },
   })
 }
