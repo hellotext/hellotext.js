@@ -62,6 +62,9 @@ export default class extends Controller {
 
     this.onScroll = this.onScroll.bind(this)
 
+    this.onOutboundMessageSent = this.onOutboundMessageSent.bind(this)
+    this.broadcastChannel = new BroadcastChannel(`hellotext--webchat--${this.idValue}`)
+
     super.initialize()
   }
 
@@ -90,6 +93,8 @@ export default class extends Controller {
     }
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
+    this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
+
     super.connect()
   }
 
@@ -98,6 +103,10 @@ export default class extends Controller {
     this.floatingUICleanup()
 
     super.disconnect()
+  }
+
+  onOutboundMessageSent(event) {
+    console.log(event)
   }
 
   async onScroll() {
