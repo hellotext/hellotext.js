@@ -95,6 +95,8 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:mounted')
     this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
 
+    this.messagesContainerTarget.scrollTop = this.messagesContainerTarget.scrollHeight
+
     super.connect()
   }
 
