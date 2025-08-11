@@ -423,9 +423,7 @@ export default class extends Controller {
     const newFiles = Array.from(this.attachmentInputTarget.files)
     this.attachmentInputTarget.value = ''
 
-    this.files = [...this.files, ...newFiles]
-
-    const fileMaxSizeTooMuch = this.files.find(file => {
+    const fileMaxSizeTooMuch = newFiles.find(file => {
       const type = file.type.split('/')[0]
 
       if (['image', 'video', 'audio'].includes(type)) {
@@ -443,9 +441,11 @@ export default class extends Controller {
         '%{limit}',
         this.byteToMegabyte(this.mediaValue[mediaType].max_size),
       )
-      return
+
+      return (this.errorMessageContainerTarget.style.display = 'block')
     }
 
+    this.files = [...this.files, ...newFiles]
     this.errorMessageContainerTarget.innerText = ''
 
     newFiles.forEach(file => this.createAttachmentElement(file))
