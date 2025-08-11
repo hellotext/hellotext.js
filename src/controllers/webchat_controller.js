@@ -328,7 +328,15 @@ export default class extends Controller {
       attachments: this.files,
     }
 
-    formData.append('message[body]', this.inputTarget.value)
+    if (this.inputTarget.value.trim().length === 0 && this.files.length === 0) {
+      return
+    }
+
+    if (this.inputTarget.value.trim().length > 0) {
+      formData.append('message[body]', this.inputTarget.value)
+    } else {
+      delete message.body
+    }
 
     this.files.forEach(file => {
       formData.append('message[attachments][]', file)
@@ -344,7 +352,10 @@ export default class extends Controller {
     element.style.removeProperty('display')
 
     element.setAttribute('data-hellotext--webchat-target', 'message')
-    element.querySelector('[data-body]').innerText = this.inputTarget.value
+
+    if (this.inputTarget.value.trim().length > 0) {
+      element.querySelector('[data-body]').innerText = this.inputTarget.value
+    }
 
     const attachments = this.attachmentContainerTarget.querySelectorAll('img')
 
