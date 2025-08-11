@@ -467,12 +467,15 @@ export default class extends Controller {
       this.attachmentContainerTarget.style.display = 'flex'
     } else {
       const main = element.querySelector('main')
+
       main.style.height = '5rem'
       main.style.borderRadius = '0.375rem'
       main.style.backgroundColor = '#e5e7eb'
       main.style.padding = '0.25rem'
 
       element.querySelector('p[data-attachment-name]').innerText = file.name
+
+      this.attachmentContainerTarget.appendChild(element)
     }
   }
 
