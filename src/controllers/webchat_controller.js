@@ -231,6 +231,16 @@ export default class extends Controller {
     this.messagesAPI.markAsSeen()
   }
 
+  async enterFullScreenMode() {
+    this.openValue = false
+
+    try {
+      await this.popoverTarget.requestFullscreen()
+    } catch (error) {
+      console.error('Fullscreen failed:', error)
+    }
+  }
+
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
 
