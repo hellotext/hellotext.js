@@ -23,6 +23,8 @@ export default class extends Controller {
     nextPage: { type: Number, default: undefined },
   }
 
+  static classes = ['fade-out']
+
   static targets = [
     'trigger',
     'popover',
@@ -206,7 +208,7 @@ export default class extends Controller {
   }
 
   closePopover() {
-    this.popoverTarget.classList.add('slide-out')
+    this.popoverTarget.classList.add(...this.fadeOutClasses)
     this.openValue = false
   }
 
@@ -241,8 +243,11 @@ export default class extends Controller {
 
     setTimeout(() => {
       this.inputTarget.value = ''
-      this.popoverTarget.classList.remove('slide-out')
     })
+
+    setTimeout(() => {
+      this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    }, 300)
 
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
   }
