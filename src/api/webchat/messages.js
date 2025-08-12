@@ -38,12 +38,13 @@ class WebchatMessagesAPI {
   }
 
   markAsSeen(messageId = null) {
-    fetch(this.url + '/seen', {
+    const url = messageId ? this.url + `/${messageId}` : this.url + '/seen'
+
+    fetch(url, {
       method: 'PATCH',
       headers: Hellotext.headers,
       body: JSON.stringify({
         session: Hellotext.session,
-        message: messageId,
       }),
     })
   }
