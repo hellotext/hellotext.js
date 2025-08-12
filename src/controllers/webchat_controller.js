@@ -23,7 +23,7 @@ export default class extends Controller {
     nextPage: { type: Number, default: undefined },
   }
 
-  static classes = ['fade-out']
+  static classes = ['fadeOut']
 
   static targets = [
     'trigger',
