@@ -1,4 +1,4 @@
-import { Configuration } from '../core'
+import { Configuration, Locale } from '../core'
 import Hellotext from '../hellotext'
 
 class WebchatsAPI {
@@ -10,6 +10,7 @@ class WebchatsAPI {
     const url = new URL(`${this.endpoint}/${id}`)
 
     url.searchParams.append('session', Hellotext.session)
+    url.searchParams.append('locale', Locale.toString())
 
     Object.entries(Configuration.webchat.style).forEach(([key, value]) => {
       url.searchParams.append(`style[${key}]`, value)
@@ -26,6 +27,7 @@ class WebchatsAPI {
 
     if (!Hellotext.business.data) {
       Hellotext.business.setData(data.business)
+      Hellotext.business.setLocale(data.locale)
     }
 
     return new DOMParser().parseFromString(data.html, 'text/html').querySelector('article')

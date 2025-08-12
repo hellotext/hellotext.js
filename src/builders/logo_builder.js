@@ -14,7 +14,7 @@ class LogoBuilder {
     return `
       <div data-logo-container>
         <small>${Hellotext.business.locale.white_label.powered_by}</small>
-        
+
         <a href="${url}" rel="noreferrer" target="_blank">
           <svg data-hello-brand viewBox="0 0 224 43" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
             <title>Hellotext</title>

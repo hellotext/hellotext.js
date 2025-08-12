@@ -10,7 +10,7 @@ class Locale {
 
   /**
    * Sets the locale identifier explicitly.
-   * @param {string} value - The locale identifier (e.g., 'en', 'es', 'fr')
+   * @param {string} value - The locale identifier (e.g., 'en', 'es')
    */
   static set identifier(value) {
     this._identifier = value
