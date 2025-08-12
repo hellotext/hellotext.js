@@ -35,6 +35,10 @@ class Business {
       this.data = {}
     }
 
+    if (!locales[locale]) {
+      return console.warn(`Locale ${locale} not found`)
+    }
+
     this.data.locale = locale
   }
 
