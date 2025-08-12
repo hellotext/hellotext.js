@@ -31,12 +31,12 @@ class Business {
   }
 
   setLocale(locale) {
-    if (!this.data) {
-      this.data = {}
-    }
-
     if (!locales[locale]) {
       return console.warn(`Locale ${locale} not found`)
+    }
+
+    if (!this.data) {
+      this.data = {}
     }
 
     this.data.locale = locale
