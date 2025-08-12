@@ -234,11 +234,13 @@ export default class extends Controller {
   async enterFullScreenMode() {
     this.openValue = false
 
-    try {
-      await this.popoverTarget.requestFullscreen()
-    } catch (error) {
-      console.error('Fullscreen failed:', error)
-    }
+    setTimeout(async () => {
+      try {
+        await this.popoverTarget.requestFullscreen()
+      } catch (error) {
+        console.error('Fullscreen failed:', error)
+      }
+    }, 1000)
   }
 
   onPopoverClosed() {
