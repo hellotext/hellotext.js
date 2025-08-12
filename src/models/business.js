@@ -18,6 +18,10 @@ class Business {
     }
   }
 
+  setLocale(locale) {
+    this.data.locale = locale
+  }
+
   get subscription() {
     return this.data.subscription
   }
