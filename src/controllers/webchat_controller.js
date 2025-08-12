@@ -209,7 +209,10 @@ export default class extends Controller {
 
   closePopover() {
     this.popoverTarget.classList.add(...this.fadeOutClasses)
-    this.openValue = false
+
+    setTimeout(() => {
+      this.openValue = false
+    }, 250)
   }
 
   onPopoverOpened() {
