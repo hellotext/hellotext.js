@@ -1,4 +1,5 @@
 import { Forms } from './configuration/forms'
+import { Locale } from './configuration/locale'
 import { Webchat } from './configuration/webchat'
 
 /**
@@ -9,6 +10,7 @@ import { Webchat } from './configuration/webchat'
  * @property {String} [session] - session id
  * @property {Forms} [forms] - form configuration
  * @property {Webchat} [webchat] - webchat configuration
+ * @property {Locale} [locale] - locale configuration
  */
 class Configuration {
   static apiRoot = 'https://api.hellotext.com/v1'
@@ -41,6 +43,14 @@ class Configuration {
     }
 
     return this
+  }
+
+  static set locale(locale) {
+    Locale.identifier = locale
+  }
+
+  static get locale() {
+    return Locale.toString()
   }
 
   static endpoint(path) {
