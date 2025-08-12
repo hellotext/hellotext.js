@@ -1,5 +1,5 @@
-import Hellotext from '../../hellotext'
 import { Configuration } from '../../core'
+import Hellotext from '../../hellotext'
 
 import { Response } from '../response'
 
@@ -31,19 +31,20 @@ class WebchatMessagesAPI {
       headers: {
         Authorization: `Bearer ${Hellotext.business.id}`,
       },
-      body: formData
+      body: formData,
     })
 
     return new Response(response.ok, response)
   }
 
-  markAsSeen() {
+  markAsSeen(messageId = null) {
     fetch(this.url + '/seen', {
       method: 'PATCH',
       headers: Hellotext.headers,
       body: JSON.stringify({
-        session: Hellotext.session
-      })
+        session: Hellotext.session,
+        message: messageId,
+      }),
     })
   }
 

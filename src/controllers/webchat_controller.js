@@ -266,7 +266,7 @@ export default class extends Controller {
   }
 
   onMessageReceived(message) {
-    const { body, attachments } = message
+    const { id, body, attachments } = message
 
     const div = document.createElement('div')
     div.innerHTML = body
@@ -297,7 +297,10 @@ export default class extends Controller {
     element.scrollIntoView({ behavior: 'smooth' })
     this.setOfflineTimeout()
 
-    if (this.openValue) return
+    if (this.openValue) {
+      this.messagesAPI.markAsSeen(id)
+      return
+    }
 
     this.unreadCounterTarget.style.display = 'flex'
 

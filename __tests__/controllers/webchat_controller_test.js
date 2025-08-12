@@ -287,4 +287,292 @@ describe('WebchatController', () => {
       })
     })
   })
+
+  describe('onMessageReceived', () => {
+    let mockMessageTemplate
+    let mockAttachmentImage
+    let mockUnreadCounter
+    let mockMessagesAPI
+    let mockHellotext
+
+    beforeEach(() => {
+      // Set up message template mock
+      mockMessageTemplate = document.createElement('div')
+      mockMessageTemplate.style.display = 'none'
+      const bodyElement = document.createElement('div')
+      bodyElement.setAttribute('data-body', '')
+      const attachmentContainer = document.createElement('div')
+      attachmentContainer.setAttribute('data-attachment-container', '')
+      mockMessageTemplate.appendChild(bodyElement)
+      mockMessageTemplate.appendChild(attachmentContainer)
+
+      // Set up attachment image mock
+      mockAttachmentImage = document.createElement('img')
+      mockAttachmentImage.style.display = 'none'
+
+      // Set up unread counter mock
+      mockUnreadCounter = document.createElement('div')
+      mockUnreadCounter.style.display = 'none'
+      mockUnreadCounter.textContent = '0'
+
+      // Mock the targets
+      controller.messageTemplateTarget = mockMessageTemplate
+      controller.attachmentImageTarget = mockAttachmentImage
+      controller.unreadCounterTarget = mockUnreadCounter
+
+      // Mock messagesAPI
+      mockMessagesAPI = {
+        markAsSeen: jest.fn()
+      }
+      controller.messagesAPI = mockMessagesAPI
+
+      // Mock Hellotext
+      mockHellotext = {
+        eventEmitter: {
+          dispatch: jest.fn()
+        }
+      }
+
+      // Mock the setOfflineTimeout method
+      controller.setOfflineTimeout = jest.fn()
+
+      // Mock scrollIntoView
+      Element.prototype.scrollIntoView = jest.fn()
+
+      // Import and setup Hellotext mock
+      const Hellotext = require('../../src/hellotext').default
+      Object.assign(Hellotext, mockHellotext)
+    })
+
+    describe('basic message handling', () => {
+      it('creates and appends a message element with body content', () => {
+        const message = {
+          body: '<p>Hello world!</p>',
+          id: 'msg-123'
+        }
+
+        controller.onMessageReceived(message)
+
+        expect(mockMessagesContainer.children).toHaveLength(1)
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.style.display).toBe('flex')
+        expect(addedElement.querySelector('[data-body]').innerHTML).toBe('<p>Hello world!</p>')
+        expect(addedElement.getAttribute('data-hellotext--webchat-target')).toBe('message')
+      })
+
+      it('handles plain text messages', () => {
+        const message = {
+          body: 'Simple text message',
+          id: 'msg-456'
+        }
+
+        controller.onMessageReceived(message)
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body]').innerHTML).toBe('Simple text message')
+      })
+
+      it('handles HTML content in message body', () => {
+        const message = {
+          body: '<strong>Bold text</strong> and <em>italic text</em>',
+          id: 'msg-789'
+        }
+
+        controller.onMessageReceived(message)
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body]').innerHTML).toBe('<strong>Bold text</strong> and <em>italic text</em>')
+      })
+    })
+
+    describe('attachment handling', () => {
+      it('processes single attachment correctly', () => {
+        const message = {
+          body: 'Message with attachment',
+          attachments: ['https://example.com/image1.jpg']
+        }
+
+        controller.onMessageReceived(message)
+
+        const addedElement = mockMessagesContainer.children[0]
+        const attachmentContainer = addedElement.querySelector('[data-attachment-container]')
+        expect(attachmentContainer.children).toHaveLength(1)
+
+        const attachmentImage = attachmentContainer.children[0]
+        expect(attachmentImage.src).toBe('https://example.com/image1.jpg')
+        expect(attachmentImage.style.display).toBe('block')
+      })
+
+      it('processes multiple attachments correctly', () => {
+        const message = {
+          body: 'Message with multiple attachments',
+          attachments: [
+            'https://example.com/image1.jpg',
+            'https://example.com/image2.png',
+            'https://example.com/image3.gif'
+          ]
+        }
+
+        controller.onMessageReceived(message)
+
+        const addedElement = mockMessagesContainer.children[0]
+        const attachmentContainer = addedElement.querySelector('[data-attachment-container]')
+        expect(attachmentContainer.children).toHaveLength(3)
+
+        expect(attachmentContainer.children[0].src).toBe('https://example.com/image1.jpg')
+        expect(attachmentContainer.children[1].src).toBe('https://example.com/image2.png')
+        expect(attachmentContainer.children[2].src).toBe('https://example.com/image3.gif')
+      })
+
+      it('handles messages without attachments', () => {
+        const message = {
+          body: 'Message without attachments'
+        }
+
+        controller.onMessageReceived(message)
+
+        const addedElement = mockMessagesContainer.children[0]
+        const attachmentContainer = addedElement.querySelector('[data-attachment-container]')
+        expect(attachmentContainer.children).toHaveLength(0)
+      })
+
+      it('handles empty attachments array', () => {
+        const message = {
+          body: 'Message with empty attachments',
+          attachments: []
+        }
+
+        controller.onMessageReceived(message)
+
+        const addedElement = mockMessagesContainer.children[0]
+        const attachmentContainer = addedElement.querySelector('[data-attachment-container]')
+        expect(attachmentContainer.children).toHaveLength(0)
+      })
+    })
+
+
+
+    describe('scroll behavior', () => {
+      it('scrolls new message into view smoothly', () => {
+        const message = {
+          body: 'Scroll test message'
+        }
+
+        controller.onMessageReceived(message)
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' })
+      })
+    })
+
+    describe('offline timeout', () => {
+      it('calls setOfflineTimeout after processing message', () => {
+        const message = {
+          body: 'Timeout test message'
+        }
+
+        controller.onMessageReceived(message)
+
+        expect(controller.setOfflineTimeout).toHaveBeenCalled()
+      })
+    })
+
+    describe('read status when chat is open', () => {
+      beforeEach(() => {
+        controller.openValue = true
+      })
+
+      it('marks message as seen when chat is open', () => {
+        const message = {
+          body: 'Open chat message',
+          id: 'msg-open-chat'
+        }
+
+        controller.onMessageReceived(message)
+        expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('msg-open-chat')
+      })
+    })
+
+    describe('unread counter when chat is closed', () => {
+      beforeEach(() => {
+        controller.openValue = false
+      })
+
+      it('does not mark message as seen when chat is closed', () => {
+        const message = {
+          body: 'Closed chat message'
+        }
+
+        controller.onMessageReceived(message)
+        expect(mockMessagesAPI.markAsSeen).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('edge cases and error handling', () => {
+      it('handles missing message body gracefully', () => {
+        const message = {
+          id: 'msg-no-body'
+        }
+
+        expect(() => controller.onMessageReceived(message)).not.toThrow()
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body]').innerHTML).toBe('undefined')
+      })
+
+      it('handles null/undefined message', () => {
+        expect(() => controller.onMessageReceived(null)).toThrow()
+        expect(() => controller.onMessageReceived(undefined)).toThrow()
+      })
+
+      it('handles message with null attachments', () => {
+        const message = {
+          body: 'Message with null attachments',
+          attachments: null
+        }
+
+        expect(() => controller.onMessageReceived(message)).not.toThrow()
+
+        const addedElement = mockMessagesContainer.children[0]
+        const attachmentContainer = addedElement.querySelector('[data-attachment-container]')
+        expect(attachmentContainer.children).toHaveLength(0)
+      })
+
+      it('handles malformed HTML in message body', () => {
+        const message = {
+          body: '<div><span>Unclosed tags and <strong>bold text'
+        }
+
+        expect(() => controller.onMessageReceived(message)).not.toThrow()
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body]')).toBeTruthy()
+      })
+
+      it('handles complex nested message structure', () => {
+        const message = {
+          body: `
+            <div class="complex-message">
+              <h3>Title</h3>
+              <p>Paragraph with <a href="#">link</a></p>
+              <ul>
+                <li>Item 1</li>
+                <li>Item 2</li>
+              </ul>
+            </div>
+          `,
+          attachments: ['https://example.com/file.pdf'],
+          id: 'complex-msg',
+          metadata: { important: true }
+        }
+
+        controller.onMessageReceived(message)
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body] h3')).toBeTruthy()
+        expect(addedElement.querySelector('[data-body] ul li')).toBeTruthy()
+        expect(addedElement.querySelector('[data-attachment-container] img')).toBeTruthy()
+      })
+    })
+  })
 })
