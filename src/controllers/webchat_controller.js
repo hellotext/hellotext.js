@@ -21,7 +21,10 @@ export default class extends Controller {
     autoPlacement: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     nextPage: { type: Number, default: undefined },
+    locale: { type: String, default: 'en' },
   }
+
+  static classes = ['fadeOut']
 
   static targets = [
     'trigger',
@@ -70,6 +73,8 @@ export default class extends Controller {
 
   connect() {
     usePopover(this)
+
+    Hellotext.business.setLocale(this.localeValue)
 
     this.popoverTarget.classList.add(...WebchatConfiguration.classes)
     this.triggerTarget.classList.add(...WebchatConfiguration.triggerClasses)
@@ -205,6 +210,14 @@ export default class extends Controller {
     }
   }
 
+  closePopover() {
+    this.popoverTarget.classList.add(...this.fadeOutClasses)
+
+    setTimeout(() => {
+      this.openValue = false
+    }, 250)
+  }
+
   onPopoverOpened() {
     this.inputTarget.focus()
 
@@ -237,6 +250,10 @@ export default class extends Controller {
     setTimeout(() => {
       this.inputTarget.value = ''
     })
+
+    setTimeout(() => {
+      this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    }, 300)
 
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
   }

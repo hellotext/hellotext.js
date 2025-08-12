@@ -113,7 +113,7 @@ describe('Business', () => {
       it('returns the English locale object for "en"', () => {
         const result = business.locale
         expect(result).toBeDefined()
-        expect(result.white_label.powered_by).toBe('Powered by')
+        expect(result.white_label.powered_by).toBe('By')
         expect(result.errors.blank).toBe('This field is required.')
       })
 
