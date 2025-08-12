@@ -205,6 +205,11 @@ export default class extends Controller {
     }
   }
 
+  closePopover() {
+    this.popoverTarget.classList.add('slide-out')
+    this.openValue = false
+  }
+
   onPopoverOpened() {
     this.inputTarget.focus()
 
@@ -231,23 +236,12 @@ export default class extends Controller {
     this.messagesAPI.markAsSeen()
   }
 
-  async enterFullScreenMode() {
-    this.openValue = false
-
-    setTimeout(async () => {
-      try {
-        await this.popoverTarget.requestFullscreen()
-      } catch (error) {
-        console.error('Fullscreen failed:', error)
-      }
-    }, 1000)
-  }
-
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
 
     setTimeout(() => {
       this.inputTarget.value = ''
+      this.popoverTarget.classList.remove('slide-out')
     })
 
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
