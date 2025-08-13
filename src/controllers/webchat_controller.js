@@ -5,6 +5,7 @@ import WebchatMessagesAPI from '../api/webchat/messages'
 import WebchatChannel from '../channels/webchat_channel'
 import Hellotext from '../hellotext'
 
+import { Locale } from '../core'
 import { Webchat as WebchatConfiguration, behaviors } from '../core/configuration/webchat'
 
 import { LogoBuilder } from '../builders/logo_builder'
@@ -355,6 +356,7 @@ export default class extends Controller {
     })
 
     formData.append('session', Hellotext.session)
+    formData.append('locale', Locale.toString())
 
     const element = this.messageTemplateTarget.cloneNode(true)
 
