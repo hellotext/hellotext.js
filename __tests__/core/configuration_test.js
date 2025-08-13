@@ -1,4 +1,5 @@
 import { Configuration } from '../../src/core'
+import { Locale } from '../../src/core/configuration/locale'
 
 describe('Configuration', () => {
   describe('.autoGenerateSession', () => {
@@ -30,6 +31,21 @@ describe('Configuration', () => {
     it('can be modified', () => {
       Configuration.assign({ webchat: { id: '123' } })
       expect(Configuration.webchat.id).toEqual('123')
+    })
+  })
+
+  describe('.locale', () => {
+    beforeEach(() => {
+      Locale._identifier = undefined
+    })
+
+    it('can be set', () => {
+      Configuration.locale = 'es'
+      expect(Configuration.locale).toEqual('es')
+    })
+
+    it('defaults to "en" when nothing is set', () => {
+      expect(Configuration.locale).toEqual('en')
     })
   })
 })

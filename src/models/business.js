@@ -18,10 +18,6 @@ class Business {
     }
   }
 
-  setLocale(locale) {
-    this.data.locale = locale
-  }
-
   get subscription() {
     return this.data.subscription
   }
@@ -32,6 +28,18 @@ class Business {
 
   get enabledWhitelist() {
     return this.data.whitelist !== 'disabled'
+  }
+
+  setLocale(locale) {
+    if (!locales[locale]) {
+      return console.warn(`Locale ${locale} not found`)
+    }
+
+    if (!this.data) {
+      this.data = {}
+    }
+
+    this.data.locale = locale
   }
 
   get locale() {

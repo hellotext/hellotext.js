@@ -21,7 +21,6 @@ export default class extends Controller {
     autoPlacement: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     nextPage: { type: Number, default: undefined },
-    locale: { type: String, default: 'en' },
     fullScreenThreshold: { type: Number, default: 1024 },
   }
 
@@ -74,8 +73,6 @@ export default class extends Controller {
 
   connect() {
     usePopover(this)
-
-    Hellotext.business.setLocale(this.localeValue)
 
     this.popoverTarget.classList.add(...WebchatConfiguration.classes)
     this.triggerTarget.classList.add(...WebchatConfiguration.triggerClasses)

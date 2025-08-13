@@ -1,5 +1,5 @@
+import { Configuration, Locale } from '../core'
 import Hellotext from '../hellotext'
-import { Configuration } from '../core'
 
 import { Response } from './response'
 
@@ -10,7 +10,9 @@ export default class FormsAPI {
 
   static async get(id) {
     const url = new URL(`${this.endpoint}/${id}`)
+
     url.searchParams.append('session', Hellotext.session)
+    url.searchParams.append('locale', Locale.toString())
 
     return fetch(url, {
       method: 'GET',

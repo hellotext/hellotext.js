@@ -1,7 +1,7 @@
 import API from '../api/forms'
 import Hellotext from '../hellotext'
 
-import { Configuration } from '../core'
+import { Configuration, Locale } from '../core'
 import { Form } from './form'
 
 import { NotInitializedError } from '../errors'
@@ -84,6 +84,7 @@ class FormCollection {
 
     if (!Hellotext.business.data) {
       Hellotext.business.setData(data.business)
+      Hellotext.business.setLocale(Locale.toString())
     }
 
     if (!Hellotext.business.enabledWhitelist) {
