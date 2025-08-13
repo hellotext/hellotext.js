@@ -220,7 +220,9 @@ export default class extends Controller {
   }
 
   onPopoverOpened() {
-    this.inputTarget.focus()
+    if (!this.onMobile) {
+      this.inputTarget.focus()
+    }
 
     if (!this.scrolled) {
       requestAnimationFrame(() => {
@@ -234,7 +236,6 @@ export default class extends Controller {
     }
 
     Hellotext.eventEmitter.dispatch('webchat:opened')
-
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
 
     if (this.unreadCounterTarget.style.display === 'none') return
@@ -247,15 +248,6 @@ export default class extends Controller {
 
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
-
-    setTimeout(() => {
-      this.inputTarget.value = ''
-    })
-
-    setTimeout(() => {
-      this.popoverTarget.classList.remove(...this.fadeOutClasses)
-    }, 300)
-
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
   }
 

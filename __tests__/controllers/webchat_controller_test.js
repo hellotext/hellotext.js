@@ -575,4 +575,47 @@ describe('WebchatController', () => {
       })
     })
   })
+
+  describe('onPopoverClosed', () => {
+    let mockHellotext
+    let mockLocalStorage
+
+    beforeEach(() => {
+      // Mock Hellotext
+      mockHellotext = {
+        eventEmitter: {
+          dispatch: jest.fn()
+        }
+      }
+
+      // Mock localStorage
+      mockLocalStorage = {
+        setItem: jest.fn(),
+        getItem: jest.fn(),
+        removeItem: jest.fn()
+      }
+      Object.defineProperty(window, 'localStorage', {
+        value: mockLocalStorage,
+        writable: true
+      })
+
+      // Import and setup Hellotext mock
+      const Hellotext = require('../../src/hellotext').default
+      Object.assign(Hellotext, mockHellotext)
+    })
+
+    it('dispatches webchat:closed event', () => {
+      controller.onPopoverClosed()
+
+      expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledWith('webchat:closed')
+    })
+
+    it('sets closed state in localStorage with correct key', () => {
+      controller.idValue = 'test-webchat-123'
+
+      controller.onPopoverClosed()
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('hellotext--webchat--test-webchat-123', 'closed')
+    })
+  })
 })
