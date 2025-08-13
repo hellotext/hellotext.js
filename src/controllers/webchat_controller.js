@@ -22,6 +22,7 @@ export default class extends Controller {
     disabled: { type: Boolean, default: false },
     nextPage: { type: Number, default: undefined },
     locale: { type: String, default: 'en' },
+    fullScreenThreshold: { type: Number, default: 1024 },
   }
 
   static classes = ['fadeOut']
@@ -93,7 +94,7 @@ export default class extends Controller {
       this.toolbarTarget.appendChild(LogoBuilder.build())
     }
 
-    if (localStorage.getItem(`hellotext--webchat--${this.idValue}`) === 'opened') {
+    if (this.shouldOpenOnMount) {
       this.openValue = true
     }
 
@@ -560,5 +561,15 @@ export default class extends Controller {
 
   get middlewares() {
     return [offset(5), shift({ padding: 24 }), flip()]
+  }
+
+  get shouldOpenOnMount() {
+    return (
+      localStorage.getItem(`hellotext--webchat--${this.idValue}`) === 'opened' && !this.onMobile
+    )
+  }
+
+  get onMobile() {
+    return window.matchMedia(`(max-width: ${this.fullScreenThresholdValue}px)`).matches
   }
 }
