@@ -112,6 +112,16 @@ export default class extends Controller {
     super.disconnect()
   }
 
+  onMessageInputChange() {
+    if (!this.hasSentTypingIndicator) {
+      this.webChatChannel.startTypingIndicator()
+      this.hasSentTypingIndicator = true
+    }
+
+    clearTimeout(this.typingIndicatorTimeout)
+    this.typingIndicatorTimeout = setTimeout(() => (this.typingIndicatorTimeout = false), 3000)
+  }
+
   onOutboundMessageSent(event) {
     const { data } = event
 
