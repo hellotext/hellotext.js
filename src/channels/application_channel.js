@@ -1,10 +1,10 @@
 class ApplicationChannel {
-  static webSocket;
+  static webSocket
 
   send({ command, identifier }) {
     const data = {
       command,
-      identifier: JSON.stringify(identifier)
+      identifier: JSON.stringify(identifier),
     }
 
     if (this.webSocket.readyState === WebSocket.OPEN) {
@@ -17,12 +17,12 @@ class ApplicationChannel {
   }
 
   onMessage(callback) {
-    this.webSocket.addEventListener('message', (event) => {
+    this.webSocket.addEventListener('message', event => {
       const data = JSON.parse(event.data)
       const { type, message } = data
 
       if (this.ignoredEvents.includes(type)) {
-        return;
+        return
       }
 
       callback(message)
@@ -31,7 +31,7 @@ class ApplicationChannel {
 
   get webSocket() {
     if (!ApplicationChannel.webSocket) {
-      return ApplicationChannel.webSocket = new WebSocket("wss://www.hellotext.com/cable")
+      return (ApplicationChannel.webSocket = new WebSocket('wss://localhost:3000/cable'))
     }
 
     return ApplicationChannel.webSocket
