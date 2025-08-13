@@ -1,10 +1,11 @@
 class ApplicationChannel {
   static webSocket
 
-  send({ command, identifier }) {
+  send({ command, identifier, data: {} }) {
     const data = {
       command,
       identifier: JSON.stringify(identifier),
+      data: JSON.stringify(data),
     }
 
     if (this.webSocket.readyState === WebSocket.OPEN) {

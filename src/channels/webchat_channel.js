@@ -39,10 +39,9 @@ class WebchatChannel extends ApplicationChannel {
       id: this.id,
       session: this.session,
       conversation: this.conversation,
-      event: 'typing:start',
     }
 
-    this.send({ command: 'message', identifier: params })
+    this.send({ command: 'message', identifier: params, data: { action: 'typing:start' } })
   }
 
   stopTypingIndicator() {
