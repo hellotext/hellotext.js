@@ -1,23 +1,23 @@
+import { autoPlacement, offset, shift } from '@floating-ui/dom'
 import { Controller } from '@hotwired/stimulus'
-import { computePosition, autoUpdate, shift, autoPlacement, offset } from '@floating-ui/dom'
+
+import en from '@emoji-mart/data/i18n/en.json'
+import es from '@emoji-mart/data/i18n/es.json'
 
 import { Picker } from 'emoji-mart'
 
 import { usePopover } from '../mixins/usePopover'
 
 export default class extends Controller {
-  static targets = [
-    'button',
-    'popover',
-  ]
+  static targets = ['button', 'popover']
 
   static values = {
-    placement: { type: String, default: "bottom-end" },
+    placement: { type: String, default: 'bottom-end' },
     open: { type: Boolean, default: false },
     autoPlacement: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     size: { type: Number, default: 24 },
-    perLine: { type: Number, default: 9 }
+    perLine: { type: Number, default: 9 },
   }
 
   initialize() {
@@ -62,13 +62,7 @@ export default class extends Controller {
       skinTonePosition: 'none',
       emojiSize: this.sizeValue,
       perLine: this.perLineValue,
-      data: async () => {
-        const response = await fetch(
-          'https://cdn.jsdelivr.net/npm/@emoji-mart/data',
-        )
-
-        return response.json()
-      }
+      i18n: Hellotext.business.locale === 'es' ? es : en,
     })
   }
 
@@ -76,7 +70,7 @@ export default class extends Controller {
     return [
       offset(5),
       shift({ padding: 24 }),
-      autoPlacement({ allowedPlacements: ['top', 'bottom' ]}),
+      autoPlacement({ allowedPlacements: ['top', 'bottom'] }),
     ]
   }
 }

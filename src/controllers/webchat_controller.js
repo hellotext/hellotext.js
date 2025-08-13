@@ -21,6 +21,7 @@ export default class extends Controller {
     autoPlacement: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     nextPage: { type: Number, default: undefined },
+    fullScreenThreshold: { type: Number, default: 1024 },
   }
 
   static classes = ['fadeOut']
@@ -90,7 +91,7 @@ export default class extends Controller {
       this.toolbarTarget.appendChild(LogoBuilder.build())
     }
 
-    if (localStorage.getItem(`hellotext--webchat--${this.idValue}`) === 'opened') {
+    if (this.shouldOpenOnMount) {
       this.openValue = true
     }
 
@@ -216,7 +217,9 @@ export default class extends Controller {
   }
 
   onPopoverOpened() {
-    this.inputTarget.focus()
+    if (!this.onMobile) {
+      this.inputTarget.focus()
+    }
 
     if (!this.scrolled) {
       requestAnimationFrame(() => {
@@ -230,7 +233,6 @@ export default class extends Controller {
     }
 
     Hellotext.eventEmitter.dispatch('webchat:opened')
-
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
 
     if (this.unreadCounterTarget.style.display === 'none') return
@@ -243,15 +245,6 @@ export default class extends Controller {
 
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
-
-    setTimeout(() => {
-      this.inputTarget.value = ''
-    })
-
-    setTimeout(() => {
-      this.popoverTarget.classList.remove(...this.fadeOutClasses)
-    }, 300)
-
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
   }
 
@@ -557,5 +550,15 @@ export default class extends Controller {
 
   get middlewares() {
     return [offset(5), shift({ padding: 24 }), flip()]
+  }
+
+  get shouldOpenOnMount() {
+    return (
+      localStorage.getItem(`hellotext--webchat--${this.idValue}`) === 'opened' && !this.onMobile
+    )
+  }
+
+  get onMobile() {
+    return window.matchMedia(`(max-width: ${this.fullScreenThresholdValue}px)`).matches
   }
 }
