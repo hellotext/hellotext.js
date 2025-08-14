@@ -109,9 +109,9 @@ describe('WebchatChannel', () => {
           channel: 'WebchatChannel',
           id: 'test-id',
           session: 'test-session',
-          conversation: 'test-conversation',
-          event: 'typing:end'
-        }
+          conversation: 'test-conversation'
+        },
+        data: { action: 'stopped_typing' }
       })
     })
   })
