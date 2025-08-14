@@ -599,7 +599,7 @@ export default class extends Controller {
   }
 
   get middlewares() {
-    return [offset(5), shift({ padding: 24 }), flip()]
+    return [offset(12), shift({ padding: 24 }), flip()]
   }
 
   get shouldOpenOnMount() {
