@@ -144,13 +144,16 @@ export default class extends Controller {
   }
 
   onMessageInputChange() {
+    clearTimeout(this.typingIndicatorTimeout)
+
     if (!this.hasSentTypingIndicator) {
       this.webChatChannel.startTypingIndicator()
       this.hasSentTypingIndicator = true
     }
 
-    clearTimeout(this.typingIndicatorTimeout)
-    this.typingIndicatorTimeout = setTimeout(() => (this.hasSentTypingIndicator = false), 3000)
+    this.typingIndicatorTimeout = setTimeout(() => {
+      this.hasSentTypingIndicator = false
+    }, 3000)
   }
 
   onOutboundMessageSent(event) {

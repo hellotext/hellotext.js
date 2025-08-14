@@ -748,6 +748,82 @@ describe('WebchatController', () => {
     })
   })
 
+  describe('onMessageInputChange', () => {
+    let mockWebChatChannel
+
+    beforeEach(() => {
+      mockWebChatChannel = {
+        startTypingIndicator: jest.fn()
+      }
+      controller.webChatChannel = mockWebChatChannel
+      controller.hasSentTypingIndicator = false
+      controller.typingIndicatorTimeout = null
+    })
+
+    afterEach(() => {
+      if (controller.typingIndicatorTimeout) {
+        clearTimeout(controller.typingIndicatorTimeout)
+      }
+    })
+
+    it('sends typing indicator on first call', () => {
+      controller.onMessageInputChange()
+
+      expect(mockWebChatChannel.startTypingIndicator).toHaveBeenCalledTimes(1)
+      expect(controller.hasSentTypingIndicator).toBe(true)
+      expect(controller.typingIndicatorTimeout).toBeTruthy()
+    })
+
+    it('does not send typing indicator on subsequent calls within timeout period', () => {
+      controller.onMessageInputChange()
+      expect(mockWebChatChannel.startTypingIndicator).toHaveBeenCalledTimes(1)
+      expect(controller.hasSentTypingIndicator).toBe(true)
+
+      controller.onMessageInputChange()
+      expect(mockWebChatChannel.startTypingIndicator).toHaveBeenCalledTimes(1)
+      expect(controller.hasSentTypingIndicator).toBe(true)
+    })
+
+    it('handles rapid successive calls without race conditions', () => {
+      for (let i = 0; i < 10; i++) {
+        controller.onMessageInputChange()
+      }
+
+      expect(mockWebChatChannel.startTypingIndicator).toHaveBeenCalledTimes(1)
+      expect(controller.hasSentTypingIndicator).toBe(true)
+    })
+
+    it('resets flag after timeout expires', () => {
+      jest.useFakeTimers()
+
+      controller.onMessageInputChange()
+      expect(controller.hasSentTypingIndicator).toBe(true)
+
+      jest.advanceTimersByTime(3000)
+
+      expect(controller.hasSentTypingIndicator).toBe(false)
+
+      jest.useRealTimers()
+    })
+
+    it('can send typing indicator again after timeout expires', () => {
+      jest.useFakeTimers()
+
+      controller.onMessageInputChange()
+      expect(mockWebChatChannel.startTypingIndicator).toHaveBeenCalledTimes(1)
+
+      jest.advanceTimersByTime(3000)
+
+      mockWebChatChannel.startTypingIndicator.mockClear()
+
+      controller.onMessageInputChange()
+      expect(mockWebChatChannel.startTypingIndicator).toHaveBeenCalledTimes(1)
+      expect(controller.hasSentTypingIndicator).toBe(true)
+
+      jest.useRealTimers()
+    })
+  })
+
   describe('onPopoverClosed', () => {
     let mockHellotext
     let mockLocalStorage
