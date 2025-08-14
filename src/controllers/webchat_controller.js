@@ -135,7 +135,7 @@ export default class extends Controller {
       })
     })
 
-    setTimeout(() => {
+    this.incomingTypingIndicatorTimeout = setTimeout(() => {
       indicator.remove()
       this.typingIndicatorVisible = false
     }, this.typingIndicatorKeepAliveValue)
@@ -332,6 +332,15 @@ export default class extends Controller {
 
         element.querySelector('[data-attachment-container]').appendChild(image)
       })
+    }
+
+    if (this.typingIndicatorVisible) {
+      if (this.typingIndicatorTarget) {
+        this.typingIndicatorTarget.remove()
+      }
+
+      this.typingIndicatorVisible = false
+      clearTimeout(this.incomingTypingIndicatorTimeout)
     }
 
     this.messagesContainerTarget.appendChild(element)
