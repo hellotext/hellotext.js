@@ -32,7 +32,7 @@ class ApplicationChannel {
 
   get webSocket() {
     if (!ApplicationChannel.webSocket) {
-      return (ApplicationChannel.webSocket = new WebSocket('wss://www.hellotext.com/cable'))
+      return (ApplicationChannel.webSocket = new WebSocket('ws://localhost:3000/cable'))
     }
 
     return ApplicationChannel.webSocket
