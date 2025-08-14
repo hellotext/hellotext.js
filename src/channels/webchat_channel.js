@@ -87,6 +87,14 @@ class WebchatChannel extends ApplicationChannel {
     })
   }
 
+  onTypingStart(callback) {
+    super.onMessage(message => {
+      if (message.type === 'started_typing') {
+        callback(message)
+      }
+    })
+  }
+
   updateSubscriptionWith(conversation) {
     this.unsubscribe()
 

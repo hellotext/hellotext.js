@@ -23,6 +23,7 @@ export default class extends Controller {
     disabled: { type: Boolean, default: false },
     nextPage: { type: Number, default: undefined },
     fullScreenThreshold: { type: Number, default: 1024 },
+    typingIndicatorKeepAlive: { type: Number, default: 25000 },
   }
 
   static classes = ['fadeOut']
@@ -46,6 +47,8 @@ export default class extends Controller {
     'toolbar',
     'message',
     'unreadCounter',
+    'typingIndicator',
+    'typingIndicatorTemplate',
   ]
 
   initialize() {
@@ -63,6 +66,7 @@ export default class extends Controller {
     this.onConversationAssignment = this.onConversationAssignment.bind(this)
     this.onAgentOnline = this.onAgentOnline.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
+    this.onTypingStart = this.onTypingStart.bind(this)
 
     this.onScroll = this.onScroll.bind(this)
 
@@ -82,6 +86,7 @@ export default class extends Controller {
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
+    this.webChatChannel.onTypingStart(this.onTypingStart)
 
     this.webChatChannel.onAgentOnline(this.onAgentOnline)
     this.webChatChannel.onReaction(this.onMessageReaction)
@@ -110,6 +115,30 @@ export default class extends Controller {
     this.floatingUICleanup()
 
     super.disconnect()
+  }
+
+  onTypingStart() {
+    if (this.typingIndicatorVisible) return
+
+    this.typingIndicatorVisible = true
+    const indicator = this.typingIndicatorTemplateTarget.cloneNode(true)
+
+    indicator.setAttribute('data-hellotext--webchat-target', 'typingIndicator')
+    indicator.classList.display = 'flex'
+
+    this.messagesContainerTarget.appendChild(indicator)
+
+    requestAnimationFrame(() => {
+      this.messagesContainerTarget.scroll({
+        top: this.messagesContainerTarget.scrollHeight,
+        behavior: 'instant',
+      })
+    })
+
+    setTimeout(() => {
+      indicator.remove()
+      this.typingIndicatorVisible = false
+    }, this.typingIndicatorKeepAliveValue)
   }
 
   onMessageInputChange() {
