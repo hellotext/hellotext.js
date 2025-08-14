@@ -50,10 +50,9 @@ class WebchatChannel extends ApplicationChannel {
       id: this.id,
       session: this.session,
       conversation: this.conversation,
-      event: 'typing:end',
     }
 
-    this.send({ command: 'typing:stop', identifier: params })
+    this.send({ command: 'typing:stop', identifier: params, data: { action: 'stopped_typing' } })
   }
 
   onMessage(callback) {
