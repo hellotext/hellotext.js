@@ -1,3 +1,5 @@
+import { Configuration } from '../core'
+
 class ApplicationChannel {
   static webSocket
 
@@ -32,7 +34,7 @@ class ApplicationChannel {
 
   get webSocket() {
     if (!ApplicationChannel.webSocket) {
-      return (ApplicationChannel.webSocket = new WebSocket('ws://localhost:3000/cable'))
+      return (ApplicationChannel.webSocket = new WebSocket(Configuration.actionCableUrl))
     }
 
     return ApplicationChannel.webSocket
