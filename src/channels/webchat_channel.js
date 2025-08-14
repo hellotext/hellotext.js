@@ -13,18 +13,18 @@ class WebchatChannel extends ApplicationChannel {
 
   subscribe() {
     const params = {
-      channel: "WebchatChannel",
+      channel: 'WebchatChannel',
       id: this.id,
       session: this.session,
       conversation: this.conversation,
     }
 
-    this.send( { command: 'subscribe',  identifier: params })
+    this.send({ command: 'subscribe', identifier: params })
   }
 
   unsubscribe() {
     const params = {
-      channel: "WebchatChannel",
+      channel: 'WebchatChannel',
       id: this.id,
       session: this.session,
       conversation: this.conversation,
@@ -33,32 +33,62 @@ class WebchatChannel extends ApplicationChannel {
     this.send({ command: 'unsubscribe', identifier: params })
   }
 
+  startTypingIndicator() {
+    const params = {
+      channel: 'WebchatChannel',
+      id: this.id,
+      session: this.session,
+      conversation: this.conversation,
+    }
+
+    this.send({ command: 'message', identifier: params, data: { action: 'started_typing' } })
+  }
+
+  stopTypingIndicator() {
+    const params = {
+      channel: 'WebchatChannel',
+      id: this.id,
+      session: this.session,
+      conversation: this.conversation,
+    }
+
+    this.send({ command: 'typing:stop', identifier: params, data: { action: 'stopped_typing' } })
+  }
+
   onMessage(callback) {
-    super.onMessage((message) => {
-      if(message.type !== 'message') return
+    super.onMessage(message => {
+      if (message.type !== 'message') return
       callback(message)
     })
   }
 
   onConversationAssignment(callback) {
-    super.onMessage((message) => {
-      if(message.type === 'conversation.assigned') {
+    super.onMessage(message => {
+      if (message.type === 'conversation.assigned') {
         callback(message)
       }
     })
   }
 
   onAgentOnline(callback) {
-    super.onMessage((message) => {
-      if(message.type === 'agent_is_online') {
+    super.onMessage(message => {
+      if (message.type === 'agent_is_online') {
         callback(message)
       }
     })
   }
 
   onReaction(callback) {
-    super.onMessage((message) => {
-      if(message.type === 'reaction.create' || message.type === 'reaction.destroy') {
+    super.onMessage(message => {
+      if (message.type === 'reaction.create' || message.type === 'reaction.destroy') {
+        callback(message)
+      }
+    })
+  }
+
+  onTypingStart(callback) {
+    super.onMessage(message => {
+      if (message.type === 'started_typing') {
         callback(message)
       }
     })

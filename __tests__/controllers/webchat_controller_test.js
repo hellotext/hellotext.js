@@ -450,8 +450,6 @@ describe('WebchatController', () => {
       })
     })
 
-
-
     describe('scroll behavior', () => {
       it('scrolls new message into view smoothly', () => {
         const message = {
@@ -505,6 +503,180 @@ describe('WebchatController', () => {
 
         controller.onMessageReceived(message)
         expect(mockMessagesAPI.markAsSeen).not.toHaveBeenCalled()
+      })
+    })
+
+    describe('typing indicator timeout clearance', () => {
+      let mockTypingIndicatorTarget
+      let mockClearTimeout
+
+      beforeEach(() => {
+        mockTypingIndicatorTarget = document.createElement('div')
+        mockTypingIndicatorTarget.setAttribute('data-hellotext--webchat-target', 'typingIndicator')
+        controller.typingIndicatorTarget = mockTypingIndicatorTarget
+
+        mockClearTimeout = jest.fn()
+        global.clearTimeout = mockClearTimeout
+
+        controller.incomingTypingIndicatorTimeout = 'mock-timeout-id'
+      })
+
+      it('clears typing indicator timeout when indicator is visible', () => {
+        controller.typingIndicatorVisible = true
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-typing-clear'
+        }
+
+        controller.onMessageReceived(message)
+
+        expect(mockClearTimeout).toHaveBeenCalledWith('mock-timeout-id')
+      })
+
+      it('removes typing indicator element when indicator is visible', () => {
+        controller.typingIndicatorVisible = true
+        const removeSpy = jest.spyOn(mockTypingIndicatorTarget, 'remove')
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-typing-remove'
+        }
+
+        controller.onMessageReceived(message)
+
+        expect(removeSpy).toHaveBeenCalled()
+      })
+
+      it('sets typing indicator visibility to false when indicator is visible', () => {
+        controller.typingIndicatorVisible = true
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-typing-hide'
+        }
+
+        controller.onMessageReceived(message)
+
+        expect(controller.typingIndicatorVisible).toBe(false)
+      })
+
+      it('does not clear timeout when typing indicator is not visible', () => {
+        controller.typingIndicatorVisible = false
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-no-typing'
+        }
+
+        controller.onMessageReceived(message)
+        expect(mockClearTimeout).not.toHaveBeenCalled()
+      })
+
+      it('does not remove typing indicator element when indicator is not visible', () => {
+        controller.typingIndicatorVisible = false
+        const removeSpy = jest.spyOn(mockTypingIndicatorTarget, 'remove')
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-no-typing-remove'
+        }
+
+        controller.onMessageReceived(message)
+        expect(removeSpy).not.toHaveBeenCalled()
+      })
+
+      it('handles multiple messages with typing indicator clearance', () => {
+        controller.typingIndicatorVisible = true
+
+        const message1 = {
+          body: 'First message',
+          id: 'msg-1'
+        }
+
+        const message2 = {
+          body: 'Second message',
+          id: 'msg-2'
+        }
+
+        controller.onMessageReceived(message1)
+        expect(mockClearTimeout).toHaveBeenCalledTimes(1)
+        expect(controller.typingIndicatorVisible).toBe(false)
+
+        controller.typingIndicatorVisible = true
+        controller.incomingTypingIndicatorTimeout = 'mock-timeout-id-2'
+
+        controller.onMessageReceived(message2)
+        expect(mockClearTimeout).toHaveBeenCalledTimes(2)
+        expect(mockClearTimeout).toHaveBeenCalledWith('mock-timeout-id-2')
+        expect(controller.typingIndicatorVisible).toBe(false)
+      })
+
+      it('handles typing indicator clearance with different timeout IDs', () => {
+        controller.typingIndicatorVisible = true
+        controller.incomingTypingIndicatorTimeout = 'timeout-123'
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-timeout-id'
+        }
+
+        controller.onMessageReceived(message)
+        expect(mockClearTimeout).toHaveBeenCalledWith('timeout-123')
+      })
+
+      it('handles typing indicator clearance with null timeout ID', () => {
+        controller.typingIndicatorVisible = true
+        controller.incomingTypingIndicatorTimeout = null
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-null-timeout'
+        }
+
+        controller.onMessageReceived(message)
+        expect(mockClearTimeout).toHaveBeenCalledWith(null)
+      })
+
+      it('handles typing indicator clearance with undefined timeout ID', () => {
+        controller.typingIndicatorVisible = true
+        controller.incomingTypingIndicatorTimeout = undefined
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-undefined-timeout'
+        }
+
+        controller.onMessageReceived(message)
+        expect(mockClearTimeout).toHaveBeenCalledWith(undefined)
+      })
+
+      it('handles typing indicator clearance when typing indicator target is null', () => {
+        controller.typingIndicatorVisible = true
+        controller.typingIndicatorTarget = null
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-null-target'
+        }
+
+        expect(() => controller.onMessageReceived(message)).not.toThrow()
+        expect(mockClearTimeout).toHaveBeenCalledWith('mock-timeout-id')
+        expect(controller.typingIndicatorVisible).toBe(false)
+      })
+
+      it('handles typing indicator clearance when typing indicator target is undefined', () => {
+        controller.typingIndicatorVisible = true
+        controller.typingIndicatorTarget = undefined
+
+        const message = {
+          body: 'Test message',
+          id: 'msg-undefined-target'
+        }
+
+        expect(() => controller.onMessageReceived(message)).not.toThrow()
+        expect(mockClearTimeout).toHaveBeenCalledWith('mock-timeout-id')
+        expect(controller.typingIndicatorVisible).toBe(false)
       })
     })
 
@@ -581,7 +753,6 @@ describe('WebchatController', () => {
     let mockLocalStorage
 
     beforeEach(() => {
-      // Mock Hellotext
       mockHellotext = {
         eventEmitter: {
           dispatch: jest.fn()

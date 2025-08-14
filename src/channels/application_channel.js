@@ -1,28 +1,31 @@
-class ApplicationChannel {
-  static webSocket;
+import { Configuration } from '../core'
 
-  send({ command, identifier }) {
-    const data = {
+class ApplicationChannel {
+  static webSocket
+
+  send({ command, identifier, data }) {
+    const payload = {
       command,
-      identifier: JSON.stringify(identifier)
+      identifier: JSON.stringify(identifier),
+      data: JSON.stringify(data || {}),
     }
 
     if (this.webSocket.readyState === WebSocket.OPEN) {
-      this.webSocket.send(JSON.stringify(data))
+      this.webSocket.send(JSON.stringify(payload))
     } else {
       this.webSocket.addEventListener('open', () => {
-        this.webSocket.send(JSON.stringify(data))
+        this.webSocket.send(JSON.stringify(payload))
       })
     }
   }
 
   onMessage(callback) {
-    this.webSocket.addEventListener('message', (event) => {
+    this.webSocket.addEventListener('message', event => {
       const data = JSON.parse(event.data)
       const { type, message } = data
 
       if (this.ignoredEvents.includes(type)) {
-        return;
+        return
       }
 
       callback(message)
@@ -31,7 +34,7 @@ class ApplicationChannel {
 
   get webSocket() {
     if (!ApplicationChannel.webSocket) {
-      return ApplicationChannel.webSocket = new WebSocket("wss://www.hellotext.com/cable")
+      return (ApplicationChannel.webSocket = new WebSocket(Configuration.actionCableUrl))
     }
 
     return ApplicationChannel.webSocket

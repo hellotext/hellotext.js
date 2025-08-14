@@ -14,6 +14,7 @@ import { Webchat } from './configuration/webchat'
  */
 class Configuration {
   static apiRoot = 'https://api.hellotext.com/v1'
+  static actionCableUrl = 'wss://www.hellotext.com/cable'
 
   static autoGenerateSession = true
   static session = null
