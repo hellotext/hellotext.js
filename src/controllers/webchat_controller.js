@@ -124,7 +124,7 @@ export default class extends Controller {
     const indicator = this.typingIndicatorTemplateTarget.cloneNode(true)
 
     indicator.setAttribute('data-hellotext--webchat-target', 'typingIndicator')
-    indicator.classList.display = 'flex'
+    indicator.style.display = 'flex'
 
     this.messagesContainerTarget.appendChild(indicator)
 
