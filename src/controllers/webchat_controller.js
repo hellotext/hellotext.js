@@ -148,7 +148,7 @@ export default class extends Controller {
     }
 
     clearTimeout(this.typingIndicatorTimeout)
-    this.typingIndicatorTimeout = setTimeout(() => (this.typingIndicatorTimeout = false), 3000)
+    this.typingIndicatorTimeout = setTimeout(() => (this.hasSentTypingIndicator = false), 3000)
   }
 
   onOutboundMessageSent(event) {
