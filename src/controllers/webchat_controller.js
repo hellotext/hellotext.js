@@ -24,6 +24,8 @@ export default class extends Controller {
     nextPage: { type: Number, default: undefined },
     fullScreenThreshold: { type: Number, default: 1024 },
     typingIndicatorKeepAlive: { type: Number, default: 25000 },
+    offset: { type: Number, default: 24 },
+    padding: { type: Number, default: 24 },
   }
 
   static classes = ['fadeOut']
@@ -599,7 +601,7 @@ export default class extends Controller {
   }
 
   get middlewares() {
-    return [offset(5), shift({ padding: 24 }), flip()]
+    return [offset(this.offsetValue), shift({ padding: this.paddingValue }), flip()]
   }
 
   get shouldOpenOnMount() {
