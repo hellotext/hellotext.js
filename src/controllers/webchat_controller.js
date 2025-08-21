@@ -397,16 +397,28 @@ export default class extends Controller {
   }
 
   resizeInput() {
-    return
-
-    // Reset height to get accurate scrollHeight
-    this.inputTarget.style.height = 'auto'
-
-    // Set height to scrollHeight, but respect max only (CSS handles min)
-    const scrollHeight = this.inputTarget.scrollHeight
     const maxHeight = 96 // 6rem = 96px
 
-    this.inputTarget.style.height = Math.min(scrollHeight, maxHeight) + 'px'
+    // Don't reset if we're just growing within bounds
+    if (this.inputTarget.scrollHeight > this.inputTarget.clientHeight) {
+      // We need to grow
+      this.inputTarget.style.height = Math.min(this.inputTarget.scrollHeight, maxHeight) + 'px'
+    } else if (!this.inputTarget.value.trim()) {
+      // Empty input, reset to minimum
+      this.inputTarget.style.height = '' // Let CSS min-height take over
+    } else {
+      // Check if we need to shrink (e.g., after deleting text)
+      const currentHeight = this.inputTarget.offsetHeight
+      this.inputTarget.style.height = 'auto'
+      const neededHeight = this.inputTarget.scrollHeight
+
+      if (neededHeight < currentHeight) {
+        this.inputTarget.style.height = Math.min(neededHeight, maxHeight) + 'px'
+      } else {
+        // Restore the height since no shrinking needed
+        this.inputTarget.style.height = currentHeight + 'px'
+      }
+    }
   }
 
   async sendMessage(e) {
