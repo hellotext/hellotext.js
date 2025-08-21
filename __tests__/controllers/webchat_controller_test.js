@@ -333,9 +333,6 @@ describe('WebchatController', () => {
         }
       }
 
-      // Mock the setOfflineTimeout method
-      controller.setOfflineTimeout = jest.fn()
-
       // Mock scrollIntoView
       Element.prototype.scrollIntoView = jest.fn()
 
@@ -460,18 +457,6 @@ describe('WebchatController', () => {
 
         const addedElement = mockMessagesContainer.children[0]
         expect(addedElement.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' })
-      })
-    })
-
-    describe('offline timeout', () => {
-      it('calls setOfflineTimeout after processing message', () => {
-        const message = {
-          body: 'Timeout test message'
-        }
-
-        controller.onMessageReceived(message)
-
-        expect(controller.setOfflineTimeout).toHaveBeenCalled()
       })
     })
 
@@ -758,6 +743,12 @@ describe('WebchatController', () => {
       controller.webChatChannel = mockWebChatChannel
       controller.hasSentTypingIndicator = false
       controller.typingIndicatorTimeout = null
+
+      // Mock inputTarget for resizeInput method
+      controller.inputTarget = {
+        style: {},
+        scrollHeight: 50
+      }
     })
 
     afterEach(() => {

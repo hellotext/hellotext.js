@@ -43,7 +43,6 @@ export default class extends Controller {
     'messageTemplate',
     'messagesContainer',
     'title',
-    'onlineStatus',
     'attachmentImage',
     'footer',
     'toolbar',
@@ -65,8 +64,6 @@ export default class extends Controller {
     this.files = []
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
-    this.onConversationAssignment = this.onConversationAssignment.bind(this)
-    this.onAgentOnline = this.onAgentOnline.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
     this.onTypingStart = this.onTypingStart.bind(this)
 
@@ -87,10 +84,8 @@ export default class extends Controller {
     this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
 
     this.webChatChannel.onMessage(this.onMessageReceived)
-    this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
     this.webChatChannel.onTypingStart(this.onTypingStart)
 
-    this.webChatChannel.onAgentOnline(this.onAgentOnline)
     this.webChatChannel.onReaction(this.onMessageReaction)
 
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
@@ -144,6 +139,7 @@ export default class extends Controller {
   }
 
   onMessageInputChange() {
+    this.resizeInput()
     clearTimeout(this.typingIndicatorTimeout)
 
     if (!this.hasSentTypingIndicator) {
@@ -356,7 +352,6 @@ export default class extends Controller {
     })
 
     element.scrollIntoView({ behavior: 'smooth' })
-    this.setOfflineTimeout()
 
     if (this.openValue) {
       this.messagesAPI.markAsSeen(id)
@@ -369,24 +364,20 @@ export default class extends Controller {
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
   }
 
-  onConversationAssignment(conversation) {
-    const { to: user } = conversation
+  resizeInput() {
+    const maxHeight = 96
 
-    this.titleTarget.innerText = user.name
+    // Temporarily reset height to its natural content size
+    this.inputTarget.style.height = 'auto'
 
-    if (user.online) {
-      this.onlineStatusTarget.style.display = 'flex'
-    } else {
-      this.onlineStatusTarget.style.display = 'none'
-    }
+    // Set the height to the scrollHeight, which is the minimum height
+    // the element needs to fit its content without a scrollbar.
+    const scrollHeight = this.inputTarget.scrollHeight
+
+    this.inputTarget.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
 
-  onAgentOnline() {
-    this.onlineStatusTarget.style.display = 'flex'
-    this.setOfflineTimeout()
-  }
-
-  async sendMessage() {
+  async sendMessage(e) {
     const formData = new FormData()
 
     const message = {
@@ -395,6 +386,10 @@ export default class extends Controller {
     }
 
     if (this.inputTarget.value.trim().length === 0 && this.files.length === 0) {
+      if (e && e.target) {
+        e.preventDefault()
+      }
+
       return
     }
 
@@ -443,6 +438,7 @@ export default class extends Controller {
     })
 
     this.inputTarget.value = ''
+    this.resizeInput()
     this.files = []
 
     this.attachmentInputTarget.value = ''
@@ -587,20 +583,8 @@ export default class extends Controller {
     this.inputTarget.focus()
   }
 
-  setOfflineTimeout() {
-    clearTimeout(this.offlineTimeout)
-
-    this.offlineTimeout = setTimeout(() => {
-      this.onlineStatusTarget.style.display = 'none'
-    }, this.fiveMinutes)
-  }
-
   byteToMegabyte(bytes) {
     return Math.ceil(bytes / 1024 / 1024)
-  }
-
-  get fiveMinutes() {
-    return 300000
   }
 
   get middlewares() {
