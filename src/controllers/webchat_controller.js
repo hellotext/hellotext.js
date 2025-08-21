@@ -397,19 +397,16 @@ export default class extends Controller {
   }
 
   resizeInput() {
-    const input = this.inputTarget
-    const maxHeight = 96 // 96px
+    const maxHeight = 96
 
     // Temporarily reset height to its natural content size
-    input.style.height = 'auto'
+    this.inputTarget.style.height = 'auto'
 
     // Set the height to the scrollHeight, which is the minimum height
     // the element needs to fit its content without a scrollbar.
     const scrollHeight = input.scrollHeight
 
-    console.log(scrollHeight, maxHeight)
-    // Apply the new height, capped by the max height
-    input.style.height = `${Math.min(scrollHeight, maxHeight)}px`
+    this.inputTarget.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
 
   async sendMessage(e) {
