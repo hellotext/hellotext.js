@@ -399,25 +399,30 @@ export default class extends Controller {
   resizeInput() {
     const maxHeight = 96 // 6rem = 96px
 
-    // Don't reset if we're just growing within bounds
-    if (this.inputTarget.scrollHeight > this.inputTarget.clientHeight) {
-      // We need to grow
-      this.inputTarget.style.height = Math.min(this.inputTarget.scrollHeight, maxHeight) + 'px'
-    } else if (!this.inputTarget.value.trim()) {
-      // Empty input, reset to minimum
-      this.inputTarget.style.height = '' // Let CSS min-height take over
-    } else {
-      // Check if we need to shrink (e.g., after deleting text)
-      const currentHeight = this.inputTarget.offsetHeight
-      this.inputTarget.style.height = 'auto'
-      const neededHeight = this.inputTarget.scrollHeight
+    // Cache the current height to avoid unnecessary changes
+    const currentHeight = parseInt(this.inputTarget.style.height) || 0
 
-      if (neededHeight < currentHeight) {
-        this.inputTarget.style.height = Math.min(neededHeight, maxHeight) + 'px'
-      } else {
-        // Restore the height since no shrinking needed
-        this.inputTarget.style.height = currentHeight + 'px'
-      }
+    // Create a temporary clone to measure the needed height without affecting the visible input
+    const clone = this.inputTarget.cloneNode()
+    clone.style.cssText = window.getComputedStyle(this.inputTarget).cssText
+    clone.style.position = 'absolute'
+    clone.style.visibility = 'hidden'
+    clone.style.height = 'auto'
+    clone.style.maxHeight = 'none'
+    clone.value = this.inputTarget.value
+
+    // Temporarily add to DOM for accurate measurement
+    this.inputTarget.parentNode.appendChild(clone)
+    const scrollHeight = clone.scrollHeight
+    clone.remove()
+
+    // Calculate the new height
+    const newHeight = Math.min(scrollHeight, maxHeight)
+
+    // Only update if the height actually needs to change
+    // This prevents flickering on the first character
+    if (newHeight !== currentHeight) {
+      this.inputTarget.style.height = newHeight + 'px'
     }
   }
 
