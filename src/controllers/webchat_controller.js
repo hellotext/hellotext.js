@@ -404,7 +404,7 @@ export default class extends Controller {
 
     // Set the height to the scrollHeight, which is the minimum height
     // the element needs to fit its content without a scrollbar.
-    const scrollHeight = input.scrollHeight
+    const scrollHeight = this.inputTarget.scrollHeight
 
     this.inputTarget.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
