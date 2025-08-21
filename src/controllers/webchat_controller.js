@@ -156,6 +156,15 @@ export default class extends Controller {
     }, 3000)
   }
 
+  onMessageInputKeydown(event) {
+    const hasContent = event.target.value.trim() !== ''
+
+    if ((event.key === ' ' || (event.key === 'Enter' && event.shiftKey)) && !hasContent) {
+      event.preventDefault()
+      return
+    }
+  }
+
   onOutboundMessageSent(event) {
     const { data } = event
 
@@ -443,6 +452,9 @@ export default class extends Controller {
     })
 
     this.inputTarget.value = ''
+
+    // Trigger input event to force field-sizing: content to recalculate height
+    this.inputTarget.dispatchEvent(new Event('input', { bubbles: true }))
     this.files = []
 
     this.attachmentInputTarget.value = ''
