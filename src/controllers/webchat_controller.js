@@ -397,6 +397,8 @@ export default class extends Controller {
   }
 
   resizeInput() {
+    return
+
     const maxHeight = 96 // 6rem or 96px
 
     // 1. First, determine and cache the base height of a single empty line.
