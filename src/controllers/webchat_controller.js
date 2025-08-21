@@ -469,9 +469,6 @@ export default class extends Controller {
 
     this.inputTarget.value = ''
     this.resizeInput()
-
-    // Trigger input event to force field-sizing: content to recalculate height
-    this.inputTarget.dispatchEvent(new Event('input', { bubbles: true }))
     this.files = []
 
     this.attachmentInputTarget.value = ''
