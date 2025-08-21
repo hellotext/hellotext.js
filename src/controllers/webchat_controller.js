@@ -397,6 +397,8 @@ export default class extends Controller {
   }
 
   resizeInput() {
+    return
+
     // Reset height to get accurate scrollHeight
     this.inputTarget.style.height = 'auto'
 
