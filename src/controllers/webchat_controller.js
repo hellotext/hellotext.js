@@ -395,7 +395,7 @@ export default class extends Controller {
     this.setOfflineTimeout()
   }
 
-  async sendMessage() {
+  async sendMessage(e) {
     const formData = new FormData()
 
     const message = {
@@ -404,6 +404,10 @@ export default class extends Controller {
     }
 
     if (this.inputTarget.value.trim().length === 0 && this.files.length === 0) {
+      if (e && e.target) {
+        e.preventDefault()
+      }
+
       return
     }
 
