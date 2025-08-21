@@ -43,7 +43,6 @@ export default class extends Controller {
     'messageTemplate',
     'messagesContainer',
     'title',
-    'onlineStatus',
     'attachmentImage',
     'footer',
     'toolbar',
@@ -65,8 +64,6 @@ export default class extends Controller {
     this.files = []
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
-    this.onConversationAssignment = this.onConversationAssignment.bind(this)
-    this.onAgentOnline = this.onAgentOnline.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
     this.onTypingStart = this.onTypingStart.bind(this)
 
@@ -87,10 +84,8 @@ export default class extends Controller {
     this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
 
     this.webChatChannel.onMessage(this.onMessageReceived)
-    this.webChatChannel.onConversationAssignment(this.onConversationAssignment)
     this.webChatChannel.onTypingStart(this.onTypingStart)
 
-    this.webChatChannel.onAgentOnline(this.onAgentOnline)
     this.webChatChannel.onReaction(this.onMessageReaction)
 
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
@@ -155,15 +150,6 @@ export default class extends Controller {
     this.typingIndicatorTimeout = setTimeout(() => {
       this.hasSentTypingIndicator = false
     }, 3000)
-  }
-
-  onMessageInputKeydown(event) {
-    const hasContent = event.target.value.trim() !== ''
-
-    if ((event.key === ' ' || (event.key === 'Enter' && event.shiftKey)) && !hasContent) {
-      event.preventDefault()
-      return
-    }
   }
 
   onOutboundMessageSent(event) {
@@ -366,7 +352,6 @@ export default class extends Controller {
     })
 
     element.scrollIntoView({ behavior: 'smooth' })
-    this.setOfflineTimeout()
 
     if (this.openValue) {
       this.messagesAPI.markAsSeen(id)
@@ -377,23 +362,6 @@ export default class extends Controller {
 
     const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
-  }
-
-  onConversationAssignment(conversation) {
-    const { to: user } = conversation
-
-    this.titleTarget.innerText = user.name
-
-    if (user.online) {
-      this.onlineStatusTarget.style.display = 'flex'
-    } else {
-      this.onlineStatusTarget.style.display = 'none'
-    }
-  }
-
-  onAgentOnline() {
-    this.onlineStatusTarget.style.display = 'flex'
-    this.setOfflineTimeout()
   }
 
   resizeInput() {
@@ -615,20 +583,8 @@ export default class extends Controller {
     this.inputTarget.focus()
   }
 
-  setOfflineTimeout() {
-    clearTimeout(this.offlineTimeout)
-
-    this.offlineTimeout = setTimeout(() => {
-      this.onlineStatusTarget.style.display = 'none'
-    }, this.fiveMinutes)
-  }
-
   byteToMegabyte(bytes) {
     return Math.ceil(bytes / 1024 / 1024)
-  }
-
-  get fiveMinutes() {
-    return 300000
   }
 
   get middlewares() {

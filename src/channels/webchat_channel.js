@@ -62,22 +62,6 @@ class WebchatChannel extends ApplicationChannel {
     })
   }
 
-  onConversationAssignment(callback) {
-    super.onMessage(message => {
-      if (message.type === 'conversation.assigned') {
-        callback(message)
-      }
-    })
-  }
-
-  onAgentOnline(callback) {
-    super.onMessage(message => {
-      if (message.type === 'agent_is_online') {
-        callback(message)
-      }
-    })
-  }
-
   onReaction(callback) {
     super.onMessage(message => {
       if (message.type === 'reaction.create' || message.type === 'reaction.destroy') {
