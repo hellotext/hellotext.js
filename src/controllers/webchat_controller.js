@@ -144,6 +144,7 @@ export default class extends Controller {
   }
 
   onMessageInputChange() {
+    this.resizeInput()
     clearTimeout(this.typingIndicatorTimeout)
 
     if (!this.hasSentTypingIndicator) {
@@ -395,6 +396,18 @@ export default class extends Controller {
     this.setOfflineTimeout()
   }
 
+  resizeInput() {
+    // Reset height to get accurate scrollHeight
+    this.inputTarget.style.height = 'auto'
+
+    // Set height to scrollHeight, but respect min/max
+    const scrollHeight = this.inputTarget.scrollHeight
+    const minHeight = 24 // 1.5rem = 24px
+    const maxHeight = 96 // 6rem = 96px
+
+    this.inputTarget.style.height = Math.min(Math.max(scrollHeight, minHeight), maxHeight) + 'px'
+  }
+
   async sendMessage(e) {
     const formData = new FormData()
 
@@ -456,6 +469,7 @@ export default class extends Controller {
     })
 
     this.inputTarget.value = ''
+    this.resizeInput()
 
     // Trigger input event to force field-sizing: content to recalculate height
     this.inputTarget.dispatchEvent(new Event('input', { bubbles: true }))
