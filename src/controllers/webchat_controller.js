@@ -106,7 +106,6 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:mounted')
     this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
 
-    this.resizeInput()
     super.connect()
   }
 
@@ -398,34 +397,19 @@ export default class extends Controller {
   }
 
   resizeInput() {
-    const maxHeight = 96 // 6rem or 96px
+    const input = this.inputTarget
+    const maxHeight = 96 // 96px
 
-    // 1. Get the textarea's actual rendered height on the first run and cache it.
-    //    This value respects all CSS rules, including min-height.
-    if (this.initialHeight === undefined) {
-      this.initialHeight = this.inputTarget.offsetHeight
-    }
+    // Temporarily reset height to its natural content size
+    input.style.height = 'auto'
 
-    console.log(this.initialHeight)
+    // Set the height to the scrollHeight, which is the minimum height
+    // the element needs to fit its content without a scrollbar.
+    const scrollHeight = input.scrollHeight
 
-    // 2. Use a clone to measure the height required for the current content.
-    const clone = this.inputTarget.cloneNode(true)
-    clone.style.cssText = window.getComputedStyle(this.inputTarget).cssText
-    clone.style.position = 'absolute'
-    clone.style.visibility = 'hidden'
-    clone.style.height = 'auto'
-    this.inputTarget.parentNode.appendChild(clone)
-    const contentScrollHeight = clone.scrollHeight
-    clone.remove()
-
-    // 3. Determine the final height.
-    //    It should be the larger of the content's needed height or the initial height,
-    //    but never larger than the max height.
-    const newHeight = Math.max(this.initialHeight, contentScrollHeight)
-    const finalHeight = Math.min(newHeight, maxHeight)
-
-    // 4. Apply the calculated height.
-    this.inputTarget.style.height = `${finalHeight}px`
+    console.log(scrollHeight, maxHeight)
+    // Apply the new height, capped by the max height
+    input.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
 
   async sendMessage(e) {
