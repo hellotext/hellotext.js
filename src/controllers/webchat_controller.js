@@ -106,6 +106,7 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:mounted')
     this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
 
+    this.resizeInput()
     super.connect()
   }
 
@@ -397,26 +398,17 @@ export default class extends Controller {
   }
 
   resizeInput() {
-    return
-
     const maxHeight = 96 // 6rem or 96px
 
-    // 1. First, determine and cache the base height of a single empty line.
-    //    We do this once to have a stable value to compare against.
-    if (this.initialScrollHeight === undefined) {
-      const initialClone = this.inputTarget.cloneNode(true)
-      initialClone.style.cssText = window.getComputedStyle(this.inputTarget).cssText
-      initialClone.style.position = 'absolute'
-      initialClone.style.visibility = 'hidden'
-      initialClone.style.height = 'auto'
-      initialClone.value = '' // Ensure it's empty for base height calculation
-      this.inputTarget.parentNode.appendChild(initialClone)
-      this.initialScrollHeight = initialClone.scrollHeight
-      initialClone.remove()
+    // 1. Get the textarea's actual rendered height on the first run and cache it.
+    //    This value respects all CSS rules, including min-height.
+    if (this.initialHeight === undefined) {
+      this.initialHeight = this.inputTarget.offsetHeight
     }
 
-    // 2. Use a clone to measure the height required for the current content
-    //    without affecting the actual element's layout.
+    console.log(this.initialHeight)
+
+    // 2. Use a clone to measure the height required for the current content.
     const clone = this.inputTarget.cloneNode(true)
     clone.style.cssText = window.getComputedStyle(this.inputTarget).cssText
     clone.style.position = 'absolute'
@@ -426,19 +418,14 @@ export default class extends Controller {
     const contentScrollHeight = clone.scrollHeight
     clone.remove()
 
-    // 3. Decide what the new height should be.
-    let newHeight
-    if (contentScrollHeight > this.initialScrollHeight) {
-      // If the content is taller than a single line, use its height (up to the max).
-      newHeight = Math.min(contentScrollHeight, maxHeight)
-    } else {
-      // Otherwise, snap back to the initial single-line height. This handles both
-      // typing on the first line and shrinking when text is deleted.
-      newHeight = this.initialScrollHeight
-    }
+    // 3. Determine the final height.
+    //    It should be the larger of the content's needed height or the initial height,
+    //    but never larger than the max height.
+    const newHeight = Math.max(this.initialHeight, contentScrollHeight)
+    const finalHeight = Math.min(newHeight, maxHeight)
 
     // 4. Apply the calculated height.
-    this.inputTarget.style.height = `${newHeight}px`
+    this.inputTarget.style.height = `${finalHeight}px`
   }
 
   async sendMessage(e) {
