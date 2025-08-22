@@ -23,7 +23,7 @@ export default class extends Controller {
     disabled: { type: Boolean, default: false },
     nextPage: { type: Number, default: undefined },
     fullScreenThreshold: { type: Number, default: 1024 },
-    typingIndicatorKeepAlive: { type: Number, default: 25000 },
+    typingIndicatorKeepAlive: { type: Number, default: 30000 },
     offset: { type: Number, default: 24 },
     padding: { type: Number, default: 24 },
   }
@@ -62,6 +62,9 @@ export default class extends Controller {
     )
 
     this.files = []
+
+    // Typing indicator state management
+    this.typingIndicatorType = null // 'optimistic' | 'real' | null
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
@@ -108,6 +111,9 @@ export default class extends Controller {
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
 
+    // Clean up typing indicator timeouts
+    this.clearTypingIndicator()
+
     this.broadcastChannel.close()
     this.floatingUICleanup()
 
@@ -115,9 +121,26 @@ export default class extends Controller {
   }
 
   onTypingStart() {
-    if (this.typingIndicatorVisible) return
+    // Real typing indicator takes precedence over optimistic
+    if (this.typingIndicatorVisible && this.typingIndicatorType === 'real') return
+
+    this.showTypingIndicator('real')
+  }
+
+  showOptimisticTypingIndicator() {
+    // Don't show optimistic if real typing is already happening
+    if (this.typingIndicatorVisible && this.typingIndicatorType === 'real') return
+
+    this.showTypingIndicator('optimistic')
+  }
+
+  showTypingIndicator(type = 'real') {
+    // Clear any existing typing indicator first
+    this.clearTypingIndicator()
 
     this.typingIndicatorVisible = true
+    this.typingIndicatorType = type
+
     const indicator = this.typingIndicatorTemplateTarget.cloneNode(true)
 
     indicator.setAttribute('data-hellotext--webchat-target', 'typingIndicator')
@@ -132,10 +155,38 @@ export default class extends Controller {
       })
     })
 
+    // Unified timeout for both real and optimistic typing indicators
+    const timeout = this.typingIndicatorKeepAliveValue
+
     this.incomingTypingIndicatorTimeout = setTimeout(() => {
-      indicator.remove()
-      this.typingIndicatorVisible = false
-    }, this.typingIndicatorKeepAliveValue)
+      this.clearTypingIndicator()
+    }, timeout)
+  }
+
+  resetTypingIndicatorTimer() {
+    if (!this.typingIndicatorVisible) return
+
+    // Clear existing timeout
+    clearTimeout(this.incomingTypingIndicatorTimeout)
+    clearTimeout(this.optimisticTypingTimeout)
+
+    // Use unified timeout for all typing indicators
+    const timeout = this.typingIndicatorKeepAliveValue
+
+    this.incomingTypingIndicatorTimeout = setTimeout(() => {
+      this.clearTypingIndicator()
+    }, timeout)
+  }
+
+  clearTypingIndicator() {
+    if (this.typingIndicatorTarget) {
+      this.typingIndicatorTarget.remove()
+    }
+
+    this.typingIndicatorVisible = false
+    this.typingIndicatorType = null
+    clearTimeout(this.incomingTypingIndicatorTimeout)
+    clearTimeout(this.optimisticTypingTimeout)
   }
 
   onMessageInputChange() {
@@ -160,7 +211,13 @@ export default class extends Controller {
         const element = new DOMParser().parseFromString(data.element, 'text/html').body
           .firstElementChild
 
-        this.messagesContainerTarget.appendChild(element)
+        // Insert message before typing indicator if one exists
+        if (this.typingIndicatorVisible && this.typingIndicatorTarget) {
+          this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+        } else {
+          this.messagesContainerTarget.appendChild(element)
+        }
+
         element.scrollIntoView({ behavior: 'instant' })
       },
       'message:failed': data => {
@@ -335,13 +392,9 @@ export default class extends Controller {
       })
     }
 
+    // Clear any typing indicator when message is received
     if (this.typingIndicatorVisible) {
-      if (this.typingIndicatorTarget) {
-        this.typingIndicatorTarget.remove()
-      }
-
-      this.typingIndicatorVisible = false
-      clearTimeout(this.incomingTypingIndicatorTimeout)
+      this.clearTypingIndicator()
     }
 
     this.messagesContainerTarget.appendChild(element)
@@ -429,7 +482,13 @@ export default class extends Controller {
       })
     }
 
-    this.messagesContainerTarget.appendChild(element)
+    // Insert message before typing indicator if one exists
+    if (this.typingIndicatorVisible && this.typingIndicatorTarget) {
+      this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+    } else {
+      this.messagesContainerTarget.appendChild(element)
+    }
+
     element.scrollIntoView({ behavior: 'smooth' })
 
     this.broadcastChannel.postMessage({
@@ -469,6 +528,17 @@ export default class extends Controller {
     if (data.conversation !== this.conversationIdValue) {
       this.conversationIdValue = data.conversation
       this.webChatChannel.updateSubscriptionWith(this.conversationIdValue)
+    }
+
+    // Handle typing indicator after successful message send
+    if (this.typingIndicatorVisible) {
+      // If typing indicator is already showing, reset its timer
+      this.resetTypingIndicatorTimer()
+    } else {
+      // Show optimistic typing indicator after 1 second
+      this.optimisticTypingTimeout = setTimeout(() => {
+        this.showOptimisticTypingIndicator()
+      }, 1000)
     }
 
     this.attachmentContainerTarget.style.display = ''
