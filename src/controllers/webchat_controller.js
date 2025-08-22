@@ -63,9 +63,6 @@ export default class extends Controller {
 
     this.files = []
 
-    // Typing indicator state management
-    this.typingIndicatorType = null // 'optimistic' | 'real' | null
-
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
     this.onTypingStart = this.onTypingStart.bind(this)
@@ -121,35 +118,23 @@ export default class extends Controller {
   }
 
   onTypingStart() {
-    this.typingIndicatorType = 'real'
-
-    // If real typing indicator is already showing, just reset the timer
     if (this.typingIndicatorVisible) {
-      this.resetTypingIndicatorTimer()
-      return
+      return this.resetTypingIndicatorTimer()
     }
 
-    // Replace optimistic with real, or show new real indicator
-    this.showTypingIndicator('real')
+    this.showTypingIndicator()
   }
 
   showOptimisticTypingIndicator() {
-    this.typingIndicatorType = 'optimistic'
-
-    // Don't show optimistic if real typing is already happening
     if (this.typingIndicatorVisible) return
 
-    this.showTypingIndicator('optimistic')
+    this.showTypingIndicator()
   }
 
-  showTypingIndicator(type = 'real') {
-    // Clear any existing typing indicator first
+  showTypingIndicator() {
     this.clearTypingIndicator()
 
     this.typingIndicatorVisible = true
-    this.typingIndicatorType = type
-
-    // Clone the template to create a new indicator
     const indicator = this.typingIndicatorTemplateTarget.cloneNode(true)
 
     indicator.setAttribute('data-hellotext--webchat-target', 'typingIndicator')
@@ -164,7 +149,7 @@ export default class extends Controller {
       })
     })
 
-    // Unified timeout for both real and optimistic typing indicators
+    // Unified timeout for typing indicators
     const timeout = this.typingIndicatorKeepAliveValue
 
     this.incomingTypingIndicatorTimeout = setTimeout(() => {
@@ -193,7 +178,7 @@ export default class extends Controller {
     }
 
     this.typingIndicatorVisible = false
-    this.typingIndicatorType = null
+
     clearTimeout(this.incomingTypingIndicatorTimeout)
     clearTimeout(this.optimisticTypingTimeout)
   }
