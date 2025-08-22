@@ -23,9 +23,10 @@ export default class extends Controller {
     disabled: { type: Boolean, default: false },
     nextPage: { type: Number, default: undefined },
     fullScreenThreshold: { type: Number, default: 1024 },
-    typingIndicatorKeepAlive: { type: Number, default: 30000 },
+    typingIndicatorKeepAlive: { type: Number, default: 30000 }, // 30 seconds
     offset: { type: Number, default: 24 },
     padding: { type: Number, default: 24 },
+    optimisticTypingIndicatorWait: { type: Number, default: 1000 }, // 1 second
   }
 
   static classes = ['fadeOut']
@@ -532,7 +533,7 @@ export default class extends Controller {
       // Show optimistic typing indicator after 1 second
       this.optimisticTypingTimeout = setTimeout(() => {
         this.showOptimisticTypingIndicator()
-      }, 1000)
+      }, this.optimisticTypingIndicatorWaitValue)
     }
 
     this.attachmentContainerTarget.style.display = ''
