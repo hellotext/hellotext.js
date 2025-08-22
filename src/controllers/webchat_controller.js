@@ -65,6 +65,7 @@ export default class extends Controller {
 
     // Typing indicator state management
     this.typingIndicatorType = null // 'optimistic' | 'real' | null
+    this.currentTypingIndicator = null // Reference to the actual displayed indicator element
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
@@ -141,10 +142,14 @@ export default class extends Controller {
     this.typingIndicatorVisible = true
     this.typingIndicatorType = type
 
+    // Clone the template to create a new indicator
     const indicator = this.typingIndicatorTemplateTarget.cloneNode(true)
 
     indicator.setAttribute('data-hellotext--webchat-target', 'typingIndicator')
     indicator.style.display = 'flex'
+
+    // Store reference to the actual displayed indicator
+    this.currentTypingIndicator = indicator
 
     this.messagesContainerTarget.appendChild(indicator)
 
@@ -179,8 +184,9 @@ export default class extends Controller {
   }
 
   clearTypingIndicator() {
-    if (this.typingIndicatorTarget) {
-      this.typingIndicatorTarget.remove()
+    if (this.currentTypingIndicator) {
+      this.currentTypingIndicator.remove()
+      this.currentTypingIndicator = null
     }
 
     this.typingIndicatorVisible = false
@@ -212,8 +218,8 @@ export default class extends Controller {
           .firstElementChild
 
         // Insert message before typing indicator if one exists
-        if (this.typingIndicatorVisible && this.typingIndicatorTarget) {
-          this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+        if (this.typingIndicatorVisible && this.currentTypingIndicator) {
+          this.messagesContainerTarget.insertBefore(element, this.currentTypingIndicator)
         } else {
           this.messagesContainerTarget.appendChild(element)
         }
@@ -483,8 +489,8 @@ export default class extends Controller {
     }
 
     // Insert message before typing indicator if one exists
-    if (this.typingIndicatorVisible && this.typingIndicatorTarget) {
-      this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+    if (this.typingIndicatorVisible && this.currentTypingIndicator) {
+      this.messagesContainerTarget.insertBefore(element, this.currentTypingIndicator)
     } else {
       this.messagesContainerTarget.appendChild(element)
     }
