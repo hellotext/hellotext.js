@@ -122,7 +122,6 @@ export default class extends Controller {
   }
 
   onTypingStart() {
-    this.typingIndicatorVisible = true
     this.typingIndicatorType = 'real'
 
     // If real typing indicator is already showing, just reset the timer
@@ -136,11 +135,13 @@ export default class extends Controller {
   }
 
   showOptimisticTypingIndicator() {
-    this.typingIndicatorVisible = true
     this.typingIndicatorType = 'optimistic'
 
     // Don't show optimistic if real typing is already happening
-    if (this.typingIndicatorVisible) return
+    if (this.typingIndicatorVisible) {
+      this.resetTypingIndicatorTimer()
+      return
+    }
 
     this.showTypingIndicator('optimistic')
   }
