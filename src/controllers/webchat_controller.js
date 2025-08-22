@@ -23,9 +23,10 @@ export default class extends Controller {
     disabled: { type: Boolean, default: false },
     nextPage: { type: Number, default: undefined },
     fullScreenThreshold: { type: Number, default: 1024 },
-    typingIndicatorKeepAlive: { type: Number, default: 25000 },
+    typingIndicatorKeepAlive: { type: Number, default: 30000 }, // 30 seconds
     offset: { type: Number, default: 24 },
     padding: { type: Number, default: 24 },
+    optimisticTypingIndicatorWait: { type: Number, default: 1000 }, // 1 second
   }
 
   static classes = ['fadeOut']
@@ -108,6 +109,9 @@ export default class extends Controller {
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
 
+    // Clean up typing indicator timeouts
+    this.clearTypingIndicator()
+
     this.broadcastChannel.close()
     this.floatingUICleanup()
 
@@ -115,7 +119,21 @@ export default class extends Controller {
   }
 
   onTypingStart() {
+    if (this.typingIndicatorVisible) {
+      return this.resetTypingIndicatorTimer()
+    }
+
+    this.showTypingIndicator()
+  }
+
+  showOptimisticTypingIndicator() {
     if (this.typingIndicatorVisible) return
+
+    this.showTypingIndicator()
+  }
+
+  showTypingIndicator() {
+    this.clearTypingIndicator()
 
     this.typingIndicatorVisible = true
     const indicator = this.typingIndicatorTemplateTarget.cloneNode(true)
@@ -132,10 +150,37 @@ export default class extends Controller {
       })
     })
 
+    const timeout = this.typingIndicatorKeepAliveValue
+
     this.incomingTypingIndicatorTimeout = setTimeout(() => {
-      indicator.remove()
-      this.typingIndicatorVisible = false
-    }, this.typingIndicatorKeepAliveValue)
+      this.clearTypingIndicator()
+    }, timeout)
+  }
+
+  resetTypingIndicatorTimer() {
+    if (!this.typingIndicatorVisible) return
+
+    // Clear existing timeout
+    clearTimeout(this.incomingTypingIndicatorTimeout)
+    clearTimeout(this.optimisticTypingTimeout)
+
+    // Use unified timeout for all typing indicators
+    const timeout = this.typingIndicatorKeepAliveValue
+
+    this.incomingTypingIndicatorTimeout = setTimeout(() => {
+      this.clearTypingIndicator()
+    }, timeout)
+  }
+
+  clearTypingIndicator() {
+    if (this.hasTypingIndicatorTarget) {
+      this.typingIndicatorTarget.remove()
+    }
+
+    this.typingIndicatorVisible = false
+
+    clearTimeout(this.incomingTypingIndicatorTimeout)
+    clearTimeout(this.optimisticTypingTimeout)
   }
 
   onMessageInputChange() {
@@ -160,7 +205,13 @@ export default class extends Controller {
         const element = new DOMParser().parseFromString(data.element, 'text/html').body
           .firstElementChild
 
-        this.messagesContainerTarget.appendChild(element)
+        // Insert message before typing indicator if one exists
+        if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
+          this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+        } else {
+          this.messagesContainerTarget.appendChild(element)
+        }
+
         element.scrollIntoView({ behavior: 'instant' })
       },
       'message:failed': data => {
@@ -335,13 +386,9 @@ export default class extends Controller {
       })
     }
 
+    // Clear any typing indicator when message is received
     if (this.typingIndicatorVisible) {
-      if (this.typingIndicatorTarget) {
-        this.typingIndicatorTarget.remove()
-      }
-
-      this.typingIndicatorVisible = false
-      clearTimeout(this.incomingTypingIndicatorTimeout)
+      this.clearTypingIndicator()
     }
 
     this.messagesContainerTarget.appendChild(element)
@@ -429,7 +476,13 @@ export default class extends Controller {
       })
     }
 
-    this.messagesContainerTarget.appendChild(element)
+    // Insert message before typing indicator if one exists
+    if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
+      this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+    } else {
+      this.messagesContainerTarget.appendChild(element)
+    }
+
     element.scrollIntoView({ behavior: 'smooth' })
 
     this.broadcastChannel.postMessage({
@@ -469,6 +522,15 @@ export default class extends Controller {
     if (data.conversation !== this.conversationIdValue) {
       this.conversationIdValue = data.conversation
       this.webChatChannel.updateSubscriptionWith(this.conversationIdValue)
+    }
+
+    if (this.typingIndicatorVisible) {
+      this.resetTypingIndicatorTimer()
+    } else {
+      clearTimeout(this.optimisticTypingTimeout)
+      this.optimisticTypingTimeout = setTimeout(() => {
+        this.showOptimisticTypingIndicator()
+      }, this.optimisticTypingIndicatorWaitValue)
     }
 
     this.attachmentContainerTarget.style.display = ''

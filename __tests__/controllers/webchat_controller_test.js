@@ -499,6 +499,10 @@ describe('WebchatController', () => {
         mockTypingIndicatorTarget = document.createElement('div')
         mockTypingIndicatorTarget.setAttribute('data-hellotext--webchat-target', 'typingIndicator')
         controller.typingIndicatorTarget = mockTypingIndicatorTarget
+        // Mock hasTypingIndicatorTarget to return true when target exists
+        Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
+          get: () => !!controller.typingIndicatorTarget
+        })
 
         mockClearTimeout = jest.fn()
         global.clearTimeout = mockClearTimeout
@@ -585,14 +589,14 @@ describe('WebchatController', () => {
         }
 
         controller.onMessageReceived(message1)
-        expect(mockClearTimeout).toHaveBeenCalledTimes(1)
+        expect(mockClearTimeout).toHaveBeenCalledTimes(2) // Now calls clearTimeout twice per message
         expect(controller.typingIndicatorVisible).toBe(false)
 
         controller.typingIndicatorVisible = true
         controller.incomingTypingIndicatorTimeout = 'mock-timeout-id-2'
 
         controller.onMessageReceived(message2)
-        expect(mockClearTimeout).toHaveBeenCalledTimes(2)
+        expect(mockClearTimeout).toHaveBeenCalledTimes(4) // 2 calls per message, 2 messages = 4 total
         expect(mockClearTimeout).toHaveBeenCalledWith('mock-timeout-id-2')
         expect(controller.typingIndicatorVisible).toBe(false)
       })
