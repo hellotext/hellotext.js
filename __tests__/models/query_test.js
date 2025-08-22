@@ -75,7 +75,7 @@ describe('session', () => {
     expect(query.session).toEqual("session")
   })
 
-  it('gets the session from the cookie when not present in query', () => {
+  it('returns null when session not present in query (no longer falls back to cookie)', () => {
     const windowMock = {
       location: { search: "" },
     }
@@ -85,7 +85,7 @@ describe('session', () => {
     document.cookie = "hello_session=session"
 
     const query = new Query()
-    expect(query.session).toEqual("session")
+    expect(query.session).toBeNull() // Query should only check query params, not cookies
   })
 })
 

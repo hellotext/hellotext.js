@@ -1,5 +1,3 @@
-import { Cookies } from './cookies'
-
 class Query {
   static get inPreviewMode() {
     return new this().inPreviewMode
@@ -22,7 +20,7 @@ class Query {
   }
 
   get session() {
-    return this.get('session') || Cookies.get('hello_session')
+    return this.get('session')
   }
 
   toHellotextParam(param) {

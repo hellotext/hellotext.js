@@ -43,6 +43,13 @@ describe('Session', () => {
       delete window.location
       window.location = { search: '' }
     }
+
+    // Clear any existing cookies more thoroughly
+    if (typeof document !== 'undefined') {
+      // Clear hello_session cookie specifically
+      document.cookie = 'hello_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      document.cookie = 'hello_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname
+    }
   })
 
   describe('session getter/setter', () => {
@@ -71,14 +78,14 @@ describe('Session', () => {
 
   describe('initialize()', () => {
     describe('when Configuration.session is set', () => {
-      it('uses Configuration.session as first priority', () => {
+      it('uses query session as first priority when present', () => {
         Configuration.session = 'config-session'
         document.cookie = 'hello_session=cookie-session'
         window.location.search = '?hello_session=query-session'
 
         Session.initialize()
 
-        expect(Session.session).toEqual('config-session')
+        expect(Session.session).toEqual('query-session')
         expect(global.crypto.randomUUID).not.toHaveBeenCalled()
       })
     })
@@ -95,13 +102,13 @@ describe('Session', () => {
         expect(global.crypto.randomUUID).not.toHaveBeenCalled()
       })
 
-      it('ignores query session when Configuration.session is set', () => {
+      it('uses query session even when Configuration.session is set', () => {
         Configuration.session = 'config-session'
         window.location.search = '?hello_session=query-session'
 
         Session.initialize()
 
-        expect(Session.session).toEqual('config-session')
+        expect(Session.session).toEqual('query-session')
       })
     })
 
@@ -119,6 +126,7 @@ describe('Session', () => {
 
       it('ignores cookie when Configuration.session is set', () => {
         Configuration.session = 'config-session'
+        window.location.search = '' // Clear any query parameters
         document.cookie = 'hello_session=cookie-session'
 
         Session.initialize()
@@ -176,12 +184,20 @@ describe('Session', () => {
     })
 
     describe('priority order', () => {
-      it('follows the correct priority: Configuration > Query > Cookie > Generated', () => {
+      it('follows the correct priority: Query > Configuration > Cookie > Generated', () => {
         const scenarios = [
           {
-            name: 'All sources available - Configuration wins',
+            name: 'All sources available - Query wins',
             config: 'config-session',
             query: '?hello_session=query-session',
+            cookie: 'hello_session=cookie-session',
+            autoGenerate: true,
+            expected: 'query-session'
+          },
+          {
+            name: 'Configuration and Cookie available - Configuration wins',
+            config: 'config-session',
+            query: '',
             cookie: 'hello_session=cookie-session',
             autoGenerate: true,
             expected: 'config-session'
@@ -306,10 +322,12 @@ describe('Session', () => {
   describe('multiple initializations', () => {
     it('can be initialized multiple times', () => {
       Configuration.session = 'first-session'
+      window.location.search = '' // Clear any query parameters
       Session.initialize()
       expect(Session.session).toEqual('first-session')
 
       Configuration.session = 'second-session'
+      window.location.search = '' // Clear any query parameters
       Session.initialize()
       expect(Session.session).toEqual('second-session')
     })
@@ -462,6 +480,7 @@ describe('Session', () => {
 
   describe('memory management', () => {
     it('does not leak memory with repeated initializations', () => {
+      window.location.search = '' // Clear any query parameters
       for (let i = 0; i < 100; i++) {
         Configuration.session = `session-${i}`
         Session.initialize()

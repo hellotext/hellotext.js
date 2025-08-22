@@ -18,7 +18,7 @@ class Session {
   static initialize() {
     this.#query = new Query()
 
-    this.session = Configuration.session || this.#query.session || Cookies.get('hello_session')
+    this.session = this.#query.session || Configuration.session || Cookies.get('hello_session')
 
     if (!this.session && Configuration.autoGenerateSession) {
       this.session = crypto.randomUUID()
