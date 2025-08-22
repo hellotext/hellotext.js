@@ -150,7 +150,6 @@ export default class extends Controller {
       })
     })
 
-    // Unified timeout for typing indicators
     const timeout = this.typingIndicatorKeepAliveValue
 
     this.incomingTypingIndicatorTimeout = setTimeout(() => {
@@ -525,12 +524,10 @@ export default class extends Controller {
       this.webChatChannel.updateSubscriptionWith(this.conversationIdValue)
     }
 
-    // Handle typing indicator after successful message send
     if (this.typingIndicatorVisible) {
-      // If typing indicator is already showing, reset its timer
       this.resetTypingIndicatorTimer()
     } else {
-      // Show optimistic typing indicator after 1 second
+      clearTimeout(this.optimisticTypingTimeout)
       this.optimisticTypingTimeout = setTimeout(() => {
         this.showOptimisticTypingIndicator()
       }, this.optimisticTypingIndicatorWaitValue)
