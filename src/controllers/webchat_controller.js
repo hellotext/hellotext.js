@@ -122,15 +122,25 @@ export default class extends Controller {
   }
 
   onTypingStart() {
-    // Real typing indicator takes precedence over optimistic
-    if (this.typingIndicatorVisible && this.typingIndicatorType === 'real') return
+    this.typingIndicatorVisible = true
+    this.typingIndicatorType = 'real'
 
+    // If real typing indicator is already showing, just reset the timer
+    if (this.typingIndicatorVisible) {
+      this.resetTypingIndicatorTimer()
+      return
+    }
+
+    // Replace optimistic with real, or show new real indicator
     this.showTypingIndicator('real')
   }
 
   showOptimisticTypingIndicator() {
+    this.typingIndicatorVisible = true
+    this.typingIndicatorType = 'optimistic'
+
     // Don't show optimistic if real typing is already happening
-    if (this.typingIndicatorVisible && this.typingIndicatorType === 'real') return
+    if (this.typingIndicatorVisible) return
 
     this.showTypingIndicator('optimistic')
   }
