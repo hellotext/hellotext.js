@@ -386,11 +386,7 @@ export default class extends Controller {
       })
     }
 
-    // Clear any typing indicator when message is received
-    if (this.typingIndicatorVisible) {
-      this.clearTypingIndicator()
-    }
-
+    this.clearTypingIndicator()
     this.messagesContainerTarget.appendChild(element)
 
     Hellotext.eventEmitter.dispatch('webchat:message:received', {

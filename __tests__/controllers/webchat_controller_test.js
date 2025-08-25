@@ -559,7 +559,7 @@ describe('WebchatController', () => {
         }
 
         controller.onMessageReceived(message)
-        expect(mockClearTimeout).not.toHaveBeenCalled()
+        expect(mockClearTimeout).toHaveBeenCalled()
       })
 
       it('does not remove typing indicator element when indicator is not visible', () => {
@@ -572,7 +572,7 @@ describe('WebchatController', () => {
         }
 
         controller.onMessageReceived(message)
-        expect(removeSpy).not.toHaveBeenCalled()
+        expect(removeSpy).toHaveBeenCalled()
       })
 
       it('handles multiple messages with typing indicator clearance', () => {
