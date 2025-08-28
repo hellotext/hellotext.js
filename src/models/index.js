@@ -1,3 +1,4 @@
+export { Activity } from './activity'
 export { Business } from './business'
 export { Cookies } from './cookies'
 export { Form } from './form'
