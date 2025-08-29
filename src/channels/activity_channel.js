@@ -25,17 +25,11 @@ class ActivityChannel extends ApplicationChannel {
   sendHeartbeat() {
     const params = {
       channel: 'Contact::ActivityChannel',
-      session: this.session,
       business: this.business,
+      session: this.session,
     }
 
-    const data = {
-      action: 'heartbeat',
-      url: window.location.href,
-      user_agent: navigator.userAgent,
-    }
-
-    this.send({ command: 'message', identifier: params, data })
+    this.send({ command: 'message', identifier: params, data: { action: 'heartbeat' } })
   }
 }
 
