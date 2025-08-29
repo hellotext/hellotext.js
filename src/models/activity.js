@@ -56,14 +56,7 @@ class Activity {
       return
     }
 
-    const activityData = {
-      event_type: eventType,
-      timestamp: Date.now(),
-      url: window.location.href,
-      user_agent: navigator.userAgent,
-    }
-
-    this.channel.perform('heartbeat', activityData)
+    this.channel.sendHeartbeat()
   }
 
   /**

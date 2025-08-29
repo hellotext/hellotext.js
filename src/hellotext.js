@@ -1,7 +1,7 @@
 import { Configuration, Event } from './core'
 
 import API, { Response } from './api'
-import { Business, FormCollection, Query, Session, Webchat } from './models'
+import { Activity, Business, FormCollection, Session, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -26,7 +26,7 @@ class Hellotext {
     this.business = new Business(business)
     this.forms = new FormCollection()
 
-    this.#query = new Query()
+    this.activity = new Activity()
 
     if (Configuration.webchat.id) {
       this.webchat = await Webchat.load(Configuration.webchat.id)

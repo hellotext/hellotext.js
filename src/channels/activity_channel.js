@@ -4,6 +4,8 @@ import Hellotext from '../hellotext'
 
 class ActivityChannel extends ApplicationChannel {
   constructor() {
+    super()
+
     this.business = Hellotext.business.id
     this.session = Hellotext.session
 
@@ -18,6 +20,22 @@ class ActivityChannel extends ApplicationChannel {
     }
 
     this.send({ command: 'subscribe', identifier: params })
+  }
+
+  sendHeartbeat() {
+    const params = {
+      channel: 'Contact::ActivityChannel',
+      session: this.session,
+      business: this.business,
+    }
+
+    const data = {
+      action: 'heartbeat',
+      url: window.location.href,
+      user_agent: navigator.userAgent,
+    }
+
+    this.send({ command: 'message', identifier: params, data })
   }
 }
 
