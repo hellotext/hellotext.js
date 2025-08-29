@@ -43,6 +43,14 @@ class ApplicationChannel {
   get ignoredEvents() {
     return ['ping', 'confirm_subscription', 'welcome']
   }
+
+  /**
+   * Check if the WebSocket connection is open and ready
+   * @returns {boolean} - Whether the connection is open
+   */
+  connected() {
+    return this.webSocket && this.webSocket.readyState === WebSocket.OPEN
+  }
 }
 
 export default ApplicationChannel
