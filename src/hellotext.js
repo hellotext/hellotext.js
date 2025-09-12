@@ -1,7 +1,7 @@
 import { Configuration, Event } from './core'
 
 import API, { Response } from './api'
-import { Business, FormCollection, Query, Session, Webchat } from './models'
+import { Business, FormCollection, Query, Session, UTM, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -23,6 +23,7 @@ class Hellotext {
     Configuration.assign(config)
     Session.initialize()
 
+    this.utm = new UTM()
     this.business = new Business(business)
     this.forms = new FormCollection()
 
