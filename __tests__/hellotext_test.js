@@ -1,5 +1,5 @@
 import Hellotext from "../src/hellotext";
-import { Business } from "../src/models"
+import { Business } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -20,7 +20,7 @@ describe("when trying to call methods before initializing the class", () => {
     expect(Hellotext.track("page.viewed")).rejects.toThrowError()
   });
 })
-//
+
 describe("when the class is initialized successfully", () => {
   const business_id = "xy76ks"
 
@@ -64,6 +64,35 @@ describe("when the class is initialized successfully", () => {
 
         expect(response.failed).toEqual(true)
       });
+
+      it("includes UTM parameters in the request body", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("page.viewed", { test_param: "test_value" })
+
+        // Check that fetch was called
+        expect(global.fetch).toHaveBeenCalled()
+
+        // Get the fetch call arguments
+        const fetchCall = global.fetch.mock.calls[0]
+        const requestOptions = fetchCall[1]
+        const requestBody = JSON.parse(requestOptions.body)
+
+        // Verify that utm_params is included in the request body
+        expect(requestBody).toHaveProperty('utm_params')
+
+        // Since we're using mock window.location.search = "?hello_session=session",
+        // there are no UTM params, so it should be an empty object
+        expect(requestBody.utm_params).toEqual({})
+
+        // Verify other expected fields are present
+        expect(requestBody).toHaveProperty('action', 'page.viewed')
+        expect(requestBody).toHaveProperty('session', 'session')
+        expect(requestBody).toHaveProperty('test_param', 'test_value')
+      });
     });
   });
 
@@ -98,100 +127,88 @@ describe("when the class is initialized successfully", () => {
       }, 1000)
     })
   });
+
+  describe("when UTM parameters are present in the URL", () => {
+    const business_id = "xy76ks"
+
+    beforeAll(() => {
+      const windowMock = {
+        location: {
+          search: "?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1",
+          href: "https://example.com/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1"
+        },
+      }
+
+      jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+      Hellotext.initialize(business_id)
+    })
+
+    afterEach(() => {
+      jest.clearAllMocks()
+    })
+
+    it("includes UTM parameters from URL in track request body", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200
+      })
+
+      await Hellotext.track("page.viewed", { custom_param: "custom_value" })
+
+      // Check that fetch was called
+      expect(global.fetch).toHaveBeenCalled()
+
+      // Get the fetch call arguments
+      const fetchCall = global.fetch.mock.calls[0]
+      const requestOptions = fetchCall[1]
+      const requestBody = JSON.parse(requestOptions.body)
+
+      // Verify that utm_params contains the expected UTM data
+      expect(requestBody).toHaveProperty('utm_params')
+      expect(requestBody.utm_params).toEqual({
+        source: 'google',
+        medium: 'cpc',
+        campaign: 'summer_sale',
+        term: 'shoes',
+        content: 'ad1'
+      })
+
+      // Verify other expected fields are present
+      expect(requestBody).toHaveProperty('action', 'page.viewed')
+      expect(requestBody).toHaveProperty('custom_param', 'custom_value')
+      expect(requestBody).toHaveProperty('url', 'https://example.com/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1')
+    });
+
+    it("includes partial UTM parameters when only some are present", async () => {
+      const windowMockPartial = {
+        location: {
+          search: "?utm_source=facebook&utm_medium=social",
+          href: "https://example.com/?utm_source=facebook&utm_medium=social"
+        },
+      }
+
+      jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMockPartial)
+
+      // Reinitialize with partial UTM params
+      await Hellotext.initialize(business_id)
+
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200
+      })
+
+      await Hellotext.track("button.clicked")
+
+      // Get the fetch call arguments
+      const fetchCall = global.fetch.mock.calls[0]
+      const requestOptions = fetchCall[1]
+      const requestBody = JSON.parse(requestOptions.body)
+
+      // Verify that utm_params contains only the present UTM parameters
+      expect(requestBody.utm_params).toEqual({
+        source: 'facebook',
+        medium: 'social'
+      })
+    });
+  });
 });
-//
-// describe(".isInitialized", () => {
-//   describe("when session is set", () => {
-//     beforeAll(() => {
-//       const windowMock = {location: { search: "?hello_session=session" }}
-//       jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
-//       Hellotext.initialize("123")
-//     })
-//
-//     it("is true", () => {
-//       expect(Hellotext.isInitialized).toEqual(true)
-//     });
-//   });
-// });
-//
-// describe(".on", () => {
-//   const business_id = "xy76ks"
-//
-//   beforeAll(() => {
-//     const windowMock = {location: { search: "" },}
-//     jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
-//   })
-//
-//   it("registers a callback that is called when the session is set", function () {
-//     global.fetch = jest.fn().mockResolvedValue({
-//       json: jest.fn().mockResolvedValue({id: "generated_token"}),
-//       status: 200
-//     })
-//
-//     const callback = jest.fn()
-//
-//     Hellotext.on("session-set", callback)
-//     Hellotext.initialize(business_id)
-//
-//     expect(callback).toHaveBeenCalledTimes(1)
-//   });
-//
-//   it("throws an error when event is invalid", () => {
-//     expect(
-//       () => Hellotext.on("undefined-event", () => {})
-//     ).toThrowError()
-//   });
-// });
-//
-// describe("when session is stored in the cookie", function () {
-//   beforeAll(() => {
-//     document.cookie = `hello_session=12345`
-//     Hellotext.initialize(123)
-//   })
-//
-//   it("Assigns session from cookie", function () {
-//     expect(Hellotext.session).toEqual("12345")
-//   });
-// });
-//
-//
-// describe(".removeEventListener", () => {
-//   beforeAll(() => {
-//     const windowMock = {location: { search: "?hello_session=123" },}
-//     jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
-//
-//     Hellotext.initialize(123)
-//   })
-//
-//   it("throws an error when event is invalid", () => {
-//     expect(
-//       () => Hellotext.removeEventListener("undefined-event", () => {})
-//     ).toThrowError()
-//   });
-//
-//   it("removes the callback from the subscribers and will not be notified again", () => {
-//     const callback = jest.fn()
-//
-//     Hellotext.on("session-set", callback)
-//     Hellotext.removeEventListener("session-set", callback)
-//
-//     expect(callback).toHaveBeenCalledTimes(0)
-//   });
-// })
-//
-// describe("when hello_preview query parameter is present", () => {
-//   beforeAll(() => {
-//     const windowMock = {location: { search: "?hello_preview" },}
-//     jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
-//
-//     expireSession()
-//     Hellotext.initialize(123)
-//   })
-//
-//   describe(".track", () => {
-//     it("returns a success response without interacting with the API", async () => {
-//       const response = await Hellotext.track("page.viewed")
-//       expect(response.succeeded).toEqual(true)
-//     });
-//   })
-// })

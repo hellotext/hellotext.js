@@ -60,6 +60,7 @@ class Hellotext {
       action,
       ...params,
       url: (params && params.url) || window.location.href,
+      utm_params: this.utm.current,
     }
 
     delete body.headers
