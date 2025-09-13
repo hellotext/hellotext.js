@@ -1,7 +1,7 @@
 import { Configuration, Event } from './core'
 
 import API, { Response } from './api'
-import { Business, FormCollection, Query, Session, Webchat } from './models'
+import { Business, FormCollection, Page, Query, Session, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -23,6 +23,7 @@ class Hellotext {
     Configuration.assign(config)
     Session.initialize()
 
+    this.page = new Page()
     this.business = new Business(business)
     this.forms = new FormCollection()
 
@@ -54,11 +55,13 @@ class Hellotext {
       ...this.headers,
     }
 
+    const pageInstance = params && params.url ? new Page(params.url) : this.page
+
     const body = {
       session: this.session,
       action,
       ...params,
-      url: (params && params.url) || window.location.href,
+      ...pageInstance.trackingData,
     }
 
     delete body.headers
