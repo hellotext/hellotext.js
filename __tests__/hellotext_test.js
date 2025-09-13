@@ -135,11 +135,19 @@ describe("when the class is initialized successfully", () => {
       const windowMock = {
         location: {
           search: "?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1",
-          href: "https://example.com/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1"
+          href: "https://example.com/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1",
+          pathname: "/"
         },
       }
 
       jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+
+      // Mock document.title
+      Object.defineProperty(document, 'title', {
+        value: 'Test Page Title',
+        writable: true
+      })
+
       Hellotext.initialize(business_id)
     })
 
@@ -176,18 +184,26 @@ describe("when the class is initialized successfully", () => {
       // Verify other expected fields are present
       expect(requestBody).toHaveProperty('action', 'page.viewed')
       expect(requestBody).toHaveProperty('custom_param', 'custom_value')
-      expect(requestBody).toHaveProperty('url', 'https://example.com/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1')
+
+      // Verify page object contains all expected properties
+      expect(requestBody).toHaveProperty('page.url', 'https://example.com/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1')
+      expect(requestBody).toHaveProperty('page.title', 'Test Page Title')
+      expect(requestBody).toHaveProperty('page.path', '/')
     });
 
     it("includes partial UTM parameters when only some are present", async () => {
       const windowMockPartial = {
         location: {
           search: "?utm_source=facebook&utm_medium=social",
-          href: "https://example.com/?utm_source=facebook&utm_medium=social"
+          href: "https://example.com/?utm_source=facebook&utm_medium=social",
+          pathname: "/social-page"
         },
       }
 
       jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMockPartial)
+
+      // Update document title for this test
+      document.title = 'Social Media Page'
 
       // Reinitialize with partial UTM params
       await Hellotext.initialize(business_id)
@@ -209,6 +225,11 @@ describe("when the class is initialized successfully", () => {
         source: 'facebook',
         medium: 'social'
       })
+
+      // Verify page object contains all expected properties with updated values
+      expect(requestBody).toHaveProperty('page.url', 'https://example.com/?utm_source=facebook&utm_medium=social')
+      expect(requestBody).toHaveProperty('page.title', 'Social Media Page')
+      expect(requestBody).toHaveProperty('page.path', '/social-page')
     });
   });
 });
