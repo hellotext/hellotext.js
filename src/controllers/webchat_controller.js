@@ -498,9 +498,21 @@ export default class extends Controller {
 
     this.inputTarget.focus()
 
+    // Set up optimistic typing indicator BEFORE making the API call
+    // This prevents race conditions with server responses
+    if (!this.typingIndicatorVisible) {
+      clearTimeout(this.optimisticTypingTimeout)
+      this.optimisticTypingTimeout = setTimeout(() => {
+        this.showOptimisticTypingIndicator()
+      }, this.optimisticTypingIndicatorWaitValue)
+    }
+
     const response = await this.messagesAPI.create(formData)
 
     if (response.failed) {
+      // Clear the optimistic typing indicator on failure
+      clearTimeout(this.optimisticTypingTimeout)
+
       this.broadcastChannel.postMessage({
         type: 'message:failed',
         id: element.id,
@@ -520,13 +532,9 @@ export default class extends Controller {
       this.webChatChannel.updateSubscriptionWith(this.conversationIdValue)
     }
 
+    // If there's already a typing indicator visible, reset its timer
     if (this.typingIndicatorVisible) {
       this.resetTypingIndicatorTimer()
-    } else {
-      clearTimeout(this.optimisticTypingTimeout)
-      this.optimisticTypingTimeout = setTimeout(() => {
-        this.showOptimisticTypingIndicator()
-      }, this.optimisticTypingIndicatorWaitValue)
     }
 
     this.attachmentContainerTarget.style.display = ''
