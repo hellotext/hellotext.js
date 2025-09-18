@@ -6,7 +6,13 @@ class Cookies {
       document.cookie = `${name}=${value}; path=/;`
     }
 
-    Hellotext.eventEmitter.dispatch('session-set', value)
+    if (name === 'hello_session') {
+      Hellotext.eventEmitter.dispatch('session-set', value)
+    }
+
+    if (name === 'hello_utm') {
+      Hellotext.eventEmitter.dispatch('utm-set', value)
+    }
 
     return value
   }

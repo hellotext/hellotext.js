@@ -3,6 +3,7 @@ import { InvalidEvent } from '../errors'
 export default class Event {
   static events = [
     'session-set',
+    'utm-set',
     'forms:collected',
     'form:completed',
     'webchat:mounted',
