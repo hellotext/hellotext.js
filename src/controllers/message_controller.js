@@ -5,7 +5,7 @@ export default class extends Controller {
     id: String,
   }
 
-  static targets = ['container', 'leftFade', 'rightFade', 'carouselCard']
+  static targets = ['carouselContainer', 'leftFade', 'rightFade', 'carouselCard']
 
   connect() {
     this.updateFades()
@@ -29,18 +29,22 @@ export default class extends Controller {
   }
 
   moveToLeft() {
+    if (!this.hasCarouselContainerTarget) return
+
     const scrollAmount = this.getScrollAmount()
 
-    this.containerTarget.scrollBy({
+    this.carouselContainerTarget.scrollBy({
       left: -scrollAmount,
       behavior: 'smooth',
     })
   }
 
   moveToRight() {
+    if (!this.hasCarouselContainerTarget) return
+
     const scrollAmount = this.getScrollAmount()
 
-    this.containerTarget.scrollBy({
+    this.carouselContainerTarget.scrollBy({
       left: scrollAmount,
       behavior: 'smooth',
     })
@@ -61,8 +65,11 @@ export default class extends Controller {
   }
 
   updateFades() {
-    const scrollLeft = this.containerTarget.scrollLeft
-    const maxScroll = this.containerTarget.scrollWidth - this.containerTarget.clientWidth
+    if (!this.hasCarouselContainerTarget) return
+
+    const scrollLeft = this.carouselContainerTarget.scrollLeft
+    const maxScroll =
+      this.carouselContainerTarget.scrollWidth - this.carouselContainerTarget.clientWidth
 
     // Show left fade if scrolled past start
     if (scrollLeft > 0) {
