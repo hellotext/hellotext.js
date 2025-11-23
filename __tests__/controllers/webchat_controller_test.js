@@ -1274,7 +1274,7 @@ describe('WebchatController', () => {
 
         expect(controller.dispatch).toHaveBeenCalledWith('set:id', {
           target: expect.any(Element),
-          value: undefined
+          detail: undefined
         })
       })
 
