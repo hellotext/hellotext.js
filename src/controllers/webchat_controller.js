@@ -422,13 +422,13 @@ export default class extends Controller {
     this.inputTarget.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
 
-  async sendQuickReplyMessage({ detail: { id, cardId, buttonId, body, cardElement } }) {
+  async sendQuickReplyMessage({ detail: { id, product, buttonId, body, cardElement } }) {
     const formData = new FormData()
 
     formData.append('message[body]', body)
-    formData.append('message[replied_to_id]', id)
-    formData.append('message[card_id]', cardId)
-    formData.append('message[button_id]', buttonId)
+    formData.append('message[replied_to]', id)
+    formData.append('message[product]', product)
+    formData.append('message[button]', buttonId)
 
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
@@ -477,8 +477,7 @@ export default class extends Controller {
       body: body,
       attachments: [attachment],
       replied_to: id,
-      card_id: cardId,
-      button_id: buttonId,
+      product: product,
     }
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)

@@ -21,7 +21,7 @@ export default class extends Controller {
     this.dispatch('quickReply', {
       detail: {
         id: this.idValue,
-        cardId: card.dataset.id,
+        product: card.dataset.id,
         buttonId: currentTarget.dataset.id,
         body: currentTarget.dataset.text,
         cardElement: card,
