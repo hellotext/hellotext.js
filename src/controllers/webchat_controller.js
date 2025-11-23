@@ -434,7 +434,7 @@ export default class extends Controller {
     formData.append('locale', Locale.toString())
 
     const element = this.buildMessageElement()
-    const attachment = cardElement.querySelector('img').cloneNode(true)
+    const attachment = cardElement.querySelector('img')?.cloneNode(true)
 
     element.querySelector('[data-body]').innerText = body
 
@@ -475,9 +475,11 @@ export default class extends Controller {
     const message = {
       id: data.id,
       body: body,
-      attachments: [attachment],
+      attachments: attachment ? [attachment.src] : [],
       replied_to: id,
       product: product,
+      button: buttonId,
+      type: 'quick_reply',
     }
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
