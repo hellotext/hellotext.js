@@ -606,6 +606,7 @@ export default class extends Controller {
     element.classList.add('received')
     element.style.removeProperty('display')
 
+    element.setAttribute('data-controller', 'hellotext--message')
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
     return element

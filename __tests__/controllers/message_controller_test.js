@@ -18,7 +18,7 @@ describe('MessageController', () => {
     mockCarouselContainer.setAttribute('data-hellotext--message-target', 'carouselContainer')
     mockCarouselContainer.style.overflowX = 'scroll'
     mockCarouselContainer.scrollLeft = 0
-    
+
     // Mock read-only properties
     Object.defineProperty(mockCarouselContainer, 'scrollWidth', {
       value: 1000,
@@ -98,6 +98,102 @@ describe('MessageController', () => {
       controller.onScroll()
 
       expect(updateFadesSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('setId', () => {
+    it('sets the idValue property from event detail', () => {
+      const eventDetail = { detail: 'new-message-id-123' }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe('new-message-id-123')
+    })
+
+    it('sets the element id attribute from event detail', () => {
+      const eventDetail = { detail: 'element-id-456' }
+
+      controller.setId(eventDetail)
+
+      expect(controller.element.id).toBe('element-id-456')
+    })
+
+    it('updates both idValue and element.id with the same value', () => {
+      const testId = 'synchronized-id-789'
+      const eventDetail = { detail: testId }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe(testId)
+      expect(controller.element.id).toBe(testId)
+    })
+
+    it('handles string ids correctly', () => {
+      const eventDetail = { detail: 'string-id-with-dashes' }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe('string-id-with-dashes')
+      expect(controller.element.id).toBe('string-id-with-dashes')
+    })
+
+    it('handles numeric ids by converting to string', () => {
+      const eventDetail = { detail: 12345 }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe(12345)
+      expect(controller.element.id).toBe('12345') // DOM id is always string
+    })
+
+    it('handles empty string id', () => {
+      const eventDetail = { detail: '' }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe('')
+      expect(controller.element.id).toBe('')
+    })
+
+    it('handles null id gracefully', () => {
+      const eventDetail = { detail: null }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe(null)
+      expect(controller.element.id).toBe('null') // DOM converts null to string
+    })
+
+    it('handles undefined id gracefully', () => {
+      const eventDetail = { detail: undefined }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe(undefined)
+      expect(controller.element.id).toBe('undefined') // DOM converts undefined to string
+    })
+
+    it('overwrites previous id values', () => {
+      // Set initial id
+      controller.idValue = 'old-id'
+      controller.element.id = 'old-element-id'
+
+      const eventDetail = { detail: 'new-overwrite-id' }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe('new-overwrite-id')
+      expect(controller.element.id).toBe('new-overwrite-id')
+    })
+
+    it('handles complex id strings with special characters', () => {
+      const complexId = 'msg-123_test@domain.com#section'
+      const eventDetail = { detail: complexId }
+
+      controller.setId(eventDetail)
+
+      expect(controller.idValue).toBe(complexId)
+      expect(controller.element.id).toBe(complexId)
     })
   })
 

@@ -11,6 +11,11 @@ export default class extends Controller {
     this.updateFades()
   }
 
+  setId({ detail: id }) {
+    this.idValue = id
+    this.element.id = id
+  }
+
   onScroll() {
     this.updateFades()
   }

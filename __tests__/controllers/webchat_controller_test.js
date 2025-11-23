@@ -1080,9 +1080,11 @@ describe('WebchatController', () => {
         expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledWith('webchat:message:sent', {
           id: 'server-message-123',
           body: 'Event dispatch test',
-          attachments: [expect.any(Element)],
+          attachments: ['https://example.com/product.jpg'],
           replied_to: 'original-123',
-          product: 'product-456'
+          product: 'product-456',
+          button: 'btn-789',
+          type: 'quick_reply'
         })
       })
     })
