@@ -437,7 +437,13 @@ export default class extends Controller {
     const attachment = cardElement.querySelector('img').cloneNode(true)
 
     element.querySelector('[data-body]').innerText = body
-    element.querySelector('[data-attachment-container]').appendChild(attachment)
+
+    if (attachment) {
+      attachment.removeAttribute('width')
+      attachment.removeAttribute('height')
+
+      element.querySelector('[data-attachment-container]').appendChild(attachment)
+    }
 
     this.messagesContainerTarget.appendChild(element)
 
