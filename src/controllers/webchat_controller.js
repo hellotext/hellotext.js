@@ -461,8 +461,17 @@ export default class extends Controller {
     }
 
     const data = await response.json()
-    element.setAttribute('data-id', data.id)
-    message.id = data.id
+
+    this.dispatch('set:id', { target: element, value: data.id })
+
+    const message = {
+      id: data.id,
+      body: body,
+      attachments: [attachment],
+      replied_to: id,
+      card_id: cardId,
+      button_id: buttonId,
+    }
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
   }
