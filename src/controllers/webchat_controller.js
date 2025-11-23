@@ -439,6 +439,8 @@ export default class extends Controller {
     element.querySelector('[data-body]').innerText = body
     element.querySelector('[data-attachment-container]').appendChild(attachment)
 
+    this.messagesContainerTarget.appendChild(element)
+
     element.scrollIntoView({ behavior: 'smooth' })
 
     this.broadcastChannel.postMessage({
