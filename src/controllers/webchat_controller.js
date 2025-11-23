@@ -369,6 +369,10 @@ export default class extends Controller {
   onMessageReceived(message) {
     const { id, body, attachments } = message
 
+    if (message.carousel) {
+      return this.insertCarouselMessage(message)
+    }
+
     const div = document.createElement('div')
     div.innerHTML = body
 
@@ -405,6 +409,30 @@ export default class extends Controller {
 
     this.unreadCounterTarget.style.display = 'flex'
 
+    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
+    this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
+  }
+
+  insertCarouselMessage(message) {
+    const html = message.html
+    const element = new DOMParser().parseFromString(html, 'text/html').body.firstElementChild
+
+    this.clearTypingIndicator()
+    this.messagesContainerTarget.appendChild(element)
+
+    element.scrollIntoView({ behavior: 'smooth' })
+
+    Hellotext.eventEmitter.dispatch('webchat:message:received', {
+      ...message,
+      body: element.querySelector('[data-body]')?.innerText || '',
+    })
+
+    if (this.openValue) {
+      this.messagesAPI.markAsSeen(message.id)
+      return
+    }
+
+    this.unreadCounterTarget.style.display = 'flex'
     const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
   }

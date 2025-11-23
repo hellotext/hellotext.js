@@ -1293,4 +1293,87 @@ describe('WebchatController', () => {
       })
     })
   })
+
+  describe('carousel message handling', () => {
+    let mockHellotext
+
+    beforeEach(() => {
+      // Mock DOMParser for carousel tests
+      global.DOMParser = jest.fn(() => ({
+        parseFromString: jest.fn((html) => ({
+          body: {
+            firstElementChild: document.createElement('div')
+          }
+        }))
+      }))
+
+      // Mock Hellotext
+      mockHellotext = {
+        eventEmitter: {
+          dispatch: jest.fn()
+        }
+      }
+
+      const Hellotext = require('../../src/hellotext').default
+      Object.assign(Hellotext, mockHellotext)
+    })
+
+    it('handles carousel messages correctly', () => {
+      controller.openValue = true // Set to open to avoid unread counter issues
+      const mockMessagesAPI = {
+        markAsSeen: jest.fn()
+      }
+      controller.messagesAPI = mockMessagesAPI
+
+      const message = {
+        id: 'carousel-123',
+        html: '<div class="carousel">Test Carousel</div>',
+        carousel: { title: 'Test' }
+      }
+
+      controller.onMessageReceived(message)
+
+      expect(mockMessagesContainer.children).toHaveLength(1)
+      expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledWith('webchat:message:received', {
+        ...message,
+        body: '',
+      })
+    })
+
+    it('marks carousel as seen when chat is open', () => {
+      controller.openValue = true
+      const mockMessagesAPI = {
+        markAsSeen: jest.fn()
+      }
+      controller.messagesAPI = mockMessagesAPI
+
+      const message = {
+        id: 'carousel-read',
+        html: '<div>Carousel</div>',
+        carousel: {}
+      }
+
+      controller.onMessageReceived(message)
+
+      expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('carousel-read')
+    })
+
+    it('updates unread counter when chat is closed', () => {
+      controller.openValue = false
+      const mockUnreadCounter = document.createElement('div')
+      mockUnreadCounter.innerText = '2'
+      controller.unreadCounterTarget = mockUnreadCounter
+
+      const message = {
+        id: 'carousel-unread',
+        html: '<div>Carousel</div>',
+        carousel: {}
+      }
+
+      controller.onMessageReceived(message)
+
+      expect(mockUnreadCounter.style.display).toBe('flex')
+      expect(mockUnreadCounter.innerText).toBe(3)
+    })
+  })
 })
