@@ -422,7 +422,7 @@ export default class extends Controller {
     this.inputTarget.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
 
-  async sendQuickReplyMessage({ detail: { id, cardId, buttonId, body } }) {
+  async sendQuickReplyMessage({ detail: { id, cardId, buttonId, body, cardElement } }) {
     const formData = new FormData()
 
     formData.append('message[body]', body)
@@ -433,18 +433,11 @@ export default class extends Controller {
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
 
-    const element = this.messageTemplateTarget.cloneNode(true)
-
-    element.id = `hellotext--webchat--${this.idValue}--message--${Date.now()}`
-
-    element.classList.add('received')
-    element.style.removeProperty('display')
-
-    element.setAttribute('data-hellotext--webchat-target', 'message')
+    const element = this.buildMessageElement()
+    const attachment = cardElement.querySelector('img').cloneNode(true)
 
     element.querySelector('[data-body]').innerText = body
-
-    this.messagesContainerTarget.appendChild(element)
+    element.querySelector('[data-attachment-container]').appendChild(attachment)
 
     element.scrollIntoView({ behavior: 'smooth' })
 
@@ -503,14 +496,7 @@ export default class extends Controller {
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
 
-    const element = this.messageTemplateTarget.cloneNode(true)
-
-    element.id = `hellotext--webchat--${this.idValue}--message--${Date.now()}`
-
-    element.classList.add('received')
-    element.style.removeProperty('display')
-
-    element.setAttribute('data-hellotext--webchat-target', 'message')
+    const element = this.buildMessageElement()
 
     if (this.inputTarget.value.trim().length > 0) {
       element.querySelector('[data-body]').innerText = this.inputTarget.value
@@ -522,7 +508,7 @@ export default class extends Controller {
 
     if (attachments.length > 0) {
       attachments.forEach(attachment => {
-        element.querySelector('[data-attachment-container]').appendChild(attachment)
+        element.querySelector('[data-attachment-container]').appendChild(attachment.cloneNode(true))
       })
     }
 
@@ -592,6 +578,19 @@ export default class extends Controller {
     }
 
     this.attachmentContainerTarget.style.display = ''
+  }
+
+  buildMessageElement() {
+    const element = this.messageTemplateTarget.cloneNode(true)
+
+    element.id = `hellotext--webchat--${this.idValue}--message--${Date.now()}`
+
+    element.classList.add('received')
+    element.style.removeProperty('display')
+
+    element.setAttribute('data-hellotext--webchat-target', 'message')
+
+    return element
   }
 
   openAttachment() {

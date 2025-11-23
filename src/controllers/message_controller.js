@@ -24,6 +24,7 @@ export default class extends Controller {
         cardId: card.dataset.id,
         buttonId: currentTarget.dataset.id,
         body: currentTarget.dataset.text,
+        cardElement: card,
       },
     })
   }
@@ -52,7 +53,7 @@ export default class extends Controller {
 
   getScrollAmount() {
     // Get the actual card width from DOM
-    const firstCard = this.containerTarget.querySelector('.message__carousel_card')
+    const firstCard = this.carouselContainerTarget.querySelector('.message__carousel_card')
 
     if (!firstCard) {
       return 280 // Fallback to default desktop card width
