@@ -860,4 +860,435 @@ describe('WebchatController', () => {
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('hellotext--webchat--test-webchat-123', 'closed')
     })
   })
+
+  describe('sendQuickReplyMessage', () => {
+    let mockMessageTemplate
+    let mockMessagesAPI
+    let mockHellotext
+    let mockLocale
+    let mockCardElement
+    let mockImageElement
+    let mockBroadcastChannel
+    let mockClearTimeout
+
+    beforeEach(() => {
+      // Set up message template mock
+      mockMessageTemplate = document.createElement('div')
+      mockMessageTemplate.id = 'template'
+      mockMessageTemplate.style.display = 'none'
+      const bodyElement = document.createElement('div')
+      bodyElement.setAttribute('data-body', '')
+      const attachmentContainer = document.createElement('div')
+      attachmentContainer.setAttribute('data-attachment-container', '')
+      mockMessageTemplate.appendChild(bodyElement)
+      mockMessageTemplate.appendChild(attachmentContainer)
+
+      // Set up card element with image
+      mockImageElement = document.createElement('img')
+      mockImageElement.src = 'https://example.com/product.jpg'
+      mockImageElement.width = 200
+      mockImageElement.height = 150
+      mockImageElement.alt = 'Product image'
+
+      mockCardElement = document.createElement('div')
+      mockCardElement.appendChild(mockImageElement)
+
+      // Mock the targets
+      controller.messageTemplateTarget = mockMessageTemplate
+      controller.messagesContainerTarget = mockMessagesContainer
+
+      // Mock messagesAPI
+      mockMessagesAPI = {
+        create: jest.fn()
+      }
+      controller.messagesAPI = mockMessagesAPI
+
+      // Mock Hellotext
+      mockHellotext = {
+        session: 'test-session-123',
+        eventEmitter: {
+          dispatch: jest.fn()
+        }
+      }
+
+      // Mock Locale
+      mockLocale = {
+        toString: jest.fn().mockReturnValue('en')
+      }
+
+      // Mock broadcast channel
+      mockBroadcastChannel = {
+        postMessage: jest.fn()
+      }
+      controller.broadcastChannel = mockBroadcastChannel
+
+      // Mock clearTimeout
+      mockClearTimeout = jest.fn()
+      global.clearTimeout = mockClearTimeout
+
+      // Mock dispatch method
+      controller.dispatch = jest.fn()
+
+      // Mock scrollIntoView
+      Element.prototype.scrollIntoView = jest.fn()
+
+      // Import and setup mocks
+      const Hellotext = require('../../src/hellotext').default
+      Object.assign(Hellotext, mockHellotext)
+
+      const { Locale } = require('../../src/core/configuration/locale')
+      Object.assign(Locale, mockLocale)
+    })
+
+    describe('successful message sending', () => {
+      beforeEach(() => {
+        const mockResponse = {
+          failed: false,
+          json: jest.fn().mockResolvedValue({
+            id: 'server-message-123'
+          })
+        }
+        mockMessagesAPI.create.mockResolvedValue(mockResponse)
+      })
+
+      it('creates FormData with all required parameters', async () => {
+        const eventDetail = {
+          id: 'original-msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Quick reply message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(mockMessagesAPI.create).toHaveBeenCalledWith(expect.any(FormData))
+
+        const formData = mockMessagesAPI.create.mock.calls[0][0]
+        expect(formData.get('message[body]')).toBe('Quick reply message')
+        expect(formData.get('message[replied_to]')).toBe('original-msg-123')
+        expect(formData.get('message[product]')).toBe('product-456')
+        expect(formData.get('message[button]')).toBe('btn-789')
+        expect(formData.get('session')).toBe('test-session-123')
+        expect(formData.get('locale')).toBe('en')
+      })
+
+      it('builds and appends message element to container', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Test message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(mockMessagesContainer.children).toHaveLength(1)
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body]').innerText).toBe('Test message')
+        expect(addedElement.getAttribute('data-hellotext--webchat-target')).toBe('message')
+      })
+
+      it('clones and processes attachment image correctly', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Message with image',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        const addedElement = mockMessagesContainer.children[0]
+        const attachmentContainer = addedElement.querySelector('[data-attachment-container]')
+        expect(attachmentContainer.children).toHaveLength(1)
+
+        const clonedImage = attachmentContainer.children[0]
+        expect(clonedImage.src).toBe('https://example.com/product.jpg')
+        expect(clonedImage.alt).toBe('Product image')
+        expect(clonedImage.hasAttribute('width')).toBe(false)
+        expect(clonedImage.hasAttribute('height')).toBe(false)
+      })
+
+      it('scrolls message into view smoothly', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Scroll test',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' })
+      })
+
+      it('posts message:sent broadcast message', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Broadcast test',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(mockBroadcastChannel.postMessage).toHaveBeenCalledWith({
+          type: 'message:sent',
+          element: expect.any(String)
+        })
+
+        const broadcastCall = mockBroadcastChannel.postMessage.mock.calls[0][0]
+        expect(broadcastCall.type).toBe('message:sent')
+        expect(broadcastCall.element).toContain('data-hellotext--webchat-target="message"')
+        expect(broadcastCall.element).toContain('data-body')
+      })
+
+      it('dispatches set:id action with server response', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'ID dispatch test',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(controller.dispatch).toHaveBeenCalledWith('set:id', {
+          target: expect.any(Element),
+          value: 'server-message-123'
+        })
+      })
+
+      it('dispatches webchat:message:sent event with message data', async () => {
+        const eventDetail = {
+          id: 'original-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Event dispatch test',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledWith('webchat:message:sent', {
+          id: 'server-message-123',
+          body: 'Event dispatch test',
+          attachments: [expect.any(Element)],
+          replied_to: 'original-123',
+          product: 'product-456'
+        })
+      })
+    })
+
+    describe('failed message sending', () => {
+      beforeEach(() => {
+        const mockFailedResponse = {
+          failed: true
+        }
+        mockMessagesAPI.create.mockResolvedValue(mockFailedResponse)
+        controller.optimisticTypingTimeout = 'mock-timeout-id'
+      })
+
+      it('clears optimistic typing timeout on failure', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Failed message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(mockClearTimeout).toHaveBeenCalledWith('mock-timeout-id')
+      })
+
+      it('posts message:failed broadcast message', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Failed message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(mockBroadcastChannel.postMessage).toHaveBeenCalledWith({
+          type: 'message:failed',
+          id: expect.any(String)
+        })
+      })
+
+      it('adds failed class to message element', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Failed message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.classList.contains('failed')).toBe(true)
+      })
+
+      it('does not dispatch set:id action on failure', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Failed message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(controller.dispatch).not.toHaveBeenCalledWith('set:id', expect.anything())
+      })
+
+      it('does not dispatch webchat:message:sent event on failure', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Failed message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(mockHellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('webchat:message:sent', expect.anything())
+      })
+    })
+
+    describe('edge cases', () => {
+      beforeEach(() => {
+        const mockResponse = {
+          failed: false,
+          json: jest.fn().mockResolvedValue({
+            id: 'server-message-123'
+          })
+        }
+        mockMessagesAPI.create.mockResolvedValue(mockResponse)
+      })
+
+      it('handles missing attachment gracefully', async () => {
+        const mockCardElementNoImage = document.createElement('div')
+        mockCardElementNoImage.innerHTML = '<span>No image here</span>'
+
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'No attachment message',
+          cardElement: mockCardElementNoImage
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        const addedElement = mockMessagesContainer.children[0]
+        const attachmentContainer = addedElement.querySelector('[data-attachment-container]')
+        expect(attachmentContainer.children).toHaveLength(0)
+      })
+
+      it('handles null attachment gracefully', async () => {
+        // Mock querySelector to return null
+        const originalQuerySelector = mockCardElement.querySelector
+        mockCardElement.querySelector = jest.fn().mockReturnValue(null)
+
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Null attachment message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        const addedElement = mockMessagesContainer.children[0]
+        const attachmentContainer = addedElement.querySelector('[data-attachment-container]')
+        expect(attachmentContainer.children).toHaveLength(0)
+
+        // Restore original method
+        mockCardElement.querySelector = originalQuerySelector
+      })
+
+      it('handles empty body text', async () => {
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: '',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body]').innerText).toBe('')
+      })
+
+      it('handles missing event detail properties', async () => {
+        const eventDetail = {
+          body: 'Minimal message',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        const formData = mockMessagesAPI.create.mock.calls[0][0]
+        expect(formData.get('message[replied_to]')).toBe('undefined')
+        expect(formData.get('message[product]')).toBe('undefined')
+        expect(formData.get('message[button]')).toBe('undefined')
+      })
+
+      it('handles API response without id', async () => {
+        const mockResponse = {
+          failed: false,
+          json: jest.fn().mockResolvedValue({})
+        }
+        mockMessagesAPI.create.mockResolvedValue(mockResponse)
+
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'No ID response',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(controller.dispatch).toHaveBeenCalledWith('set:id', {
+          target: expect.any(Element),
+          value: undefined
+        })
+      })
+
+      it('handles network errors gracefully', async () => {
+        mockMessagesAPI.create.mockRejectedValue(new Error('Network error'))
+
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Network error test',
+          cardElement: mockCardElement
+        }
+
+        await expect(controller.sendQuickReplyMessage({ detail: eventDetail })).rejects.toThrow('Network error')
+      })
+    })
+  })
 })
