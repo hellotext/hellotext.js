@@ -498,7 +498,7 @@ export default class extends Controller {
 
     const data = await response.json()
 
-    this.dispatch('set:id', { target: element, value: data.id })
+    this.dispatch('set:id', { target: element, detail: data.id })
 
     const message = {
       id: data.id,
