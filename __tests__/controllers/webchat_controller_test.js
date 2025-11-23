@@ -1062,7 +1062,7 @@ describe('WebchatController', () => {
 
         expect(controller.dispatch).toHaveBeenCalledWith('set:id', {
           target: expect.any(Element),
-          value: 'server-message-123'
+          detail: 'server-message-123'
         })
       })
 
@@ -1290,6 +1290,69 @@ describe('WebchatController', () => {
         }
 
         await expect(controller.sendQuickReplyMessage({ detail: eventDetail })).rejects.toThrow('Network error')
+      })
+
+      it('inserts message before typing indicator when visible', async () => {
+        const mockResponse = {
+          failed: false,
+          json: jest.fn().mockResolvedValue({
+            id: 'server-message-123'
+          })
+        }
+        mockMessagesAPI.create.mockResolvedValue(mockResponse)
+
+        // Set up typing indicator
+        const mockTypingIndicator = document.createElement('div')
+        mockTypingIndicator.setAttribute('data-hellotext--webchat-target', 'typingIndicator')
+        mockMessagesContainer.appendChild(mockTypingIndicator)
+
+        controller.typingIndicatorTarget = mockTypingIndicator
+        controller.typingIndicatorVisible = true
+        Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
+          get: () => true
+        })
+
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Insert before typing',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        // Message should be inserted before typing indicator
+        expect(mockMessagesContainer.children).toHaveLength(2)
+        expect(mockMessagesContainer.children[0]).not.toBe(mockTypingIndicator)
+        expect(mockMessagesContainer.children[1]).toBe(mockTypingIndicator)
+      })
+
+      it('appends message normally when no typing indicator', async () => {
+        const mockResponse = {
+          failed: false,
+          json: jest.fn().mockResolvedValue({
+            id: 'server-message-123'
+          })
+        }
+        mockMessagesAPI.create.mockResolvedValue(mockResponse)
+
+        controller.typingIndicatorVisible = false
+        Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
+          get: () => false
+        })
+
+        const eventDetail = {
+          id: 'msg-123',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Normal append',
+          cardElement: mockCardElement
+        }
+
+        await controller.sendQuickReplyMessage({ detail: eventDetail })
+
+        expect(mockMessagesContainer.children).toHaveLength(1)
       })
     })
   })

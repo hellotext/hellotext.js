@@ -473,7 +473,11 @@ export default class extends Controller {
       element.querySelector('[data-attachment-container]').appendChild(attachment)
     }
 
-    this.messagesContainerTarget.appendChild(element)
+    if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
+      this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+    } else {
+      this.messagesContainerTarget.appendChild(element)
+    }
 
     element.scrollIntoView({ behavior: 'smooth' })
 
