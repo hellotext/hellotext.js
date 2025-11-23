@@ -1,7 +1,11 @@
 import { Controller } from '@hotwired/stimulus'
 
 export default class extends Controller {
-  static targets = ['container', 'leftFade', 'rightFade']
+  static values = {
+    id: String,
+  }
+
+  static targets = ['container', 'leftFade', 'rightFade', 'carouselCard']
 
   connect() {
     this.updateFades()
@@ -9,6 +13,19 @@ export default class extends Controller {
 
   onScroll() {
     this.updateFades()
+  }
+
+  quickReply({ currentTarget }) {
+    const card = currentTarget.closest('[data-hellotext--message-target="carouselCard"]')
+
+    this.dispatch('quickReply', {
+      detail: {
+        id: this.idValue,
+        cardId: card.dataset.id,
+        buttonId: currentTarget.dataset.id,
+        body: currentTarget.dataset.text,
+      },
+    })
   }
 
   moveToLeft() {

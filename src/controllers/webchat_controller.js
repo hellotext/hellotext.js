@@ -422,6 +422,58 @@ export default class extends Controller {
     this.inputTarget.style.height = `${Math.min(scrollHeight, maxHeight)}px`
   }
 
+  async sendQuickReplyMessage({ detail: { id, cardId, buttonId, body } }) {
+    const formData = new FormData()
+
+    formData.append('message[body]', body)
+    formData.append('message[replied_to_id]', id)
+    formData.append('message[card_id]', cardId)
+    formData.append('message[button_id]', buttonId)
+
+    formData.append('session', Hellotext.session)
+    formData.append('locale', Locale.toString())
+
+    const element = this.messageTemplateTarget.cloneNode(true)
+
+    element.id = `hellotext--webchat--${this.idValue}--message--${Date.now()}`
+
+    element.classList.add('received')
+    element.style.removeProperty('display')
+
+    element.setAttribute('data-hellotext--webchat-target', 'message')
+
+    element.querySelector('[data-body]').innerText = body
+
+    this.messagesContainerTarget.appendChild(element)
+
+    element.scrollIntoView({ behavior: 'smooth' })
+
+    this.broadcastChannel.postMessage({
+      type: 'message:sent',
+      element: element.outerHTML,
+    })
+
+    const response = await this.messagesAPI.create(formData)
+
+    if (response.failed) {
+      // Clear the optimistic typing indicator on failure
+      clearTimeout(this.optimisticTypingTimeout)
+
+      this.broadcastChannel.postMessage({
+        type: 'message:failed',
+        id: element.id,
+      })
+
+      return element.classList.add('failed')
+    }
+
+    const data = await response.json()
+    element.setAttribute('data-id', data.id)
+    message.id = data.id
+
+    Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
+  }
+
   async sendMessage(e) {
     const formData = new FormData()
 
