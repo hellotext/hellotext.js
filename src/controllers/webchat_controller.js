@@ -369,6 +369,10 @@ export default class extends Controller {
   onMessageReceived(message) {
     const { id, body, attachments } = message
 
+    if (message.carousel) {
+      return this.insertCarouselMessage(message)
+    }
+
     const div = document.createElement('div')
     div.innerHTML = body
 
@@ -409,6 +413,30 @@ export default class extends Controller {
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
   }
 
+  insertCarouselMessage(message) {
+    const html = message.html
+    const element = new DOMParser().parseFromString(html, 'text/html').body.firstElementChild
+
+    this.clearTypingIndicator()
+    this.messagesContainerTarget.appendChild(element)
+
+    element.scrollIntoView({ behavior: 'smooth' })
+
+    Hellotext.eventEmitter.dispatch('webchat:message:received', {
+      ...message,
+      body: element.querySelector('[data-body]')?.innerText || '',
+    })
+
+    if (this.openValue) {
+      this.messagesAPI.markAsSeen(message.id)
+      return
+    }
+
+    this.unreadCounterTarget.style.display = 'flex'
+    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
+    this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
+  }
+
   resizeInput() {
     const maxHeight = 96
 
@@ -420,6 +448,73 @@ export default class extends Controller {
     const scrollHeight = this.inputTarget.scrollHeight
 
     this.inputTarget.style.height = `${Math.min(scrollHeight, maxHeight)}px`
+  }
+
+  async sendQuickReplyMessage({ detail: { id, product, buttonId, body, cardElement } }) {
+    const formData = new FormData()
+
+    formData.append('message[body]', body)
+    formData.append('message[replied_to]', id)
+    formData.append('message[product]', product)
+    formData.append('message[button]', buttonId)
+
+    formData.append('session', Hellotext.session)
+    formData.append('locale', Locale.toString())
+
+    const element = this.buildMessageElement()
+    const attachment = cardElement.querySelector('img')?.cloneNode(true)
+
+    element.querySelector('[data-body]').innerText = body
+
+    if (attachment) {
+      attachment.removeAttribute('width')
+      attachment.removeAttribute('height')
+
+      element.querySelector('[data-attachment-container]').appendChild(attachment)
+    }
+
+    if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
+      this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+    } else {
+      this.messagesContainerTarget.appendChild(element)
+    }
+
+    element.scrollIntoView({ behavior: 'smooth' })
+
+    this.broadcastChannel.postMessage({
+      type: 'message:sent',
+      element: element.outerHTML,
+    })
+
+    const response = await this.messagesAPI.create(formData)
+
+    if (response.failed) {
+      // Clear the optimistic typing indicator on failure
+      clearTimeout(this.optimisticTypingTimeout)
+
+      this.broadcastChannel.postMessage({
+        type: 'message:failed',
+        id: element.id,
+      })
+
+      return element.classList.add('failed')
+    }
+
+    const data = await response.json()
+
+    this.dispatch('set:id', { target: element, detail: data.id })
+
+    const message = {
+      id: data.id,
+      body: body,
+      attachments: attachment ? [attachment.src] : [],
+      replied_to: id,
+      product: product,
+      button: buttonId,
+      type: 'quick_reply',
+    }
+
+    Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
   }
 
   async sendMessage(e) {
@@ -451,14 +546,7 @@ export default class extends Controller {
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
 
-    const element = this.messageTemplateTarget.cloneNode(true)
-
-    element.id = `hellotext--webchat--${this.idValue}--message--${Date.now()}`
-
-    element.classList.add('received')
-    element.style.removeProperty('display')
-
-    element.setAttribute('data-hellotext--webchat-target', 'message')
+    const element = this.buildMessageElement()
 
     if (this.inputTarget.value.trim().length > 0) {
       element.querySelector('[data-body]').innerText = this.inputTarget.value
@@ -470,7 +558,7 @@ export default class extends Controller {
 
     if (attachments.length > 0) {
       attachments.forEach(attachment => {
-        element.querySelector('[data-attachment-container]').appendChild(attachment)
+        element.querySelector('[data-attachment-container]').appendChild(attachment.cloneNode(true))
       })
     }
 
@@ -540,6 +628,20 @@ export default class extends Controller {
     }
 
     this.attachmentContainerTarget.style.display = ''
+  }
+
+  buildMessageElement() {
+    const element = this.messageTemplateTarget.cloneNode(true)
+
+    element.id = `hellotext--webchat--${this.idValue}--message--${Date.now()}`
+
+    element.classList.add('received')
+    element.style.removeProperty('display')
+
+    element.setAttribute('data-controller', 'hellotext--message')
+    element.setAttribute('data-hellotext--webchat-target', 'message')
+
+    return element
   }
 
   openAttachment() {

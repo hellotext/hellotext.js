@@ -102,6 +102,20 @@ The webchat emits the following events which can be listened to, to add an event
 }
 ```
 
+The payload may contain additional information about the product card clicked from a carousel message, the following
+is an example of a payload of a card click
+
+```javascript
+{
+  id: 'xxxxxx'
+  body: 'The message the client sent',
+  attachments: [], // An array of File objects associated with the card
+  replied_to: 'xxxx', // The ID of the message that was replied to by the button click.
+  product: 'xxxx', // The ID of the product associated with the cart. You can fetch information about the product in https://www.hellotext.com/api#products
+  button: 'xxxx' // The ID of the button that was clicked.
+}
+```
+
 - `webchat:message:received` - Emitted when a message is received by the webchat from Hellotext. The message is passed as an argument to the callback, containing the following properties
 
 ```javascript
