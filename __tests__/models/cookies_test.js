@@ -241,7 +241,7 @@ describe('cookie attributes', () => {
       Cookies.set('test_cookie', 'value')
 
       const cookieString = setCookieSpy.mock.calls[0][0]
-      expect(cookieString).toContain('domain=.vtexcommercestable.com.br')
+      expect(cookieString).toContain('domain=.storename.vtexcommercestable.com.br')
     })
 
     it('does not set domain attribute when getRootDomain returns null', () => {
