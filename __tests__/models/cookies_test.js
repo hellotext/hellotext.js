@@ -4,14 +4,41 @@
 
 import Hellotext from '../../src/hellotext'
 import { Cookies } from '../../src/models'
+import { Page } from '../../src/models/page'
 
 beforeEach(() => {
   document.cookie = ''
   jest.clearAllMocks()
+
+  // Mock window.location
+  delete window.location
+  window.location = {
+    protocol: 'https:',
+    hostname: 'www.example.com',
+    href: 'https://www.example.com/page'
+  }
 })
 
 describe('set', () => {
   it('sets the value of a cookie', () => {
+    // Mock document.cookie to simulate actual browser behavior
+    let cookieStore = {}
+
+    Object.defineProperty(document, 'cookie', {
+      get: function() {
+        return Object.entries(cookieStore)
+          .map(([key, value]) => `${key}=${value}`)
+          .join('; ')
+      },
+      set: function(cookieString) {
+        const match = cookieString.match(/^([^=]+)=([^;]+)/)
+        if (match) {
+          cookieStore[match[1]] = match[2]
+        }
+      },
+      configurable: true
+    })
+
     expect(Cookies.get('hello_session')).toEqual(undefined)
 
     Cookies.set('hello_session', 'session')
@@ -98,6 +125,24 @@ describe('set', () => {
     })
 
     it('sets cookie before dispatching event (even if dispatch fails)', () => {
+      // Mock document.cookie to simulate actual browser behavior
+      let cookieStore = {}
+
+      Object.defineProperty(document, 'cookie', {
+        get: function() {
+          return Object.entries(cookieStore)
+            .map(([key, value]) => `${key}=${value}`)
+            .join('; ')
+        },
+        set: function(cookieString) {
+          const match = cookieString.match(/^([^=]+)=([^;]+)/)
+          if (match) {
+            cookieStore[match[1]] = match[2]
+          }
+        },
+        configurable: true
+      })
+
       Hellotext.eventEmitter.dispatch.mockImplementation(() => {
         throw new Error('Dispatch failed')
       })
@@ -136,5 +181,149 @@ describe('get', () => {
   it('gets the value of a cookie', () => {
     document.cookie = 'hello_session=session'
     expect(Cookies.get('hello_session')).toEqual('session')
+  })
+})
+
+describe('cookie attributes', () => {
+  let setCookieSpy
+
+  beforeEach(() => {
+    // Spy on document.cookie setter
+    setCookieSpy = jest.spyOn(document, 'cookie', 'set')
+  })
+
+  afterEach(() => {
+    setCookieSpy.mockRestore()
+  })
+
+  describe('Secure flag', () => {
+    it('sets Secure flag when protocol is https', () => {
+      window.location.protocol = 'https:'
+
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toContain('Secure')
+    })
+
+    it('does not set Secure flag when protocol is http', () => {
+      window.location.protocol = 'http:'
+
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).not.toContain('Secure')
+    })
+  })
+
+  describe('domain attribute', () => {
+    it('sets domain attribute for regular TLD', () => {
+      window.location.hostname = 'www.example.com'
+
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toContain('domain=.example.com')
+    })
+
+    it('sets domain attribute for multi-part TLD', () => {
+      window.location.hostname = 'secure.storename.com.br'
+
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toContain('domain=.storename.com.br')
+    })
+
+    it('sets domain attribute for VTEX domains', () => {
+      window.location.hostname = 'storename.vtexcommercestable.com.br'
+
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toContain('domain=.vtexcommercestable.com.br')
+    })
+
+    it('does not set domain attribute when getRootDomain returns null', () => {
+      jest.spyOn(Page, 'getRootDomain').mockReturnValue(null)
+
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).not.toMatch(/domain=/)
+
+      Page.getRootDomain.mockRestore()
+    })
+
+    it('handles localhost without subdomain prefix', () => {
+      window.location.hostname = 'localhost'
+
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toContain('domain=localhost')
+    })
+  })
+
+  describe('SameSite attribute', () => {
+    it('sets SameSite=Lax attribute', () => {
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toContain('SameSite=Lax')
+    })
+  })
+
+  describe('max-age attribute', () => {
+    it('sets max-age to 10 years', () => {
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      const tenYearsInSeconds = 10 * 365 * 24 * 60 * 60
+      expect(cookieString).toContain(`max-age=${tenYearsInSeconds}`)
+    })
+  })
+
+  describe('path attribute', () => {
+    it('sets path to /', () => {
+      Cookies.set('test_cookie', 'value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toContain('path=/')
+    })
+  })
+
+  describe('complete cookie string format', () => {
+    it('formats cookie with all attributes when domain is available (https)', () => {
+      window.location.protocol = 'https:'
+      window.location.hostname = 'www.example.com'
+
+      Cookies.set('hello_session', 'test-value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toBe('hello_session=test-value; path=/; Secure; domain=.example.com; max-age=315360000; SameSite=Lax')
+    })
+
+    it('formats cookie without domain attribute when domain is null (https)', () => {
+      window.location.protocol = 'https:'
+      jest.spyOn(Page, 'getRootDomain').mockReturnValue(null)
+
+      Cookies.set('hello_session', 'test-value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toBe('hello_session=test-value; path=/; Secure; max-age=315360000; SameSite=Lax')
+
+      Page.getRootDomain.mockRestore()
+    })
+
+    it('formats cookie without Secure flag on http', () => {
+      window.location.protocol = 'http:'
+      window.location.hostname = 'localhost'
+
+      Cookies.set('hello_session', 'test-value')
+
+      const cookieString = setCookieSpy.mock.calls[0][0]
+      expect(cookieString).toBe('hello_session=test-value; path=/; domain=localhost; max-age=315360000; SameSite=Lax')
+    })
   })
 })

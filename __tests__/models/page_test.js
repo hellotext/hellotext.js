@@ -196,6 +196,77 @@ describe('Page', () => {
     })
   })
 
+  describe('domain getter', () => {
+    it('returns root domain with leading dot for regular TLDs', () => {
+      const page = new Page('https://www.example.com/path')
+      expect(page.domain).toBe('.example.com')
+    })
+
+    it('handles subdomains correctly for regular TLDs', () => {
+      const page = new Page('https://secure.checkout.example.com/cart')
+      expect(page.domain).toBe('.example.com')
+    })
+
+    it('returns root domain for multi-part TLDs like .com.br', () => {
+      const page = new Page('https://secure.storename.com.br/checkout')
+      expect(page.domain).toBe('.storename.com.br')
+    })
+
+    it('handles VTEX domains correctly', () => {
+      const page = new Page('https://storename.vtexcommercestable.com.br/products')
+      expect(page.domain).toBe('.vtexcommercestable.com.br')
+    })
+
+    it('returns root domain for .co.uk domains', () => {
+      const page = new Page('https://www.example.co.uk/page')
+      expect(page.domain).toBe('.example.co.uk')
+    })
+
+    it('handles localhost without leading dot', () => {
+      const page = new Page('http://localhost:3000/test')
+      expect(page.domain).toBe('localhost')
+    })
+
+    it('handles single-part domains without leading dot', () => {
+      const page = new Page('http://myserver/path')
+      expect(page.domain).toBe('myserver')
+    })
+
+    it('handles bare domain without subdomain for regular TLD', () => {
+      const page = new Page('https://example.com/')
+      expect(page.domain).toBe('.example.com')
+    })
+
+    it('handles bare domain without subdomain for multi-part TLD', () => {
+      const page = new Page('https://example.com.br/')
+      expect(page.domain).toBe('.example.com.br')
+    })
+
+    it('returns domain for default window.location', () => {
+      const page = new Page()
+      expect(page.domain).toBe('.example.com')
+    })
+
+    it('returns null for invalid URL', () => {
+      const page = new Page('not-a-valid-url')
+      expect(page.domain).toBeNull()
+    })
+
+    it('returns null when URL is undefined', () => {
+      // Mock window.location to return undefined
+      delete window.location
+      window.location = { href: undefined }
+
+      const page = new Page()
+      expect(page.domain).toBeNull()
+    })
+
+    it('returns null when URL is empty string', () => {
+      const page = new Page('')
+      expect(page.domain).toBeNull()
+    })
+  })
+
   describe('dynamic behavior', () => {
     it('reflects changes in window.location for default page', () => {
       const page = new Page()
