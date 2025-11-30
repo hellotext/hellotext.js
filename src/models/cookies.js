@@ -3,7 +3,8 @@ import Hellotext from '../hellotext'
 class Cookies {
   static set(name, value) {
     if (typeof document !== 'undefined') {
-      document.cookie = `${name}=${value}; path=/;`
+      const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+      document.cookie = `${name}=${value}; path=/${secure}`
     }
 
     if (name === 'hello_session') {
