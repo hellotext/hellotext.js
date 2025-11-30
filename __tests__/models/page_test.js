@@ -196,6 +196,118 @@ describe('Page', () => {
     })
   })
 
+  describe('domain getter', () => {
+    it('returns root domain with leading dot for regular TLDs', () => {
+      const page = new Page('https://www.example.com/path')
+      expect(page.domain).toBe('.example.com')
+    })
+
+    it('handles subdomains correctly for regular TLDs', () => {
+      const page = new Page('https://secure.checkout.example.com/cart')
+      expect(page.domain).toBe('.example.com')
+    })
+
+    it('returns root domain for multi-part TLDs like .com.br', () => {
+      const page = new Page('https://secure.storename.com.br/checkout')
+      expect(page.domain).toBe('.storename.com.br')
+    })
+
+    it('handles VTEX domains correctly', () => {
+      const page = new Page('https://storename.vtexcommercestable.com.br/products')
+      expect(page.domain).toBe('.storename.vtexcommercestable.com.br')
+    })
+
+    it('handles Shopify domains correctly', () => {
+      const page = new Page('https://mystore.myshopify.com/products')
+      expect(page.domain).toBe('.mystore.myshopify.com')
+    })
+
+    it('handles VTEX myvtex domains correctly', () => {
+      const page = new Page('https://storename.myvtex.com/products')
+      expect(page.domain).toBe('.storename.myvtex.com')
+    })
+
+    it('handles VTEX domains with subdomains', () => {
+      const page = new Page('https://secure.storename.vtexcommercestable.com.br/checkout')
+      expect(page.domain).toBe('.storename.vtexcommercestable.com.br')
+    })
+
+    it('handles Shopify domains with subdomains', () => {
+      const page = new Page('https://checkout.mystore.myshopify.com/cart')
+      expect(page.domain).toBe('.mystore.myshopify.com')
+    })
+
+    it('handles VTEX myvtex domains with subdomains', () => {
+      const page = new Page('https://admin.storename.myvtex.com/admin')
+      expect(page.domain).toBe('.storename.myvtex.com')
+    })
+
+    it('handles Wix domains correctly', () => {
+      const page = new Page('https://mystore.wixsite.com/store')
+      expect(page.domain).toBe('.mystore.wixsite.com')
+    })
+
+    it('handles Wix domains with subdomains', () => {
+      const page = new Page('https://checkout.mystore.wixsite.com/store')
+      expect(page.domain).toBe('.mystore.wixsite.com')
+    })
+
+    it('does not confuse regular domains containing platform keywords', () => {
+      // A regular domain that happens to contain "myshopify" in its name
+      const page = new Page('https://www.notmyshopify.com/page')
+      expect(page.domain).toBe('.notmyshopify.com')
+    })
+
+    it('returns root domain for .co.uk domains', () => {
+      const page = new Page('https://www.example.co.uk/page')
+      expect(page.domain).toBe('.example.co.uk')
+    })
+
+    it('handles localhost without leading dot', () => {
+      const page = new Page('http://localhost:3000/test')
+      expect(page.domain).toBe('localhost')
+    })
+
+    it('handles single-part domains without leading dot', () => {
+      const page = new Page('http://myserver/path')
+      expect(page.domain).toBe('myserver')
+    })
+
+    it('handles bare domain without subdomain for regular TLD', () => {
+      const page = new Page('https://example.com/')
+      expect(page.domain).toBe('.example.com')
+    })
+
+    it('handles bare domain without subdomain for multi-part TLD', () => {
+      const page = new Page('https://example.com.br/')
+      expect(page.domain).toBe('.example.com.br')
+    })
+
+    it('returns domain for default window.location', () => {
+      const page = new Page()
+      expect(page.domain).toBe('.example.com')
+    })
+
+    it('returns null for invalid URL', () => {
+      const page = new Page('not-a-valid-url')
+      expect(page.domain).toBeNull()
+    })
+
+    it('returns null when URL is undefined', () => {
+      // Mock window.location to return undefined
+      delete window.location
+      window.location = { href: undefined }
+
+      const page = new Page()
+      expect(page.domain).toBeNull()
+    })
+
+    it('returns null when URL is empty string', () => {
+      const page = new Page('')
+      expect(page.domain).toBeNull()
+    })
+  })
+
   describe('dynamic behavior', () => {
     it('reflects changes in window.location for default page', () => {
       const page = new Page()

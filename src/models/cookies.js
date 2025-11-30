@@ -1,9 +1,18 @@
 import Hellotext from '../hellotext'
+import { Page } from './page'
 
 class Cookies {
   static set(name, value) {
     if (typeof document !== 'undefined') {
-      document.cookie = `${name}=${value}; path=/;`
+      const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+      const domain = Page.getRootDomain()
+      const maxAge = 10 * 365 * 24 * 60 * 60 // 10 years in seconds
+
+      if (domain) {
+        document.cookie = `${name}=${value}; path=/${secure}; domain=${domain}; max-age=${maxAge}; SameSite=Lax`
+      } else {
+        document.cookie = `${name}=${value}; path=/${secure}; max-age=${maxAge}; SameSite=Lax`
+      }
     }
 
     if (name === 'hello_session') {
