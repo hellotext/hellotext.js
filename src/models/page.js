@@ -80,7 +80,7 @@ class Page {
   }
 
   /**
-   * Get the root domain from a hostname (static method, no instance needed)
+   * Get the root domain from a hostname
    * @param {string} hostname - The hostname to parse
    * @returns {string} The root domain with leading dot, or null if invalid
    */
