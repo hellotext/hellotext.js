@@ -80,7 +80,7 @@ class Page {
   }
 
   /**
-   * Get the root domain from a hostname
+   * Get the root domain from a hostname (static method, no instance needed)
    * @param {string} hostname - The hostname to parse
    * @returns {string} The root domain with leading dot, or null if invalid
    */
@@ -90,7 +90,6 @@ class Page {
         if (typeof window === 'undefined' || !window.location?.hostname) {
           return null
         }
-
         hostname = window.location.hostname
       }
 
@@ -101,17 +100,41 @@ class Page {
         return hostname
       }
 
-      // For multi-part TLDs like .com.br, .co.uk, take last 3 parts
+      // Handle platform domains where store identifier must be included
+      // e.g., storename.myshopify.com -> .storename.myshopify.com
+      // e.g., storename.vtexcommercestable.com.br -> .storename.vtexcommercestable.com.br
+      // e.g., storename.wixsite.com -> .storename.wixsite.com
+      if (parts.length >= 3) {
+        const platformPatterns = [
+          'myshopify.com',
+          'vtexcommercestable.com.br',
+          'myvtex.com',
+          'wixsite.com',
+        ]
+
+        for (const pattern of platformPatterns) {
+          const patternParts = pattern.split('.')
+          const matchParts = parts.slice(-patternParts.length)
+
+          // Exact match check for each part of the suffix
+          if (matchParts.join('.') === pattern) {
+            // Take pattern parts + 1 for store identifier
+            return `.${parts.slice(-(patternParts.length + 1)).join('.')}`
+          }
+        }
+      }
+
+      // Simple heuristic: if TLD is 2 chars and second-level is short (<=3 chars),
+      // it's likely a multi-part TLD like .com.br, .co.uk
       const tld = parts[parts.length - 1]
       const secondLevel = parts[parts.length - 2]
 
       if (parts.length > 2 && tld.length === 2 && secondLevel.length <= 3) {
-        // e.g., secure.storename.com.br -> .storename.com.br
+        // Multi-part TLD: take last 3 parts (e.g., store.com.br)
         return `.${parts.slice(-3).join('.')}`
       }
 
-      // For regular TLDs like .com, .net, take last 2 parts
-      // e.g., www.example.com -> .example.com
+      // Regular TLD: take last 2 parts (e.g., example.com)
       return `.${parts.slice(-2).join('.')}`
     } catch (e) {
       return null
