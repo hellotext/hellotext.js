@@ -1,6 +1,7 @@
 import BusinessesAPI from './businesses'
 import EventsAPI from './events'
 import FormsAPI from './forms'
+import IdentificationsAPI from './identifications'
 import WebchatsAPI from './webchats'
 
 export default class API {
@@ -18,6 +19,10 @@ export default class API {
 
   static get webchats() {
     return WebchatsAPI
+  }
+
+  static get identifications() {
+    return IdentificationsAPI
   }
 }
 

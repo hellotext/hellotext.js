@@ -232,4 +232,146 @@ describe("when the class is initialized successfully", () => {
       expect(requestBody).toHaveProperty('page.path', '/social-page')
     });
   });
+
+  describe("when identifying users", () => {
+    const business_id = "xy76ks"
+
+    beforeAll(() => {
+      const windowMock = {
+        location: { search: "?hello_session=test_session" },
+      }
+
+      jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+      Hellotext.initialize(business_id)
+    })
+
+    afterEach(() => {
+      jest.clearAllMocks()
+      // Clear identification cookies
+      document.cookie = "hello_identified_user_id=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      document.cookie = "hello_identified_source=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+    })
+
+    it("sends correct request body with external_id and options", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      await Hellotext.identify("user_123", {
+        email: "user@example.com",
+        phone: "+1234567890",
+        name: "John Doe",
+        source: "shopify"
+      })
+
+      // Check that fetch was called
+      expect(global.fetch).toHaveBeenCalled()
+
+      // Get the fetch call arguments
+      const fetchCall = global.fetch.mock.calls[0]
+      const requestOptions = fetchCall[1]
+      const requestBody = JSON.parse(requestOptions.body)
+
+      // Verify the request body includes all expected fields
+      expect(requestBody).toHaveProperty('external_id', 'user_123')
+      expect(requestBody).toHaveProperty('email', 'user@example.com')
+      expect(requestBody).toHaveProperty('phone', '+1234567890')
+      expect(requestBody).toHaveProperty('name', 'John Doe')
+      expect(requestBody).toHaveProperty('source', 'shopify')
+      expect(requestBody).toHaveProperty('session', 'test_session')
+    })
+
+    it("sets cookies when identification succeeds", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      const response = await Hellotext.identify("user_456", {
+        email: "user@example.com",
+        source: "woocommerce"
+      })
+
+      expect(response.succeeded).toEqual(true)
+      expect(getCookieValue("hello_identified_user_id")).toEqual("user_456")
+      expect(getCookieValue("hello_identified_source")).toEqual("woocommerce")
+    })
+
+    it("does not set cookies when identification fails", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({error: "invalid data"}),
+        status: 422,
+        ok: false
+      })
+
+      const response = await Hellotext.identify("user_789", {
+        email: "invalid-email",
+        source: "magento"
+      })
+
+      expect(response.failed).toEqual(true)
+      expect(getCookieValue("hello_identified_user_id")).toBeUndefined()
+      expect(getCookieValue("hello_identified_source")).toBeUndefined()
+    })
+
+    it("works with minimal options (only external_id)", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      await Hellotext.identify("user_minimal")
+
+      // Get the fetch call arguments
+      const fetchCall = global.fetch.mock.calls[0]
+      const requestOptions = fetchCall[1]
+      const requestBody = JSON.parse(requestOptions.body)
+
+      // Verify the request body includes only external_id and session
+      expect(requestBody).toHaveProperty('external_id', 'user_minimal')
+      expect(requestBody).toHaveProperty('session', 'test_session')
+      expect(requestBody).not.toHaveProperty('email')
+      expect(requestBody).not.toHaveProperty('phone')
+      expect(requestBody).not.toHaveProperty('name')
+    })
+
+    it("handles undefined source in options", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      await Hellotext.identify("user_no_source", {
+        email: "user@example.com"
+      })
+
+      expect(getCookieValue("hello_identified_user_id")).toEqual("user_no_source")
+      expect(getCookieValue("hello_identified_source")).toEqual("undefined")
+    })
+
+    it("sends session from Hellotext context in request", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      await Hellotext.identify("user_session_test", {
+        email: "test@example.com"
+      })
+
+      // Get the fetch call arguments
+      const fetchCall = global.fetch.mock.calls[0]
+      const requestOptions = fetchCall[1]
+      const requestBody = JSON.parse(requestOptions.body)
+
+      // Verify the session is included from Hellotext.session
+      expect(requestBody).toHaveProperty('session', 'test_session')
+    })
+  })
 });

@@ -1,7 +1,7 @@
 import { Configuration, Event } from './core'
 
 import API, { Response } from './api'
-import { Business, FormCollection, Page, Query, Session, Webchat } from './models'
+import { Business, Cookies, FormCollection, Page, Query, Session, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -70,6 +70,32 @@ class Hellotext {
       headers,
       body,
     })
+  }
+
+  /**
+   * @typedef { Object } IdentificationOptions
+   * @property { String } [email] - the email of the user
+   * @property { String } [phone] - the phone number of the user
+   * @property { String } [name] - the name of the user
+   * @property { String } [source] - the platform specific identifier where this pixel is running on.
+   *
+   * Identifies a user and attaches the hello_session to the user ID
+   * @param { String } externalId - the user ID
+   * @param { IdentificationOptions } options - the options for the identification
+   * @returns {Promise<Response>}
+   */
+  static async identify(externalId, options = {}) {
+    const response = await API.identifications.create({
+      external_id: externalId,
+      ...options,
+    })
+
+    if (response.succeeded) {
+      Cookies.set('hello_identified_user_id', externalId)
+      Cookies.set('hello_identified_source', options.source)
+    }
+
+    return response
   }
 
   /**
