@@ -61,7 +61,7 @@ class Hellotext {
 
     const body = {
       session: this.session,
-      user,
+      user_parameters: user,
       action,
       ...params,
       ...pageInstance.trackingData,
