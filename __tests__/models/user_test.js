@@ -80,7 +80,7 @@ describe('User', () => {
       User.remember('user_111', 'shopify')
 
       expect(User.identificationData).toEqual({
-        user_id: 'user_111',
+        id: 'user_111',
         source: 'shopify'
       })
     })
@@ -94,7 +94,7 @@ describe('User', () => {
       User.remember('user_222')
 
       expect(User.identificationData).toEqual({
-        user_id: 'user_222',
+        id: 'user_222',
         source: undefined
       })
     })

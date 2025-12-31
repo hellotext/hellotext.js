@@ -26,7 +26,7 @@ class User {
     if (!this.id) return {}
 
     return {
-      user_id: this.id,
+      id: this.id,
       source: this.source,
     }
   }
