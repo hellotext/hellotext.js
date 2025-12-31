@@ -52,11 +52,16 @@ class Hellotext {
       ...this.headers,
     }
 
+    const user = {
+      ...User.identificationData,
+      ...(params.user || {}),
+    }
+
     const pageInstance = params && params.url ? new Page(params.url) : this.page
 
     const body = {
       session: this.session,
-      user: User.identificationData,
+      user,
       action,
       ...params,
       ...pageInstance.trackingData,

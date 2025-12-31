@@ -93,6 +93,20 @@ describe("when the class is initialized successfully", () => {
         expect(requestBody).toHaveProperty('session', 'session')
         expect(requestBody).toHaveProperty('test_param', 'test_value')
       });
+
+      it("includes user params in the request body", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("page.viewed", { user: { custom_field: "value" } })
+
+        const fetchCall = global.fetch.mock.calls[0]
+        const requestBody = JSON.parse(fetchCall[1].body)
+
+        expect(requestBody.user).toHaveProperty('custom_field', 'value')
+      });
     });
   });
 
