@@ -275,7 +275,7 @@ describe("when the class is initialized successfully", () => {
       const requestBody = JSON.parse(requestOptions.body)
 
       // Verify the request body includes all expected fields
-      expect(requestBody).toHaveProperty('user', 'user_123')
+      expect(requestBody).toHaveProperty('user_id', 'user_123')
       expect(requestBody).toHaveProperty('email', 'user@example.com')
       expect(requestBody).toHaveProperty('phone', '+1234567890')
       expect(requestBody).toHaveProperty('name', 'John Doe')
@@ -332,7 +332,7 @@ describe("when the class is initialized successfully", () => {
       const requestBody = JSON.parse(requestOptions.body)
 
       // Verify the request body includes only user and session
-      expect(requestBody).toHaveProperty('user', 'user_minimal')
+      expect(requestBody).toHaveProperty('user_id', 'user_minimal')
       expect(requestBody).toHaveProperty('session', 'test_session')
       expect(requestBody).not.toHaveProperty('email')
       expect(requestBody).not.toHaveProperty('phone')
