@@ -248,11 +248,11 @@ describe("when the class is initialized successfully", () => {
     afterEach(() => {
       jest.clearAllMocks()
       // Clear identification cookies
-      document.cookie = "hello_identified_user_id=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
-      document.cookie = "hello_identified_source=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      document.cookie = "hello_user_id=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      document.cookie = "hello_user_source=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
     })
 
-    it("sends correct request body with external_id and options", async () => {
+    it("sends correct request body with user and options", async () => {
       global.fetch = jest.fn().mockResolvedValue({
         json: jest.fn().mockResolvedValue({received: "success"}),
         status: 200,
@@ -275,7 +275,7 @@ describe("when the class is initialized successfully", () => {
       const requestBody = JSON.parse(requestOptions.body)
 
       // Verify the request body includes all expected fields
-      expect(requestBody).toHaveProperty('external_id', 'user_123')
+      expect(requestBody).toHaveProperty('user', 'user_123')
       expect(requestBody).toHaveProperty('email', 'user@example.com')
       expect(requestBody).toHaveProperty('phone', '+1234567890')
       expect(requestBody).toHaveProperty('name', 'John Doe')
@@ -296,8 +296,8 @@ describe("when the class is initialized successfully", () => {
       })
 
       expect(response.succeeded).toEqual(true)
-      expect(getCookieValue("hello_identified_user_id")).toEqual("user_456")
-      expect(getCookieValue("hello_identified_source")).toEqual("woocommerce")
+      expect(getCookieValue("hello_user_id")).toEqual("user_456")
+      expect(getCookieValue("hello_user_source")).toEqual("woocommerce")
     })
 
     it("does not set cookies when identification fails", async () => {
@@ -313,11 +313,11 @@ describe("when the class is initialized successfully", () => {
       })
 
       expect(response.failed).toEqual(true)
-      expect(getCookieValue("hello_identified_user_id")).toBeUndefined()
-      expect(getCookieValue("hello_identified_source")).toBeUndefined()
+      expect(getCookieValue("hello_user_id")).toBeUndefined()
+      expect(getCookieValue("hello_user_source")).toBeUndefined()
     })
 
-    it("works with minimal options (only external_id)", async () => {
+    it("works with minimal options (only user id)", async () => {
       global.fetch = jest.fn().mockResolvedValue({
         json: jest.fn().mockResolvedValue({received: "success"}),
         status: 200,
@@ -331,8 +331,8 @@ describe("when the class is initialized successfully", () => {
       const requestOptions = fetchCall[1]
       const requestBody = JSON.parse(requestOptions.body)
 
-      // Verify the request body includes only external_id and session
-      expect(requestBody).toHaveProperty('external_id', 'user_minimal')
+      // Verify the request body includes only user and session
+      expect(requestBody).toHaveProperty('user', 'user_minimal')
       expect(requestBody).toHaveProperty('session', 'test_session')
       expect(requestBody).not.toHaveProperty('email')
       expect(requestBody).not.toHaveProperty('phone')
@@ -350,8 +350,8 @@ describe("when the class is initialized successfully", () => {
         email: "user@example.com"
       })
 
-      expect(getCookieValue("hello_identified_user_id")).toEqual("user_no_source")
-      expect(getCookieValue("hello_identified_source")).toBeUndefined()
+      expect(getCookieValue("hello_user_id")).toEqual("user_no_source")
+      expect(getCookieValue("hello_user_source")).toBeUndefined()
     })
 
     it("sends session from Hellotext context in request", async () => {

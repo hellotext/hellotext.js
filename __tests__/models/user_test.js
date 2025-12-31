@@ -5,8 +5,8 @@
 import { Cookies, User } from '../../src/models'
 
 beforeEach(() => {
-  document.cookie = 'hello_identified_user_id=;expires=Thu, 01 Jan 1970 00:00:00 GMT'
-  document.cookie = 'hello_identified_source=;expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  document.cookie = 'hello_user_id=;expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  document.cookie = 'hello_user_source=;expires=Thu, 01 Jan 1970 00:00:00 GMT'
   jest.clearAllMocks()
 })
 
@@ -17,7 +17,7 @@ describe('User', () => {
     })
 
     it('returns the user id from cookie', () => {
-      Cookies.set('hello_identified_user_id', 'user_123')
+      Cookies.set('hello_user_id', 'user_123')
       expect(User.id).toEqual('user_123')
     })
   })
@@ -28,7 +28,7 @@ describe('User', () => {
     })
 
     it('returns the source from cookie', () => {
-      Cookies.set('hello_identified_source', 'shopify')
+      Cookies.set('hello_user_source', 'shopify')
       expect(User.source).toEqual('shopify')
     })
   })
@@ -86,7 +86,7 @@ describe('User', () => {
     })
 
     it('returns empty object when only source set', () => {
-      Cookies.set('hello_identified_source', 'shopify')
+      Cookies.set('hello_user_source', 'shopify')
       expect(User.identificationData).toEqual({})
     })
 

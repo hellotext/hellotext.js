@@ -83,7 +83,7 @@ class Hellotext {
    */
   static async identify(externalId, options = {}) {
     const response = await API.identifications.create({
-      external_id: externalId,
+      user: externalId,
       ...options,
     })
 
