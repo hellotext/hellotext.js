@@ -373,5 +373,31 @@ describe("when the class is initialized successfully", () => {
       // Verify the session is included from Hellotext.session
       expect(requestBody).toHaveProperty('session', 'test_session')
     })
+
+    it("skips API call when user is already identified with same ID", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      // First identify the user
+      await Hellotext.identify("user_existing", {
+        email: "existing@example.com",
+        source: "shopify"
+      })
+
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+
+      // Try to identify with the same ID again
+      const response = await Hellotext.identify("user_existing", {
+        email: "different@example.com",
+        source: "woocommerce"
+      })
+
+      // Should not make another API call
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+      expect(response.succeeded).toEqual(true)
+    })
   })
 });

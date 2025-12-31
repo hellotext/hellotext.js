@@ -83,6 +83,14 @@ class Hellotext {
    * @returns {Promise<Response>}
    */
   static async identify(externalId, options = {}) {
+    if (User.id === externalId) {
+      return new Response(true, {
+        json: async () => {
+          already_identified: true
+        },
+      })
+    }
+
     const response = await API.identifications.create({
       user_id: externalId,
       ...options,
