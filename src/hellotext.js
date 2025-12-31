@@ -1,14 +1,11 @@
 import { Configuration, Event } from './core'
 
 import API, { Response } from './api'
-import { Business, FormCollection, Page, Query, Session, Webchat } from './models'
+import { Business, FormCollection, Page, Query, Session, User, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
 
 class Hellotext {
-  static #session
-  static #query
-
   static eventEmitter = new Event()
   static forms
   static business
@@ -27,7 +24,7 @@ class Hellotext {
     this.business = new Business(business)
     this.forms = new FormCollection()
 
-    this.#query = new Query()
+    this.query = new Query()
 
     if (Configuration.webchat.id) {
       this.webchat = await Webchat.load(Configuration.webchat.id)
@@ -59,6 +56,7 @@ class Hellotext {
 
     const body = {
       session: this.session,
+      user: User.identificationData,
       action,
       ...params,
       ...pageInstance.trackingData,
@@ -70,6 +68,40 @@ class Hellotext {
       headers,
       body,
     })
+  }
+
+  /**
+   * @typedef { Object } IdentificationOptions
+   * @property { String } [email] - the email of the user
+   * @property { String } [phone] - the phone number of the user
+   * @property { String } [name] - the name of the user
+   * @property { String } [source] - the platform specific identifier where this pixel is running on.
+   *
+   * Identifies a user and attaches the hello_session to the user ID
+   * @param { String } externalId - the user ID
+   * @param { IdentificationOptions } options - the options for the identification
+   * @returns {Promise<Response>}
+   */
+  static async identify(externalId, options = {}) {
+    const response = await API.identifications.create({
+      user_id: externalId,
+      ...options,
+    })
+
+    if (response.succeeded) {
+      User.remember(externalId, options.source)
+    }
+
+    return response
+  }
+
+  /**
+   * Clears the user session, use when the user logs out to clear the hello cookies
+   *
+   * @returns {void}
+   */
+  static forget() {
+    User.forget()
   }
 
   /**

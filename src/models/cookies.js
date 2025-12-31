@@ -33,6 +33,19 @@ class Cookies {
       return undefined
     }
   }
+
+  static delete(name) {
+    if (typeof document !== 'undefined') {
+      const domain = Page.getRootDomain()
+      const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+
+      if (domain) {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}; domain=${domain}; SameSite=Lax`
+      } else {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}; SameSite=Lax`
+      }
+    }
+  }
 }
 
 export { Cookies }

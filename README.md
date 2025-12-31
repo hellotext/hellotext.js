@@ -51,6 +51,7 @@ Failing to initialize the class before calling any other method will throw a `No
 
 Learn how to leverage the library to track events and collect forms.
 
+- [Understanding Sessions](/docs/sessions.md)
 - [Tracking Events](/docs/tracking.md)
 - [Forms](/docs/forms.md)
 - [Webchat](/docs/webchat.md)
@@ -104,50 +105,6 @@ Hellotext.removeEventListener(eventName, callback)
 - `forms:collected` This event is fired when forms are collected. The callback will receive the array of forms collected.
 - `form:completed` This event is fired when a form has been completed. A form is completed when the user fills all required inputs and verifies their OTP(One-Time Password). The callback will receive the form object that was completed, alongside the data the user filled in the form.
 - View Webchat events [here](/docs/webchat.md#events)
-
-## Understanding Sessions
-
-The library looks for a session identifier present on the `hello_session` query parameter. If the session is not present as a cookie neither it will create a new random session identifier, you can disable this default behaviour via the configuration, see [Configuration Options](#configuration-options) for more information.
-The session is automatically sent to Hellotext any time the `Hellotext.track` method is called.
-
-Short links redirections attaches a session identifier to the destination url as `hello_session` query parameter. This will identify all the events back to the customer who opened the link.
-
-### Get session
-
-It is possible to obtain the current session by simply calling `Hellotext.session`. When the session is present in the cookies,
-the value stored in the cookies is returned. Otherwise, a new session is generated via [crypto.randomUUID()](https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID).
-The session is kept in the client and not sent to Hellotext's servers until an event is tracked.
-
-An event is tracked in the following cases
-
-- Explicitly calling `Hellotext.track` method.
-- When a form is submitted and the form data is sent to Hellotext.
-
-```javascript
-Hellotext.session
-// Returns da834c54-97fa-44ef-bafd-2bd4fec60636
-```
-
-If the session has not been set yet, the result returned will be `undefined`.
-You can check whether the session has been set or not by calling `Hellotext.isInitialized`.
-
-```javascript
-if (Hellotext.isInitialized) {
-  console.log('session is present')
-} else {
-  console.log('session has not been set')
-}
-```
-
-Moreover, you can hook in and listen for the session being set, such that when it's set, you're notified about the change, like so
-
-```javascript
-Hellotext.on('session-set', session => {
-  console.log('session is: ', session)
-})
-```
-
-You may want to store the session on your backend when customers are unidentified so you can later [attach it to a profile](https://www.hellotext.com/api#attach_session) when it becomes known.
 
 ### Configuration
 
