@@ -33,24 +33,24 @@ describe('User', () => {
     })
   })
 
-  describe('persist', () => {
+  describe('remember', () => {
     it('sets both user_id and source when both provided', () => {
-      User.persist('user_123', 'shopify')
+      User.remember('user_123', 'shopify')
 
       expect(User.id).toEqual('user_123')
       expect(User.source).toEqual('shopify')
     })
 
     it('sets only user_id when source is falsy', () => {
-      User.persist('user_456', undefined)
+      User.remember('user_456', undefined)
 
       expect(User.id).toEqual('user_456')
       expect(User.source).toBeUndefined()
     })
 
     it('updates existing cookies', () => {
-      User.persist('user_old', 'shopify')
-      User.persist('user_new', 'woocommerce')
+      User.remember('user_old', 'shopify')
+      User.remember('user_new', 'woocommerce')
 
       expect(User.id).toEqual('user_new')
       expect(User.source).toEqual('woocommerce')
@@ -59,7 +59,7 @@ describe('User', () => {
 
   describe('forget', () => {
     it('removes user cookies', () => {
-      User.persist('user_789', 'shopify')
+      User.remember('user_789', 'shopify')
       User.forget()
 
       expect(User.id).toBeUndefined()
@@ -77,7 +77,7 @@ describe('User', () => {
     })
 
     it('returns user_id and source when both set', () => {
-      User.persist('user_111', 'shopify')
+      User.remember('user_111', 'shopify')
 
       expect(User.identificationData).toEqual({
         user_id: 'user_111',
@@ -91,7 +91,7 @@ describe('User', () => {
     })
 
     it('includes undefined source when not provided', () => {
-      User.persist('user_222')
+      User.remember('user_222')
 
       expect(User.identificationData).toEqual({
         user_id: 'user_222',

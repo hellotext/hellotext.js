@@ -9,7 +9,7 @@ class User {
     return Cookies.get('hello_user_source')
   }
 
-  static persist(id, source) {
+  static remember(id, source) {
     if (source) {
       Cookies.set('hello_user_source', source)
     }

@@ -88,7 +88,7 @@ class Hellotext {
     })
 
     if (response.succeeded) {
-      User.persist(externalId, options.source)
+      User.remember(externalId, options.source)
     }
 
     return response
