@@ -100,7 +100,7 @@ class Hellotext {
    *
    * @returns {void}
    */
-  forget() {
+  static forget() {
     User.forget()
   }
 
