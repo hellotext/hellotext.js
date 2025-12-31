@@ -351,7 +351,7 @@ describe("when the class is initialized successfully", () => {
       })
 
       expect(getCookieValue("hello_identified_user_id")).toEqual("user_no_source")
-      expect(getCookieValue("hello_identified_source")).toEqual("undefined")
+      expect(getCookieValue("hello_identified_source")).toBeUndefined()
     })
 
     it("sends session from Hellotext context in request", async () => {

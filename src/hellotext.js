@@ -1,14 +1,11 @@
 import { Configuration, Event } from './core'
 
 import API, { Response } from './api'
-import { Business, Cookies, FormCollection, Page, Query, Session, Webchat } from './models'
+import { Business, FormCollection, Page, Query, Session, User, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
 
 class Hellotext {
-  static #session
-  static #query
-
   static eventEmitter = new Event()
   static forms
   static business
@@ -27,7 +24,7 @@ class Hellotext {
     this.business = new Business(business)
     this.forms = new FormCollection()
 
-    this.#query = new Query()
+    this.query = new Query()
 
     if (Configuration.webchat.id) {
       this.webchat = await Webchat.load(Configuration.webchat.id)
@@ -91,11 +88,19 @@ class Hellotext {
     })
 
     if (response.succeeded) {
-      Cookies.set('hello_identified_user_id', externalId)
-      Cookies.set('hello_identified_source', options.source)
+      User.persist(externalId, options.source)
     }
 
     return response
+  }
+
+  /**
+   * Clears the user session, use when the user logs out to clear the hello cookies
+   *
+   * @returns {void}
+   */
+  forget() {
+    User.forget()
   }
 
   /**
