@@ -310,11 +310,14 @@ export default class extends Controller {
   }
 
   onPopoverOpened() {
-    this.onViewportResize()
     this.popoverTarget.classList.remove(...this.fadeOutClasses)
 
     if (!this.onMobile) {
       this.inputTarget.focus()
+    }
+
+    if (this.onMobile) {
+      this.onViewportResize()
     }
 
     if (!this.scrolled) {
