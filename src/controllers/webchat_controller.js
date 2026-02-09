@@ -115,6 +115,7 @@ export default class extends Controller {
     this.broadcastChannel.close()
     this.floatingUICleanup()
 
+    this.teardownViewportResize()
     super.disconnect()
   }
 
@@ -309,6 +310,7 @@ export default class extends Controller {
   }
 
   onPopoverOpened() {
+    this.onViewportResize()
     this.popoverTarget.classList.remove(...this.fadeOutClasses)
 
     if (!this.onMobile) {
@@ -340,6 +342,8 @@ export default class extends Controller {
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
+
+    this.teardownViewportResize()
   }
 
   onMessageReaction(message) {
@@ -755,6 +759,24 @@ export default class extends Controller {
 
   byteToMegabyte(bytes) {
     return Math.ceil(bytes / 1024 / 1024)
+  }
+
+  onViewportResize() {
+    const { height, offsetTop } = window.visualViewport
+
+    this.popoverTarget.style.height = `${height}px`
+    this.popoverTarget.style.top = `${offsetTop}px`
+
+    window.visualViewport.addEventListener('resize', this.onViewportResize)
+    window.visualViewport.addEventListener('scroll', this.onViewportResize)
+  }
+
+  teardownViewportResize() {
+    window.visualViewport.removeEventListener('resize', this.onViewportResize)
+    window.visualViewport.removeEventListener('scroll', this.onViewportResize)
+
+    this.popoverTarget.style.height = ''
+    this.popoverTarget.style.top = ''
   }
 
   get middlewares() {
