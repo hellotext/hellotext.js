@@ -17,11 +17,12 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config) {
+    this.business = new Business(business)
+
     Configuration.assign(config)
     Session.initialize()
 
     this.page = new Page()
-    this.business = new Business(business)
     this.forms = new FormCollection()
 
     this.query = new Query()
@@ -154,7 +155,7 @@ class Hellotext {
   // private
 
   static get notInitialized() {
-    return this.business.id === undefined
+    return !this.business || this.business.id === undefined
   }
 
   static get headers() {
