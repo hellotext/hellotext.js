@@ -20,9 +20,21 @@ jest.mock('../../src/hellotext', () => {
   }
 })
 
+jest.mock('../../src/api', () => {
+  return {
+    __esModule: true,
+    default: {
+      acks: {
+        send: jest.fn()
+      }
+    }
+  }
+})
+
 import { Configuration } from '../../src/core'
 import { Session } from '../../src/models'
 import { Cookies } from '../../src/models/cookies'
+import API from '../../src/api'
 
 describe('Session', () => {
   beforeEach(() => {
@@ -38,6 +50,7 @@ describe('Session', () => {
     }
 
     global.crypto.randomUUID.mockClear()
+    API.acks.send.mockClear()
 
     if (typeof window !== 'undefined') {
       delete window.location
@@ -379,6 +392,79 @@ describe('Session', () => {
 
       expect(Session.session).toEqual('existing-session')
       expect(Cookies.get('hello_session')).toEqual('existing-session')
+    })
+  })
+
+  describe('ack behavior', () => {
+    it('sends an ack when a session is set for the first time', () => {
+      Session.session = 'new-session'
+
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
+    })
+
+    it('sets hello_session_ack_at cookie after sending an ack', () => {
+      Session.session = 'new-session'
+
+      expect(Cookies.get('hello_session_ack_at')).toBeTruthy()
+    })
+
+    it('does not send an ack when the same session is set again and already acked', () => {
+      Cookies.set('hello_session', 'existing-session')
+      Cookies.set('hello_session_ack_at', new Date().toISOString())
+
+      Session.session = 'existing-session'
+
+      expect(API.acks.send).not.toHaveBeenCalled()
+    })
+
+    it('does not delete hello_session_ack_at when the same session is set again', () => {
+      const ackedAt = new Date().toISOString()
+      Cookies.set('hello_session', 'existing-session')
+      Cookies.set('hello_session_ack_at', ackedAt)
+
+      Session.session = 'existing-session'
+
+      expect(Cookies.get('hello_session_ack_at')).toEqual(ackedAt)
+    })
+
+    it('sends an ack when the session changes (identity change)', () => {
+      Cookies.set('hello_session', 'old-session')
+      Cookies.set('hello_session_ack_at', new Date().toISOString())
+
+      Session.session = 'new-session'
+
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
+    })
+
+    it('deletes hello_session_ack_at when the session changes', () => {
+      Cookies.set('hello_session', 'old-session')
+      Cookies.set('hello_session_ack_at', new Date().toISOString())
+
+      Session.session = 'new-session'
+
+      // ack_at is deleted and re-set after the new ack
+      expect(Cookies.get('hello_session_ack_at')).toBeTruthy()
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
+    })
+
+    it('re-acks each time the session changes to a different value', () => {
+      Session.session = 'session-a'
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
+
+      Session.session = 'session-b'
+      expect(API.acks.send).toHaveBeenCalledTimes(2)
+
+      Session.session = 'session-c'
+      expect(API.acks.send).toHaveBeenCalledTimes(3)
+    })
+
+    it('does not re-ack when the same session is set multiple times', () => {
+      Session.session = 'session-a'
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
+
+      Session.session = 'session-a'
+      Session.session = 'session-a'
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
     })
   })
 

@@ -1,6 +1,7 @@
 import { Configuration } from '../core'
 import { Cookies } from './cookies'
 import { Query } from './query'
+import API from '../api'
 
 class Session {
   static #session
@@ -11,8 +12,21 @@ class Session {
   }
 
   static set session(value) {
+    const oldSession = Cookies.get('hello_session')
+
     this.#session = value
     Cookies.set('hello_session', value)
+
+    if (oldSession !== value) {
+      Cookies.delete('hello_session_ack_at')
+    }
+
+    if (!Cookies.get('hello_session_ack_at')) {
+      API.acks.send()
+      Cookies.set('hello_session_ack_at', new Date().toISOString())
+    }
+
+    return this.#session
   }
 
   static initialize() {

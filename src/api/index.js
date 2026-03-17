@@ -3,6 +3,7 @@ import EventsAPI from './events'
 import FormsAPI from './forms'
 import IdentificationsAPI from './identifications'
 import WebchatsAPI from './webchats'
+import AcksAPI from './acks'
 
 export default class API {
   static get businesses() {
@@ -23,6 +24,10 @@ export default class API {
 
   static get identifications() {
     return IdentificationsAPI
+  }
+
+  static get acks() {
+    return AcksAPI
   }
 }
 
