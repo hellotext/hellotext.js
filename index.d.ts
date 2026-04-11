@@ -70,7 +70,8 @@ declare class Hellotext {
 export declare class User {
   static get id(): string | undefined
   static get source(): string | undefined
-  static remember(id: string, source?: string): void
+  static get fingerprint(): string | undefined
+  static remember(id: string, source?: string, fingerprint?: string): void
   static forget(): void
   static get identificationData(): IdentificationData | Record<string, never>
 }

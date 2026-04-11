@@ -1,5 +1,5 @@
 import Hellotext from "../src/hellotext";
-import { Business } from "../src/models";
+import { Business, Session } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -264,6 +264,7 @@ describe("when the class is initialized successfully", () => {
       // Clear identification cookies
       document.cookie = "hello_user_id=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
       document.cookie = "hello_user_source=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      document.cookie = "hello_user_identification_hash=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
     })
 
     it("sends correct request body with user and options", async () => {
@@ -312,6 +313,7 @@ describe("when the class is initialized successfully", () => {
       expect(response.succeeded).toEqual(true)
       expect(getCookieValue("hello_user_id")).toEqual("user_456")
       expect(getCookieValue("hello_user_source")).toEqual("woocommerce")
+      expect(getCookieValue("hello_user_identification_hash")).toMatch(/^v1:/)
     })
 
     it("does not set cookies when identification fails", async () => {
@@ -329,6 +331,7 @@ describe("when the class is initialized successfully", () => {
       expect(response.failed).toEqual(true)
       expect(getCookieValue("hello_user_id")).toBeUndefined()
       expect(getCookieValue("hello_user_source")).toBeUndefined()
+      expect(getCookieValue("hello_user_identification_hash")).toBeUndefined()
     })
 
     it("works with minimal options (only user id)", async () => {
@@ -388,30 +391,125 @@ describe("when the class is initialized successfully", () => {
       expect(requestBody).toHaveProperty('session', 'test_session')
     })
 
-    it("skips API call when user is already identified with same ID", async () => {
+    it("skips API call when identify payload is unchanged", async () => {
       global.fetch = jest.fn().mockResolvedValue({
         json: jest.fn().mockResolvedValue({received: "success"}),
         status: 200,
         ok: true
       })
 
-      // First identify the user
+      await Hellotext.identify("user_existing", {
+        shopify: {
+          customer: {
+            email: "existing@example.com",
+            phone: "+1234567890",
+          },
+          domain: "example.myshopify.com",
+        },
+        tags: ["vip", "repeat"],
+        source: "shopify",
+      })
+
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+
+      const response = await Hellotext.identify("user_existing", {
+        tags: ["vip", "repeat"],
+        shopify: {
+          domain: "example.myshopify.com",
+          customer: {
+            phone: "+1234567890",
+            email: "existing@example.com",
+          },
+        },
+        source: "shopify",
+      })
+
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+      expect(response.succeeded).toEqual(true)
+    })
+
+    it("does not skip API call when identify options change for the same user", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      await Hellotext.identify("user_existing", {
+        email: "existing@example.com",
+        source: "shopify"
+      })
+
+      await Hellotext.identify("user_existing", {
+        email: "existing@example.com",
+        phone: "+1234567890",
+        source: "shopify"
+      })
+
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+
+    it("does not skip API call when array order changes", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      await Hellotext.identify("user_existing", {
+        tags: ["vip", "repeat"],
+        source: "shopify"
+      })
+
+      await Hellotext.identify("user_existing", {
+        tags: ["repeat", "vip"],
+        source: "shopify"
+      })
+
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+    })
+
+    it("does not skip API call when the session changes", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
+      })
+
+      await Hellotext.identify("user_existing", {
+        email: "existing@example.com",
+        source: "shopify"
+      })
+
+      Session.session = "new_session"
+      global.fetch.mockClear()
+
       await Hellotext.identify("user_existing", {
         email: "existing@example.com",
         source: "shopify"
       })
 
       expect(global.fetch).toHaveBeenCalledTimes(1)
+      expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toHaveProperty('session', 'new_session')
+    })
 
-      // Try to identify with the same ID again
-      const response = await Hellotext.identify("user_existing", {
-        email: "different@example.com",
-        source: "woocommerce"
+    it("sends once for legacy cookies without a fingerprint and seeds it afterward", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        json: jest.fn().mockResolvedValue({received: "success"}),
+        status: 200,
+        ok: true
       })
 
-      // Should not make another API call
+      document.cookie = "hello_user_id=user_existing"
+      document.cookie = "hello_user_source=shopify"
+
+      await Hellotext.identify("user_existing", {
+        email: "existing@example.com",
+        source: "shopify"
+      })
+
       expect(global.fetch).toHaveBeenCalledTimes(1)
-      expect(response.succeeded).toEqual(true)
+      expect(getCookieValue("hello_user_identification_hash")).toMatch(/^v1:/)
     })
   })
 });

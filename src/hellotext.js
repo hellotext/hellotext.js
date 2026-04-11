@@ -1,7 +1,7 @@
 import { Configuration, Event } from './core'
 
 import API, { Response } from './api'
-import { Business, FormCollection, Page, Query, Session, User, Webchat } from './models'
+import { Business, Fingerprint, FormCollection, Page, Query, Session, User, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -83,17 +83,21 @@ class Hellotext {
    * @property { String } [name] - the name of the user
    * @property { String } [source] - the platform specific identifier where this pixel is running on.
    *
-   * Identifies a user and attaches the hello_session to the user ID
+   * Identifies a user and attaches the hello_session to the user ID.
+   * Repeated calls are skipped only when the last successful identify payload
+   * for the current session remains unchanged.
    * @param { String } externalId - the user ID
    * @param { IdentificationOptions } options - the options for the identification
    * @returns {Promise<Response>}
    */
   static async identify(externalId, options = {}) {
-    if (User.id === externalId) {
+    const fingerprint = await Fingerprint.generate(this.session, externalId, options)
+
+    if (Fingerprint.matches(User.fingerprint, fingerprint)) {
       return new Response(true, {
-        json: async () => {
-          already_identified: true
-        },
+        json: async () => ({
+          already_identified: true,
+        }),
       })
     }
 
@@ -103,7 +107,11 @@ class Hellotext {
     })
 
     if (response.succeeded) {
-      User.remember(externalId, options.source)
+      User.remember(
+        externalId,
+        options.source,
+        fingerprint,
+      )
     }
 
     return response
