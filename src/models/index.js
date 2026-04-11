@@ -1,5 +1,6 @@
 export { Business } from './business'
 export { Cookies } from './cookies'
+export { Fingerprint } from './fingerprint'
 export { Form } from './form'
 export { FormCollection } from './form_collection'
 export { Page } from './page'

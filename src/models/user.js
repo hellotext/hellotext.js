@@ -9,9 +9,17 @@ class User {
     return Cookies.get('hello_user_source')
   }
 
-  static remember(id, source) {
+  static get fingerprint() {
+    return Cookies.get('hello_user_identification_hash')
+  }
+
+  static remember(id, source, fingerprint) {
     if (source) {
       Cookies.set('hello_user_source', source)
+    }
+
+    if (fingerprint) {
+      Cookies.set('hello_user_identification_hash', fingerprint)
     }
 
     Cookies.set('hello_user_id', id)
@@ -20,6 +28,7 @@ class User {
   static forget() {
     Cookies.delete('hello_user_id')
     Cookies.delete('hello_user_source')
+    Cookies.delete('hello_user_identification_hash')
   }
 
   static get identificationData() {
