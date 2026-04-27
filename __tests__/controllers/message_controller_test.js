@@ -3,6 +3,7 @@
  */
 
 import MessageController from '../../src/controllers/message_controller'
+import Hellotext from '../../src/hellotext'
 
 describe('MessageController', () => {
   let controller
@@ -267,6 +268,93 @@ describe('MessageController', () => {
       }
 
       expect(() => controller.quickReply(mockEvent)).toThrow()
+    })
+  })
+
+  describe('addToCart', () => {
+    let mockButton
+    let mockCard
+    let trackSpy
+    let dispatchSpy
+
+    beforeEach(() => {
+      mockButton = document.createElement('button')
+      mockButton.dataset.id = 'btn-789'
+      mockButton.dataset.text = 'Add to cart'
+
+      mockCard = document.createElement('div')
+      mockCard.setAttribute('data-hellotext--message-target', 'carouselCard')
+      mockCard.dataset.id = 'product-456'
+      mockCard.appendChild(mockButton)
+
+      mockButton.closest = jest.fn().mockReturnValue(mockCard)
+      trackSpy = jest.spyOn(Hellotext, 'track').mockResolvedValue({})
+      dispatchSpy = jest.spyOn(Hellotext.eventEmitter, 'dispatch').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+      trackSpy.mockRestore()
+      dispatchSpy.mockRestore()
+    })
+
+    it('tracks the cart.added event for the clicked product', () => {
+      const mockEvent = {
+        currentTarget: mockButton
+      }
+
+      controller.addToCart(mockEvent)
+
+      expect(Hellotext.track).toHaveBeenCalledWith('cart.added', {
+        object_parameters: {
+          items: [
+            {
+              product: 'product-456',
+              quantity: 1
+            }
+          ]
+        }
+      })
+    })
+
+    it('dispatches the cart.added event with the tracking payload', () => {
+      const mockEvent = {
+        currentTarget: mockButton
+      }
+
+      controller.addToCart(mockEvent)
+
+      expect(Hellotext.eventEmitter.dispatch).toHaveBeenCalledWith('cart.added', {
+        object_parameters: {
+          items: [
+            {
+              product: 'product-456',
+              quantity: 1
+            }
+          ]
+        }
+      })
+    })
+
+    it('does not dispatch a controller event', () => {
+      const mockEvent = {
+        currentTarget: mockButton
+      }
+
+      controller.addToCart(mockEvent)
+
+      expect(controller.dispatch).not.toHaveBeenCalled()
+    })
+
+    it('handles null card element the same as quickReply', () => {
+      mockButton.closest = jest.fn().mockReturnValue(null)
+
+      const mockEvent = {
+        currentTarget: mockButton
+      }
+
+      expect(() => controller.addToCart(mockEvent)).toThrow()
+      expect(Hellotext.track).not.toHaveBeenCalled()
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalled()
     })
   })
 
