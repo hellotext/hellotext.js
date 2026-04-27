@@ -39,7 +39,7 @@ export default class extends Controller {
   addToCart({ currentTarget }) {
     const card = currentTarget.closest('[data-hellotext--message-target="carouselCard"]')
 
-    Hellotext.track('cart.added', {
+    const payload = {
       object_parameters: {
         items: [
           {
@@ -48,7 +48,10 @@ export default class extends Controller {
           },
         ],
       },
-    })
+    }
+
+    Hellotext.track('cart.added', payload)
+    Hellotext.eventEmitter.dispatch('cart.added', payload)
   }
 
   moveToLeft() {

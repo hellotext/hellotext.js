@@ -11,6 +11,7 @@ export default class Event {
     'webchat:closed',
     'webchat:message:sent',
     'webchat:message:received',
+    'cart.added',
   ]
 
   static valid(name) {
