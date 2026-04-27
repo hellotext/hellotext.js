@@ -105,6 +105,7 @@ Hellotext.removeEventListener(eventName, callback)
 - `forms:collected` This event is fired when forms are collected. The callback will receive the array of forms collected.
 - `form:completed` This event is fired when a form has been completed. A form is completed when the user fills all required inputs and verifies their OTP(One-Time Password). The callback will receive the form object that was completed, alongside the data the user filled in the form.
 - View Webchat events [here](/docs/webchat.md#events)
+- `cart.added` This event is fired when a customer adds a product to their cart from a Webchat message.
 
 ### Configuration
 
