@@ -1,5 +1,7 @@
 import { Controller } from '@hotwired/stimulus'
 
+import Hellotext from '../hellotext'
+
 export default class extends Controller {
   static values = {
     id: String,
@@ -30,6 +32,21 @@ export default class extends Controller {
         buttonId: currentTarget.dataset.id,
         body: currentTarget.dataset.text,
         cardElement: card,
+      },
+    })
+  }
+
+  addToCart({ currentTarget }) {
+    const card = currentTarget.closest('[data-hellotext--message-target="carouselCard"]')
+
+    Hellotext.track('cart.added', {
+      object_parameters: {
+        items: [
+          {
+            product: card.dataset.id,
+            quantity: 1,
+          },
+        ],
       },
     })
   }
