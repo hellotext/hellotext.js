@@ -3,27 +3,34 @@
  */
 
 import Hellotext from '../../src/hellotext'
+import API from '../../src/api'
 import { Form, FormCollection } from '../../src/models'
 
-beforeEach(() => {
+const business = {
+  whitelist: 'enabled',
+  features: {},
+  subscription: 'basic',
+  country: 'US',
+  locale: 'en'
+}
+
+beforeEach(async () => {
   jest.spyOn(Form.prototype, 'mount').mockImplementation(() => Promise.resolve())
   jest.spyOn(FormCollection.prototype, 'collectExistingFormsOnPage').mockImplementation(() => {})
   jest.spyOn(FormCollection.prototype, 'formMutationObserver').mockImplementation(() => {})
+  API.businesses.get = jest.fn().mockResolvedValue({
+    ok: true,
+    json: jest.fn().mockResolvedValue(business)
+  })
 
-  Hellotext.initialize('M01az53K', {
+  await Hellotext.initialize('M01az53K', {
     autoGenerateSession: false,
     forms: {
       autoMount: false,
     }
   })
 
-  Hellotext.business.data = {
-    whitelist: 'enabled',
-    features: {},
-    subscription: 'basic',
-    country: 'US',
-    locale: 'en'
-  }
+  Hellotext.business.data = business
 
   Hellotext.business.setData = jest.fn()
 
@@ -114,7 +121,7 @@ describe('collect', () => {
   })
 
   it('mounts forms when autoMount is enabled', async () => {
-    Hellotext.initialize('M01az53K', {
+    await Hellotext.initialize('M01az53K', {
       autoGenerateSession: false,
       forms: {
         autoMount: true,
@@ -478,12 +485,12 @@ describe('add with business data', () => {
 })
 
 describe('MutationObserver functionality', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // Restore original mutation observer behavior for these tests
     FormCollection.prototype.formMutationObserver.mockRestore()
 
     // Ensure autoMount is enabled for these tests
-    Hellotext.initialize('M01az53K', {
+    await Hellotext.initialize('M01az53K', {
       autoGenerateSession: false,
       forms: {
         autoMount: true,

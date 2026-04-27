@@ -32,6 +32,12 @@ describe('Configuration', () => {
       Configuration.assign({ webchat: { id: '123' } })
       expect(Configuration.webchat.id).toEqual('123')
     })
+
+    it('accepts false as an opt-out value', () => {
+      expect(() => {
+        Configuration.assign({ webchat: false })
+      }).not.toThrow()
+    })
   })
 
   describe('.locale', () => {

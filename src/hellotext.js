@@ -16,7 +16,7 @@ class Hellotext {
    * @param business public business id
    * @param { Configuration } config
    */
-  static async initialize(business, config) {
+  static async initialize(business, config = {}) {
     this.business = new Business(business)
 
     Configuration.assign(config)
@@ -27,8 +27,15 @@ class Hellotext {
 
     this.query = new Query()
 
-    if (Configuration.webchat.id) {
-      this.webchat = await Webchat.load(Configuration.webchat.id)
+    const businessData = await this.business.hydrate()
+    const webchatConfig = config.webchat === false ? false : {
+      ...((businessData && businessData.webchat) || {}),
+      ...(config.webchat || {}),
+    }
+
+    if (webchatConfig && webchatConfig.id) {
+      Configuration.webchat.assign(webchatConfig)
+      this.webchat = await Webchat.load(webchatConfig.id)
     }
 
     if (typeof MutationObserver !== 'undefined') {

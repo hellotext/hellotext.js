@@ -5,22 +5,55 @@ export interface HellotextConfig {
     autoMount?: boolean
     successMessage?: boolean | string
   }
-  webchat?: {
-    id?: string
-    container?: string
-    placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-    classes?: string | string[]
-    triggerClasses?: string | string[]
-    behaviour?: 'modal' | 'popover'
-    style?: {
-      primaryColor?: string
-      secondaryColor?: string
-      typography?: string
-    }
-    strategy?: 'absolute' | 'fixed'
-  }
+  webchat?: false | HellotextWebchatConfig
   session?: string
   autoGenerateSession?: boolean
+}
+
+export interface HellotextWebchatConfig {
+  id?: string
+  container?: string
+  placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  classes?: string | string[]
+  triggerClasses?: string | string[]
+  behaviour?: 'modal' | 'popover'
+  style?: {
+    primaryColor?: string
+    secondaryColor?: string
+    typography?: string
+  }
+  strategy?: 'absolute' | 'fixed'
+}
+
+export interface HellotextBusinessCountry {
+  code?: string
+  prefix?: string
+  [key: string]: any
+}
+
+export interface HellotextBusinessData {
+  id?: string
+  country?: HellotextBusinessCountry | string
+  features?: Record<string, any>
+  locale?: string
+  style_url?: string
+  webchat?: HellotextWebchatConfig | null
+  whitelist?: string | string[] | null
+  subscription?: string | null
+  [key: string]: any
+}
+
+export interface HellotextBusiness {
+  id: string
+  data: HellotextBusinessData | null
+  readonly subscription: string | null | undefined
+  readonly country: HellotextBusinessCountry | string | undefined
+  readonly enabledWhitelist: boolean
+  readonly locale: any
+  readonly features: Record<string, any> | null | undefined
+  hydrate(): Promise<HellotextBusinessData | null>
+  setData(data: HellotextBusinessData): void
+  setLocale(locale: string): void
 }
 
 export interface TrackingParams {
@@ -63,7 +96,7 @@ declare class Hellotext {
   static get session(): string
   static get isInitialized(): boolean
   static forms: any
-  static business: any
+  static business: HellotextBusiness
   static webchat: any
 }
 
