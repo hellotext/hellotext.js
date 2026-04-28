@@ -89,7 +89,7 @@ export default class extends Controller {
       this.setupFloatingUI({
         trigger: this.triggerTarget,
         popover: this.teaserTarget,
-        strategy: 'popover',
+        strategy: 'absolute',
       })
     }
 
@@ -355,7 +355,7 @@ export default class extends Controller {
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
 
     if (this.hasTeaserTarget) {
-      this.teaserTarget.style.classList.remove('hidden')
+      this.teaserTarget.classList.remove('hidden')
     }
   }
 
