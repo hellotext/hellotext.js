@@ -28,7 +28,12 @@ export default class extends Controller {
   connect() {
     usePopover(this)
 
-    this.setupFloatingUI({ trigger: this.buttonTarget, popover: this.popoverTarget })
+    this.setupFloatingUI({
+      trigger: this.buttonTarget,
+      popover: this.popoverTarget,
+      strategy: 'absolute',
+    })
+
     this.popoverTarget.appendChild(this.pickerObject)
 
     super.connect()

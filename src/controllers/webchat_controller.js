@@ -26,7 +26,8 @@ export default class extends Controller {
     typingIndicatorKeepAlive: { type: Number, default: 30000 }, // 30 seconds
     offset: { type: Number, default: 24 },
     padding: { type: Number, default: 24 },
-    optimisticTypingIndicatorWait: { type: Number, default: 1000 }, // 1 second
+    optimisticTypingIndicatorWait: { type: Number, default: 1000 }, // 1 second,
+    teaser: Object,
   }
 
   static classes = ['fadeOut']
@@ -51,6 +52,7 @@ export default class extends Controller {
     'unreadCounter',
     'typingIndicator',
     'typingIndicatorTemplate',
+    'teaser',
   ]
 
   initialize() {
@@ -83,6 +85,14 @@ export default class extends Controller {
     this.triggerTarget.classList.add(...WebchatConfiguration.triggerClasses)
 
     this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
+
+    if (this.hasTeaserTarget) {
+      this.setupFloatingUI({
+        trigger: this.triggerTarget,
+        popover: this.teaserTarget,
+        strategy: 'absolute',
+      })
+    }
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onTypingStart(this.onTypingStart)
@@ -329,6 +339,10 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:opened')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
 
+    if (this.hasTeaserTarget) {
+      this.teaserTarget.classList.add('hidden')
+    }
+
     if (this.unreadCounterTarget.style.display === 'none') return
 
     this.unreadCounterTarget.style.display = 'none'
@@ -340,6 +354,10 @@ export default class extends Controller {
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
+
+    if (this.hasTeaserTarget && this.teaserValue.body) {
+      this.teaserTarget.classList.remove('hidden')
+    }
   }
 
   onMessageReaction(message) {

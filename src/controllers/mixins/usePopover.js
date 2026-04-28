@@ -12,12 +12,12 @@ export const usePopover = controller => {
     toggle() {
       this.openValue = !this.openValue
     },
-    setupFloatingUI({ trigger, popover }) {
+    setupFloatingUI({ trigger, popover, strategy }) {
       this.floatingUICleanup = autoUpdate(trigger, popover, () => {
         computePosition(trigger, popover, {
           placement: this.placementValue,
           middleware: this.middlewares,
-          strategy: Configuration.webchat.strategy,
+          strategy: strategy || Configuration.webchat.strategy,
         }).then(({ x, y, strategy }) => {
           const newStyle = {
             left: `${x}px`,

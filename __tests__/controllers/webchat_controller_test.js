@@ -3,6 +3,9 @@
  */
 
 import WebchatController from '../../src/controllers/webchat_controller'
+import Hellotext from '../../src/hellotext'
+import { Webchat as WebchatConfiguration } from '../../src/core/configuration/webchat'
+import { usePopover } from '../../src/controllers/mixins/usePopover'
 
 // Mock dependencies
 jest.mock('../../src/api/webchat/messages')
@@ -819,6 +822,157 @@ describe('WebchatController', () => {
     })
   })
 
+  describe('connect', () => {
+    let mockTrigger
+    let mockPopover
+    let mockTeaser
+    let mockToolbar
+    let mockWebChatChannel
+    let mockLocalStorage
+
+    beforeEach(() => {
+      mockTrigger = document.createElement('button')
+      mockPopover = document.createElement('div')
+      mockTeaser = document.createElement('div')
+      mockToolbar = document.createElement('div')
+
+      controller.triggerTarget = mockTrigger
+      controller.popoverTarget = mockPopover
+      controller.teaserTarget = mockTeaser
+      controller.toolbarTarget = mockToolbar
+      controller.broadcastChannel = mockBroadcastChannel
+
+      mockWebChatChannel = {
+        onMessage: jest.fn(),
+        onTypingStart: jest.fn(),
+        onReaction: jest.fn()
+      }
+      controller.webChatChannel = mockWebChatChannel
+
+      mockLocalStorage = {
+        getItem: jest.fn().mockReturnValue(null),
+        setItem: jest.fn(),
+        removeItem: jest.fn()
+      }
+      Object.defineProperty(window, 'localStorage', {
+        value: mockLocalStorage,
+        writable: true
+      })
+
+      Object.assign(Hellotext, {
+        business: {
+          features: {
+            white_label: true
+          }
+        },
+        eventEmitter: {
+          dispatch: jest.fn()
+        }
+      })
+
+      WebchatConfiguration.classes = []
+      WebchatConfiguration.triggerClasses = []
+
+      usePopover.mockImplementation(controller => {
+        controller.setupFloatingUI = jest.fn()
+      })
+    })
+
+    afterEach(() => {
+      usePopover.mockReset()
+    })
+
+    it('sets up floating UI for the teaser with absolute positioning', () => {
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true
+      })
+
+      controller.connect()
+
+      expect(controller.setupFloatingUI).toHaveBeenNthCalledWith(1, {
+        trigger: mockTrigger,
+        popover: mockPopover
+      })
+      expect(controller.setupFloatingUI).toHaveBeenNthCalledWith(2, {
+        trigger: mockTrigger,
+        popover: mockTeaser,
+        strategy: 'absolute'
+      })
+    })
+
+    it('does not set up teaser positioning without a teaser target', () => {
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => false,
+        configurable: true
+      })
+
+      controller.connect()
+
+      expect(controller.setupFloatingUI).toHaveBeenCalledTimes(1)
+      expect(controller.setupFloatingUI).toHaveBeenCalledWith({
+        trigger: mockTrigger,
+        popover: mockPopover
+      })
+    })
+  })
+
+  describe('onPopoverOpened', () => {
+    let mockHellotext
+    let mockLocalStorage
+    let mockTeaser
+    let mockUnreadCounter
+
+    beforeEach(() => {
+      mockTeaser = document.createElement('div')
+      mockUnreadCounter = document.createElement('div')
+      mockUnreadCounter.style.display = 'none'
+
+      controller.popoverTarget = document.createElement('div')
+      controller.fadeOutClasses = ['fade-out']
+      controller.scrolled = true
+      controller.teaserTarget = mockTeaser
+      controller.unreadCounterTarget = mockUnreadCounter
+      controller.messagesAPI = {
+        markAsSeen: jest.fn()
+      }
+
+      Object.defineProperty(controller, 'onMobile', {
+        get: () => true,
+        configurable: true
+      })
+
+      mockHellotext = {
+        eventEmitter: {
+          dispatch: jest.fn()
+        }
+      }
+
+      mockLocalStorage = {
+        setItem: jest.fn(),
+        getItem: jest.fn(),
+        removeItem: jest.fn()
+      }
+      Object.defineProperty(window, 'localStorage', {
+        value: mockLocalStorage,
+        writable: true
+      })
+
+      Object.assign(Hellotext, mockHellotext)
+    })
+
+    it('hides the teaser when the popover opens', () => {
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true
+      })
+
+      controller.onPopoverOpened()
+
+      expect(mockTeaser.classList.contains('hidden')).toBe(true)
+    })
+  })
+
   describe('onPopoverClosed', () => {
     let mockHellotext
     let mockLocalStorage
@@ -858,6 +1012,38 @@ describe('WebchatController', () => {
       controller.onPopoverClosed()
 
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('hellotext--webchat--test-webchat-123', 'closed')
+    })
+
+    it('shows the teaser again when the teaser has body content', () => {
+      const teaser = document.createElement('div')
+      teaser.classList.add('hidden')
+
+      controller.teaserTarget = teaser
+      controller.teaserValue = { body: 'Need help?' }
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true
+      })
+
+      controller.onPopoverClosed()
+
+      expect(teaser.classList.contains('hidden')).toBe(false)
+    })
+
+    it('keeps the teaser hidden when the teaser has no body content', () => {
+      const teaser = document.createElement('div')
+      teaser.classList.add('hidden')
+
+      controller.teaserTarget = teaser
+      controller.teaserValue = {}
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true
+      })
+
+      controller.onPopoverClosed()
+
+      expect(teaser.classList.contains('hidden')).toBe(true)
     })
   })
 
