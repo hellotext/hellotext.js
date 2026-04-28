@@ -86,7 +86,11 @@ export default class extends Controller {
     this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
 
     if (this.hasTeaserTarget) {
-      this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.teaserTarget })
+      this.setupFloatingUI({
+        trigger: this.triggerTarget,
+        popover: this.teaserTarget,
+        strategy: 'popover',
+      })
     }
 
     this.webChatChannel.onMessage(this.onMessageReceived)
@@ -340,11 +344,19 @@ export default class extends Controller {
     this.unreadCounterTarget.innerText = '0'
 
     this.messagesAPI.markAsSeen()
+
+    if (this.hasTeaserTarget) {
+      this.teaserTarget.display = 'none'
+    }
   }
 
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
+
+    if (this.hasTeaserTarget) {
+      this.teaserTarget.style.removeProperty('display')
+    }
   }
 
   onMessageReaction(message) {
