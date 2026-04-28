@@ -1,8 +1,17 @@
 ## Webchat
 
-Hellotext allows you to build webchats via the dashboard and allow Hellotext.js to load a given webchat with
-a specific ID and show it to the user. A webchat can be specified when initializing the library by passing a `webchat` property
-to the configuration option.
+Hellotext allows you to build webchats via the dashboard and have Hellotext.js load the configured webchat automatically.
+When a business has a webchat configured through the dashboard, this is enough:
+
+```js
+Hellotext.initialize('PUBLIC_BUSINESS_ID')
+```
+
+Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount.
+
+```js
+Hellotext.initialize('PUBLIC_BUSINESS_ID', { webchat: false })
+```
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', {
@@ -25,7 +34,7 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 
 | Property       | Description                                                                                                                              | Type   | Default        |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------ | -------------- |
-| id             | The id of the webchat to load. **required**                                                                                              | String | null           |
+| id             | The id of the webchat to load. Overrides the dashboard webchat id when provided.                                                         | String | Dashboard id   |
 | container      | The container to append the webchat to, must be a valid CSS selector. If none specified, the webchat is appended at the end of the body. | String | `body`         |
 | placement      | The placement of the webchat, determined according to the parent `container`.                                                            | Enum   | `bottom-right` |
 | classes        | An array or comma separated String of additional CSS classes to apply to the webchat popover.                                            | String | null           |

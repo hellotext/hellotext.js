@@ -3,6 +3,7 @@
  */
 
 import { Business } from '../../src/models'
+import API from '../../src/api'
 
 describe('Business', () => {
   let business
@@ -12,6 +13,7 @@ describe('Business', () => {
   })
 
   afterEach(() => {
+    jest.clearAllMocks()
     document.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove())
   })
 
@@ -21,6 +23,40 @@ describe('Business', () => {
     })
 
     it('initializes data as null', () => {
+      expect(business.data).toBeNull()
+    })
+  })
+
+  describe('hydrate', () => {
+    const mockData = {
+      style_url: 'https://example.com/styles.css',
+      subscription: 'premium',
+      country: 'US',
+      whitelist: 'disabled',
+      locale: 'es',
+      features: { analytics: true },
+      webchat: { id: 'dashboard-webchat' }
+    }
+
+    it('fetches and stores public business data', async () => {
+      API.businesses.get = jest.fn().mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockData)
+      })
+
+      const result = await business.hydrate()
+
+      expect(API.businesses.get).toHaveBeenCalledWith('test-business-123')
+      expect(result).toEqual(mockData)
+      expect(business.data).toEqual(mockData)
+    })
+
+    it('returns null when the business request rejects', async () => {
+      API.businesses.get = jest.fn().mockRejectedValue(new Error('network error'))
+
+      const result = await business.hydrate()
+
+      expect(result).toBeNull()
       expect(business.data).toBeNull()
     })
   })

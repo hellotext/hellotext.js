@@ -1,5 +1,7 @@
 import Hellotext from "../src/hellotext";
-import { Business, Session } from "../src/models";
+import API from "../src/api";
+import { Configuration } from "../src/core";
+import { Session, Webchat } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -7,18 +9,127 @@ const expireSession = () => {
   document.cookie = "hello_session=;expires=Thu, 01 Jan 1970 00:00:00 GMT"
 }
 
+const defaultBusiness = (overrides = {}) => ({
+  id: "xy76ks",
+  country: { code: "US", prefix: "1" },
+  features: {},
+  locale: "en",
+  style_url: "https://example.com/hellotext.css",
+  webchat: null,
+  whitelist: "disabled",
+  ...overrides,
+})
+
+const businessResponse = business => ({
+  ok: true,
+  json: jest.fn().mockResolvedValue(business),
+})
+
+const mockBusinessFetch = (business = defaultBusiness()) => {
+  API.businesses.get = jest.fn().mockResolvedValue(businessResponse(business))
+}
+
+mockBusinessFetch()
+
 beforeEach(() => {
-  Business.prototype.fetchPublicData = jest.fn().mockResolvedValue({ whitelist: 'disabled' })
+  mockBusinessFetch()
 })
 
 afterEach(() => {
   jest.clearAllMocks();
+  document.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove())
 });
 
 describe("when trying to call methods before initializing the class", () => {
   it("raises an error when Hellotext.track is called",  () => {
     expect(Hellotext.track("page.viewed")).rejects.toThrowError()
   });
+})
+
+describe("when initializing business metadata", () => {
+  let loadWebchat
+
+  beforeEach(() => {
+    loadWebchat = jest.spyOn(Webchat, 'load').mockResolvedValue({})
+  })
+
+  afterEach(() => {
+    loadWebchat.mockRestore()
+  })
+
+  it("fetches public business data by default and stores it", async () => {
+    const business = defaultBusiness({ id: "business-id", locale: "es" })
+    mockBusinessFetch(business)
+
+    await Hellotext.initialize("business-id")
+
+    expect(API.businesses.get).toHaveBeenCalledWith("business-id")
+    expect(Hellotext.business.data).toEqual(business)
+  })
+
+  it("loads the dashboard webchat when no explicit webchat config is passed", async () => {
+    mockBusinessFetch(defaultBusiness({ webchat: { id: "dashboard-webchat" } }))
+
+    await Hellotext.initialize("xy76ks")
+
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+  })
+
+  it("uses the dashboard webchat id with explicit local options", async () => {
+    mockBusinessFetch(defaultBusiness({ webchat: { id: "dashboard-webchat" } }))
+
+    await Hellotext.initialize("xy76ks", {
+      webchat: {
+        container: "#webchat-container",
+        placement: "top-left",
+      },
+    })
+
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(Configuration.webchat.container).toEqual("#webchat-container")
+    expect(Configuration.webchat.placement).toEqual("top-left")
+  })
+
+  it("lets an explicit webchat id override the dashboard webchat id", async () => {
+    mockBusinessFetch(defaultBusiness({ webchat: { id: "dashboard-webchat" } }))
+
+    await Hellotext.initialize("xy76ks", {
+      webchat: {
+        id: "explicit-webchat",
+      },
+    })
+
+    expect(loadWebchat).toHaveBeenCalledWith("explicit-webchat")
+  })
+
+  it("skips webchat loading when webchat is false", async () => {
+    mockBusinessFetch(defaultBusiness({ webchat: { id: "dashboard-webchat" } }))
+
+    await Hellotext.initialize("xy76ks", { webchat: false })
+
+    expect(loadWebchat).not.toHaveBeenCalled()
+  })
+
+  it("does not break initialization when business fetch rejects", async () => {
+    API.businesses.get = jest.fn().mockRejectedValue(new Error("network error"))
+
+    await expect(Hellotext.initialize("xy76ks")).resolves.toBeUndefined()
+
+    expect(Hellotext.business.id).toEqual("xy76ks")
+    expect(loadWebchat).not.toHaveBeenCalled()
+  })
+
+  it("loads an explicit webchat when business fetch rejects", async () => {
+    API.businesses.get = jest.fn().mockRejectedValue(new Error("network error"))
+
+    await Hellotext.initialize("xy76ks", {
+      webchat: {
+        id: "explicit-webchat",
+      },
+    })
+
+    expect(loadWebchat).toHaveBeenCalledWith("explicit-webchat")
+  })
 })
 
 describe("when the class is initialized successfully", () => {
