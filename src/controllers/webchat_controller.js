@@ -27,7 +27,7 @@ export default class extends Controller {
     offset: { type: Number, default: 24 },
     padding: { type: Number, default: 24 },
     optimisticTypingIndicatorWait: { type: Number, default: 1000 }, // 1 second,
-    teaser: String,
+    teaser: Object,
   }
 
   static classes = ['fadeOut']
@@ -355,7 +355,7 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
 
-    if (this.hasTeaserTarget && this.teaserValue) {
+    if (this.hasTeaserTarget && this.teaserValue.body) {
       this.teaserTarget.classList.remove('hidden')
     }
   }
