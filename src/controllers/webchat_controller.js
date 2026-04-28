@@ -84,7 +84,10 @@ export default class extends Controller {
     this.triggerTarget.classList.add(...WebchatConfiguration.triggerClasses)
 
     this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
-    this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.teaserTarget })
+
+    if (this.hasTeaserTarget) {
+      this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.teaserTarget })
+    }
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onTypingStart(this.onTypingStart)
