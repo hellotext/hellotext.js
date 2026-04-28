@@ -338,11 +338,11 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:opened')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
 
-    if (this.unreadCounterTarget.style.display === 'none') return
-
     if (this.hasTeaserTarget) {
       this.teaserTarget.classList.add('hidden')
     }
+
+    if (this.unreadCounterTarget.style.display === 'none') return
 
     this.unreadCounterTarget.style.display = 'none'
     this.unreadCounterTarget.innerText = '0'
