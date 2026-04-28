@@ -340,14 +340,14 @@ export default class extends Controller {
 
     if (this.unreadCounterTarget.style.display === 'none') return
 
+    if (this.hasTeaserTarget) {
+      this.teaserTarget.classList.add('hidden')
+    }
+
     this.unreadCounterTarget.style.display = 'none'
     this.unreadCounterTarget.innerText = '0'
 
     this.messagesAPI.markAsSeen()
-
-    if (this.hasTeaserTarget) {
-      this.teaserTarget.display = 'none'
-    }
   }
 
   onPopoverClosed() {
@@ -355,7 +355,7 @@ export default class extends Controller {
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
 
     if (this.hasTeaserTarget) {
-      this.teaserTarget.style.removeProperty('display')
+      this.teaserTarget.style.classList.remove('hidden')
     }
   }
 
