@@ -345,7 +345,7 @@ export default class extends Controller {
     }
 
     if (this.hasTeaserTarget) {
-      this.teaserTarget.classList.add('hidden')
+      this.teaserTarget.classList.add('invisible')
     }
 
     if (this.unreadCounterTarget.style.display === 'none') return
@@ -363,7 +363,7 @@ export default class extends Controller {
     if (this.hasTeaserTarget && this.teaserValue.body) {
       this.teaserTarget.innerHTML = this.teaserValue.body
 
-      this.teaserTarget.classList.remove('hidden')
+      this.teaserTarget.classList.remove('invisible')
     }
   }
 
@@ -438,7 +438,6 @@ export default class extends Controller {
 
     const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
-
   }
 
   updateMessageTeaser(teaser) {
@@ -446,7 +445,7 @@ export default class extends Controller {
 
     if (this.messageTeaserValue && this.hasTeaserTarget) {
       this.teaserTarget.innerHTML = this.messageTeaserValue
-      this.teaserTarget.classList.toggle('hidden', this.openValue)
+      this.teaserTarget.classList.toggle('invisible', this.openValue)
     }
   }
 
