@@ -28,6 +28,7 @@ export default class extends Controller {
     padding: { type: Number, default: 24 },
     optimisticTypingIndicatorWait: { type: Number, default: 1000 }, // 1 second,
     teaser: Object,
+    messageTeaser: String,
   }
 
   static classes = ['fadeOut']
@@ -339,6 +340,10 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:opened')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
 
+    if (this.messageTeaserValue) {
+      this.messageTeaserValue = null
+    }
+
     if (this.hasTeaserTarget) {
       this.teaserTarget.classList.add('hidden')
     }
@@ -356,6 +361,8 @@ export default class extends Controller {
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
 
     if (this.hasTeaserTarget && this.teaserValue.body) {
+      this.teaserTarget.innerHTML = this.teaserValue.body
+
       this.teaserTarget.classList.remove('hidden')
     }
   }
@@ -385,7 +392,9 @@ export default class extends Controller {
   }
 
   onMessageReceived(message) {
-    const { id, body, attachments } = message
+    const { id, body, attachments, teaser } = message
+
+    this.messageTeaserValue = teaser
 
     if (message.carousel) {
       return this.insertCarouselMessage(message)
@@ -420,8 +429,17 @@ export default class extends Controller {
 
     element.scrollIntoView({ behavior: 'smooth' })
 
+    if (this.messageTeaserValue && this.hasTeaserTarget) {
+      this.teaserTarget.innerHTML = this.messageTeaserValue
+    }
+
     if (this.openValue) {
       this.messagesAPI.markAsSeen(id)
+
+      if (this.messageTeaserValue && this.hasTeaserTarget) {
+        this.teaserTarget.classList.add('hidden')
+      }
+
       return
     }
 
@@ -429,6 +447,10 @@ export default class extends Controller {
 
     const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
+
+    if (this.messageTeaserValue && this.hasTeaserTarget) {
+      this.teaserTarget.classList.remove('hidden')
+    }
   }
 
   insertCarouselMessage(message) {

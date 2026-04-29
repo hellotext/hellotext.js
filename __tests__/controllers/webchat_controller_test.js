@@ -494,6 +494,62 @@ describe('WebchatController', () => {
       })
     })
 
+    describe('message teaser handling', () => {
+      let mockTeaser
+
+      beforeEach(() => {
+        mockTeaser = document.createElement('div')
+        mockTeaser.innerHTML = 'Configured teaser'
+        controller.teaserTarget = mockTeaser
+
+        Object.defineProperty(controller, 'hasTeaserTarget', {
+          get: () => true,
+          configurable: true
+        })
+      })
+
+      it('overrides and shows the teaser when a closed chat receives a message teaser', () => {
+        controller.openValue = false
+        mockTeaser.classList.add('hidden')
+
+        controller.onMessageReceived({
+          body: 'Closed chat message',
+          id: 'msg-closed-teaser',
+          teaser: '<span>Message teaser</span>'
+        })
+
+        expect(mockTeaser.innerHTML).toBe('<span>Message teaser</span>')
+        expect(mockTeaser.classList.contains('hidden')).toBe(false)
+      })
+
+      it('overrides and hides the teaser when an open chat receives a message teaser', () => {
+        controller.openValue = true
+
+        controller.onMessageReceived({
+          body: 'Open chat message',
+          id: 'msg-open-teaser',
+          teaser: '<span>Open message teaser</span>'
+        })
+
+        expect(mockTeaser.innerHTML).toBe('<span>Open message teaser</span>')
+        expect(mockTeaser.classList.contains('hidden')).toBe(true)
+        expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('msg-open-teaser')
+      })
+
+      it('does not replace or show the teaser when the message has no teaser', () => {
+        controller.openValue = false
+        mockTeaser.classList.add('hidden')
+
+        controller.onMessageReceived({
+          body: 'Message without teaser',
+          id: 'msg-without-teaser'
+        })
+
+        expect(mockTeaser.innerHTML).toBe('Configured teaser')
+        expect(mockTeaser.classList.contains('hidden')).toBe(true)
+      })
+    })
+
     describe('typing indicator timeout clearance', () => {
       let mockTypingIndicatorTarget
       let mockClearTimeout
@@ -971,6 +1027,19 @@ describe('WebchatController', () => {
 
       expect(mockTeaser.classList.contains('hidden')).toBe(true)
     })
+
+    it('clears the transient message teaser when the popover opens', () => {
+      controller.messageTeaserValue = 'Incoming message teaser'
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true
+      })
+
+      controller.onPopoverOpened()
+
+      expect(controller.messageTeaserValue).toBe(null)
+      expect(mockTeaser.classList.contains('hidden')).toBe(true)
+    })
   })
 
   describe('onPopoverClosed', () => {
@@ -1017,9 +1086,10 @@ describe('WebchatController', () => {
     it('shows the teaser again when the teaser has body content', () => {
       const teaser = document.createElement('div')
       teaser.classList.add('hidden')
+      teaser.innerHTML = 'Incoming message teaser'
 
       controller.teaserTarget = teaser
-      controller.teaserValue = { body: 'Need help?' }
+      controller.teaserValue = { body: '<span>Need help?</span>' }
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
         configurable: true
@@ -1027,6 +1097,7 @@ describe('WebchatController', () => {
 
       controller.onPopoverClosed()
 
+      expect(teaser.innerHTML).toBe('<span>Need help?</span>')
       expect(teaser.classList.contains('hidden')).toBe(false)
     })
 
