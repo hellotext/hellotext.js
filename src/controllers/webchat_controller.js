@@ -394,9 +394,6 @@ export default class extends Controller {
   onMessageReceived(message) {
     const { id, body, attachments, teaser } = message
 
-    console.log(message)
-    console.log(message.teaser)
-
     this.messageTeaserValue = teaser
 
     if (message.carousel) {
@@ -435,6 +432,9 @@ export default class extends Controller {
     if (this.messageTeaserValue && this.hasTeaserTarget) {
       this.teaserTarget.innerHTML = this.messageTeaserValue
     }
+
+    console.log(this.openValue)
+    console.log(this.messageTeaserValue, this.hasTeaserTarget)
 
     if (this.openValue) {
       this.messagesAPI.markAsSeen(id)

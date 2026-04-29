@@ -548,6 +548,33 @@ describe('WebchatController', () => {
         expect(mockTeaser.innerHTML).toBe('Configured teaser')
         expect(mockTeaser.classList.contains('hidden')).toBe(true)
       })
+
+      it('shows the teaser when the Stimulus target lookup misses but the teaser element exists', () => {
+        const wrapper = document.createElement('div')
+        const fallbackTeaser = document.createElement('section')
+        fallbackTeaser.classList.add('hidden')
+        fallbackTeaser.setAttribute('data-hellotext--webchat-target', 'teaser')
+        fallbackTeaser.innerHTML = 'Configured teaser'
+        wrapper.appendChild(mockElement)
+        wrapper.appendChild(fallbackTeaser)
+
+        Object.defineProperty(controller, 'hasTeaserTarget', {
+          get: () => false,
+          configurable: true
+        })
+
+        controller.openValue = false
+
+        controller.onMessageReceived({
+          body: 'Closed chat message',
+          id: 'msg-fallback-teaser',
+          teaser: '<span>Fallback message teaser</span>'
+        })
+
+        expect(mockUnreadCounter.style.display).toBe('flex')
+        expect(fallbackTeaser.innerHTML).toBe('<span>Fallback message teaser</span>')
+        expect(fallbackTeaser.classList.contains('hidden')).toBe(false)
+      })
     })
 
     describe('typing indicator timeout clearance', () => {
