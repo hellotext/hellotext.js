@@ -394,6 +394,9 @@ export default class extends Controller {
   onMessageReceived(message) {
     const { id, body, attachments, teaser } = message
 
+    console.log(message)
+    console.log(message.teaser)
+
     this.messageTeaserValue = teaser
 
     if (message.carousel) {
