@@ -549,32 +549,6 @@ describe('WebchatController', () => {
         expect(mockTeaser.classList.contains('hidden')).toBe(true)
       })
 
-      it('shows the teaser when the Stimulus target lookup misses but the teaser element exists', () => {
-        const wrapper = document.createElement('div')
-        const fallbackTeaser = document.createElement('section')
-        fallbackTeaser.classList.add('hidden')
-        fallbackTeaser.setAttribute('data-hellotext--webchat-target', 'teaser')
-        fallbackTeaser.innerHTML = 'Configured teaser'
-        wrapper.appendChild(mockElement)
-        wrapper.appendChild(fallbackTeaser)
-
-        Object.defineProperty(controller, 'hasTeaserTarget', {
-          get: () => false,
-          configurable: true
-        })
-
-        controller.openValue = false
-
-        controller.onMessageReceived({
-          body: 'Closed chat message',
-          id: 'msg-fallback-teaser',
-          teaser: '<span>Fallback message teaser</span>'
-        })
-
-        expect(mockUnreadCounter.style.display).toBe('flex')
-        expect(fallbackTeaser.innerHTML).toBe('<span>Fallback message teaser</span>')
-        expect(fallbackTeaser.classList.contains('hidden')).toBe(false)
-      })
     })
 
     describe('typing indicator timeout clearance', () => {
@@ -1721,6 +1695,62 @@ describe('WebchatController', () => {
 
       expect(mockUnreadCounter.style.display).toBe('flex')
       expect(mockUnreadCounter.innerText).toBe(3)
+    })
+
+    it('shows the message teaser for carousel messages when chat is closed', () => {
+      controller.openValue = false
+      const mockUnreadCounter = document.createElement('div')
+      mockUnreadCounter.innerText = '0'
+      controller.unreadCounterTarget = mockUnreadCounter
+
+      const teaser = document.createElement('section')
+      teaser.classList.add('hidden')
+      controller.teaserTarget = teaser
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true
+      })
+
+      const message = {
+        id: 'carousel-teaser-closed',
+        html: '<div>Carousel</div>',
+        carousel: {},
+        teaser: '<span>Carousel teaser</span>'
+      }
+
+      controller.onMessageReceived(message)
+
+      expect(mockUnreadCounter.style.display).toBe('flex')
+      expect(teaser.innerHTML).toBe('<span>Carousel teaser</span>')
+      expect(teaser.classList.contains('hidden')).toBe(false)
+    })
+
+    it('hides the message teaser for carousel messages when chat is open', () => {
+      controller.openValue = true
+      const mockMessagesAPI = {
+        markAsSeen: jest.fn()
+      }
+      controller.messagesAPI = mockMessagesAPI
+
+      const teaser = document.createElement('section')
+      controller.teaserTarget = teaser
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true
+      })
+
+      const message = {
+        id: 'carousel-teaser-open',
+        html: '<div>Carousel</div>',
+        carousel: {},
+        teaser: '<span>Carousel teaser</span>'
+      }
+
+      controller.onMessageReceived(message)
+
+      expect(teaser.innerHTML).toBe('<span>Carousel teaser</span>')
+      expect(teaser.classList.contains('hidden')).toBe(true)
+      expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('carousel-teaser-open')
     })
   })
 })

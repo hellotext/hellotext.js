@@ -394,8 +394,6 @@ export default class extends Controller {
   onMessageReceived(message) {
     const { id, body, attachments, teaser } = message
 
-    this.messageTeaserValue = teaser
-
     if (message.carousel) {
       return this.insertCarouselMessage(message)
     }
@@ -429,20 +427,10 @@ export default class extends Controller {
 
     element.scrollIntoView({ behavior: 'smooth' })
 
-    if (this.messageTeaserValue && this.hasTeaserTarget) {
-      this.teaserTarget.innerHTML = this.messageTeaserValue
-    }
-
-    console.log(this.openValue)
-    console.log(this.messageTeaserValue, this.hasTeaserTarget)
+    this.updateMessageTeaser(teaser)
 
     if (this.openValue) {
       this.messagesAPI.markAsSeen(id)
-
-      if (this.messageTeaserValue && this.hasTeaserTarget) {
-        this.teaserTarget.classList.add('hidden')
-      }
-
       return
     }
 
@@ -451,10 +439,14 @@ export default class extends Controller {
     const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
 
-    console.log(this.messageTeaserValue, this.hasTeaserTarget)
+  }
+
+  updateMessageTeaser(teaser) {
+    this.messageTeaserValue = teaser
 
     if (this.messageTeaserValue && this.hasTeaserTarget) {
-      this.teaserTarget.classList.remove('hidden')
+      this.teaserTarget.innerHTML = this.messageTeaserValue
+      this.teaserTarget.classList.toggle('hidden', this.openValue)
     }
   }
 
@@ -471,6 +463,8 @@ export default class extends Controller {
       ...message,
       body: element.querySelector('[data-body]')?.innerText || '',
     })
+
+    this.updateMessageTeaser(message.teaser)
 
     if (this.openValue) {
       this.messagesAPI.markAsSeen(message.id)
