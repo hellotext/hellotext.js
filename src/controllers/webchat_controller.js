@@ -66,6 +66,7 @@ export default class extends Controller {
     )
 
     this.files = []
+    this.messageIds = new Set()
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
@@ -394,6 +395,8 @@ export default class extends Controller {
   onMessageReceived(message) {
     const { id, body, attachments, teaser } = message
 
+    if (!this.claimMessageId(id)) return
+
     if (message.carousel) {
       return this.insertCarouselMessage(message)
     }
@@ -405,6 +408,8 @@ export default class extends Controller {
     element.style.display = 'flex'
 
     element.querySelector('[data-body]').innerHTML = div.innerHTML
+
+    element.setAttribute('data-id', id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
     if (attachments) {
@@ -440,6 +445,17 @@ export default class extends Controller {
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
   }
 
+  // TCP broadcasts may deliver the same incoming message twice before Stimulus
+  // has connected the appended message target. Claiming the id in memory closes
+  // that window, while the target check still drops messages rendered earlier.
+  claimMessageId(id) {
+    if (this.messageIds.has(id)) return false
+
+    this.messageIds.add(id)
+
+    return !this.messageTargets.some(element => element.dataset.id === id)
+  }
+
   updateMessageTeaser(teaser) {
     this.messageTeaserValue = teaser
 
@@ -452,6 +468,9 @@ export default class extends Controller {
   insertCarouselMessage(message) {
     const html = message.html
     const element = new DOMParser().parseFromString(html, 'text/html').body.firstElementChild
+
+    element.setAttribute('data-id', message.id)
+    element.setAttribute('data-hellotext--webchat-target', 'message')
 
     this.clearTypingIndicator()
     this.messagesContainerTarget.appendChild(element)

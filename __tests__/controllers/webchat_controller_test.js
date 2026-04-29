@@ -41,6 +41,7 @@ describe('WebchatController', () => {
 
     controller.idValue = 'test-webchat-id'
     controller.conversationIdValue = 'test-conversation-id'
+    controller.messageIds = new Set()
 
     mockBroadcastChannel = {
       postMessage: jest.fn(),
@@ -360,6 +361,43 @@ describe('WebchatController', () => {
         expect(addedElement.getAttribute('data-hellotext--webchat-target')).toBe('message')
       })
 
+      it('silently drops a duplicate message that was already claimed in memory', () => {
+        controller.openValue = false
+
+        const message = {
+          body: '<p>Hello once</p>',
+          id: 'duplicate-msg'
+        }
+
+        controller.onMessageReceived(message)
+        controller.onMessageReceived({
+          ...message,
+          body: '<p>Hello twice</p>'
+        })
+
+        expect(mockMessagesContainer.children).toHaveLength(1)
+        expect(mockMessagesContainer.children[0].querySelector('[data-body]').innerHTML).toBe('<p>Hello once</p>')
+        expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledTimes(1)
+      })
+
+      it('silently drops a duplicate message that already has a rendered target', () => {
+        const renderedMessage = document.createElement('div')
+        renderedMessage.dataset.id = 'rendered-msg'
+
+        Object.defineProperty(controller, 'messageTargets', {
+          get: () => [renderedMessage],
+          configurable: true
+        })
+
+        controller.onMessageReceived({
+          body: '<p>Already rendered</p>',
+          id: 'rendered-msg'
+        })
+
+        expect(mockMessagesContainer.children).toHaveLength(0)
+        expect(mockHellotext.eventEmitter.dispatch).not.toHaveBeenCalled()
+      })
+
       it('handles plain text messages', () => {
         const message = {
           body: 'Simple text message',
@@ -510,7 +548,7 @@ describe('WebchatController', () => {
 
       it('overrides and shows the teaser when a closed chat receives a message teaser', () => {
         controller.openValue = false
-        mockTeaser.classList.add('hidden')
+        mockTeaser.classList.add('invisible')
 
         controller.onMessageReceived({
           body: 'Closed chat message',
@@ -519,7 +557,7 @@ describe('WebchatController', () => {
         })
 
         expect(mockTeaser.innerHTML).toBe('<span>Message teaser</span>')
-        expect(mockTeaser.classList.contains('hidden')).toBe(false)
+        expect(mockTeaser.classList.contains('invisible')).toBe(false)
       })
 
       it('overrides and hides the teaser when an open chat receives a message teaser', () => {
@@ -532,13 +570,13 @@ describe('WebchatController', () => {
         })
 
         expect(mockTeaser.innerHTML).toBe('<span>Open message teaser</span>')
-        expect(mockTeaser.classList.contains('hidden')).toBe(true)
+        expect(mockTeaser.classList.contains('invisible')).toBe(true)
         expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('msg-open-teaser')
       })
 
       it('does not replace or show the teaser when the message has no teaser', () => {
         controller.openValue = false
-        mockTeaser.classList.add('hidden')
+        mockTeaser.classList.add('invisible')
 
         controller.onMessageReceived({
           body: 'Message without teaser',
@@ -546,7 +584,7 @@ describe('WebchatController', () => {
         })
 
         expect(mockTeaser.innerHTML).toBe('Configured teaser')
-        expect(mockTeaser.classList.contains('hidden')).toBe(true)
+        expect(mockTeaser.classList.contains('invisible')).toBe(true)
       })
 
     })
@@ -1026,7 +1064,7 @@ describe('WebchatController', () => {
 
       controller.onPopoverOpened()
 
-      expect(mockTeaser.classList.contains('hidden')).toBe(true)
+      expect(mockTeaser.classList.contains('invisible')).toBe(true)
     })
 
     it('clears the transient message teaser when the popover opens', () => {
@@ -1039,7 +1077,7 @@ describe('WebchatController', () => {
       controller.onPopoverOpened()
 
       expect(controller.messageTeaserValue).toBe(null)
-      expect(mockTeaser.classList.contains('hidden')).toBe(true)
+      expect(mockTeaser.classList.contains('invisible')).toBe(true)
     })
   })
 
@@ -1086,7 +1124,7 @@ describe('WebchatController', () => {
 
     it('shows the teaser again when the teaser has body content', () => {
       const teaser = document.createElement('div')
-      teaser.classList.add('hidden')
+      teaser.classList.add('invisible')
       teaser.innerHTML = 'Incoming message teaser'
 
       controller.teaserTarget = teaser
@@ -1099,12 +1137,12 @@ describe('WebchatController', () => {
       controller.onPopoverClosed()
 
       expect(teaser.innerHTML).toBe('<span>Need help?</span>')
-      expect(teaser.classList.contains('hidden')).toBe(false)
+      expect(teaser.classList.contains('invisible')).toBe(false)
     })
 
     it('keeps the teaser hidden when the teaser has no body content', () => {
       const teaser = document.createElement('div')
-      teaser.classList.add('hidden')
+      teaser.classList.add('invisible')
 
       controller.teaserTarget = teaser
       controller.teaserValue = {}
@@ -1115,7 +1153,7 @@ describe('WebchatController', () => {
 
       controller.onPopoverClosed()
 
-      expect(teaser.classList.contains('hidden')).toBe(true)
+      expect(teaser.classList.contains('invisible')).toBe(true)
     })
   })
 
@@ -1661,6 +1699,27 @@ describe('WebchatController', () => {
       })
     })
 
+    it('silently drops a duplicate carousel message that was already claimed in memory', () => {
+      controller.openValue = true
+      const mockMessagesAPI = {
+        markAsSeen: jest.fn()
+      }
+      controller.messagesAPI = mockMessagesAPI
+
+      const message = {
+        id: 'carousel-duplicate',
+        html: '<div>Carousel</div>',
+        carousel: {}
+      }
+
+      controller.onMessageReceived(message)
+      controller.onMessageReceived(message)
+
+      expect(mockMessagesContainer.children).toHaveLength(1)
+      expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledTimes(1)
+      expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledTimes(1)
+    })
+
     it('marks carousel as seen when chat is open', () => {
       controller.openValue = true
       const mockMessagesAPI = {
@@ -1704,7 +1763,7 @@ describe('WebchatController', () => {
       controller.unreadCounterTarget = mockUnreadCounter
 
       const teaser = document.createElement('section')
-      teaser.classList.add('hidden')
+      teaser.classList.add('invisible')
       controller.teaserTarget = teaser
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
@@ -1722,7 +1781,7 @@ describe('WebchatController', () => {
 
       expect(mockUnreadCounter.style.display).toBe('flex')
       expect(teaser.innerHTML).toBe('<span>Carousel teaser</span>')
-      expect(teaser.classList.contains('hidden')).toBe(false)
+      expect(teaser.classList.contains('invisible')).toBe(false)
     })
 
     it('hides the message teaser for carousel messages when chat is open', () => {
@@ -1749,7 +1808,7 @@ describe('WebchatController', () => {
       controller.onMessageReceived(message)
 
       expect(teaser.innerHTML).toBe('<span>Carousel teaser</span>')
-      expect(teaser.classList.contains('hidden')).toBe(true)
+      expect(teaser.classList.contains('invisible')).toBe(true)
       expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('carousel-teaser-open')
     })
   })
