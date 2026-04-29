@@ -451,6 +451,8 @@ export default class extends Controller {
     const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
     this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
 
+    console.log(this.messageTeaserValue, this.hasTeaserTarget)
+
     if (this.messageTeaserValue && this.hasTeaserTarget) {
       this.teaserTarget.classList.remove('hidden')
     }
