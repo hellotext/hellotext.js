@@ -103,10 +103,6 @@ export default class extends Controller {
 
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
 
-    if (!Hellotext.business.features.white_label) {
-      this.toolbarTarget.appendChild(LogoBuilder.build())
-    }
-
     if (this.shouldOpenOnMount) {
       this.openValue = true
     }
