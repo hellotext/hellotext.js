@@ -55,6 +55,8 @@ describe("when initializing business metadata", () => {
 
   afterEach(() => {
     loadWebchat.mockRestore()
+    Configuration.webchat.behaviour = null
+    Configuration.webchat.behaviourOverride = false
   })
 
   it("fetches public business data by default and stores it", async () => {
@@ -88,6 +90,49 @@ describe("when initializing business metadata", () => {
     expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
     expect(Configuration.webchat.container).toEqual("#webchat-container")
     expect(Configuration.webchat.placement).toEqual("top-left")
+  })
+
+  it("tracks explicit local webchat behaviour overrides", async () => {
+    mockBusinessFetch(defaultBusiness({ webchat: { id: "dashboard-webchat" } }))
+
+    await Hellotext.initialize("xy76ks", {
+      webchat: {
+        behaviour: {
+          trigger: "onLoad",
+          delaySeconds: 5,
+          firstVisitOnly: true,
+          oncePerSession: true,
+        },
+      },
+    })
+
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(Configuration.webchat.hasBehaviourOverride).toBe(true)
+    expect(Configuration.webchat.behaviour).toEqual({
+      trigger: "onLoad",
+      delaySeconds: 5,
+      firstVisitOnly: true,
+      oncePerSession: true,
+    })
+  })
+
+  it("does not treat dashboard webchat behaviour as an explicit local override", async () => {
+    mockBusinessFetch(defaultBusiness({
+      webchat: {
+        id: "dashboard-webchat",
+        behaviour: {
+          trigger: "onLoad",
+          delaySeconds: 10,
+          firstVisitOnly: false,
+          oncePerSession: true,
+        },
+      },
+    }))
+
+    await Hellotext.initialize("xy76ks")
+
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(Configuration.webchat.hasBehaviourOverride).toBe(false)
   })
 
   it("lets an explicit webchat id override the dashboard webchat id", async () => {

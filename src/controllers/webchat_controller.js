@@ -6,10 +6,10 @@ import WebchatChannel from '../channels/webchat_channel'
 import Hellotext from '../hellotext'
 
 import { Locale } from '../core'
-import { Webchat as WebchatConfiguration, behaviors } from '../core/configuration/webchat'
+import { Webchat as WebchatConfiguration, modes } from '../core/configuration/webchat'
 
-import { LogoBuilder } from '../builders/logo_builder'
 import { usePopover } from './mixins/usePopover'
+import { useBehaviour } from './webchat/useBehaviour'
 
 export default class extends Controller {
   static values = {
@@ -29,6 +29,7 @@ export default class extends Controller {
     optimisticTypingIndicatorWait: { type: Number, default: 1000 }, // 1 second,
     teaser: Object,
     messageTeaser: String,
+    behaviour: Object,
   }
 
   static classes = ['fadeOut']
@@ -81,6 +82,7 @@ export default class extends Controller {
   }
 
   connect() {
+    useBehaviour(this)
     usePopover(this)
 
     this.popoverTarget.classList.add(...WebchatConfiguration.classes)
@@ -109,11 +111,13 @@ export default class extends Controller {
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
     this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
+    this.scheduleBehaviourOpen()
 
     super.connect()
   }
 
   disconnect() {
+    this.cancelBehaviourOpen()
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
 
@@ -299,7 +303,7 @@ export default class extends Controller {
 
   onClickOutside(event) {
     if (
-      WebchatConfiguration.behaviour === behaviors.POPOVER &&
+      WebchatConfiguration.mode === modes.POPOVER &&
       this.openValue &&
       event.target.nodeType &&
       this.element.contains(event.target) === false

@@ -4,12 +4,14 @@ import { Configuration } from '../../core'
 export const usePopover = controller => {
   Object.assign(controller, {
     show() {
+      this.cancelBehaviourOpen?.()
       this.openValue = true
     },
     hide() {
       this.openValue = false
     },
     toggle() {
+      this.cancelBehaviourOpen?.()
       this.openValue = !this.openValue
     },
     setupFloatingUI({ trigger, popover, strategy }) {

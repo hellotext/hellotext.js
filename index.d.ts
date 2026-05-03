@@ -10,19 +10,31 @@ export interface HellotextConfig {
   autoGenerateSession?: boolean
 }
 
+export type HellotextWebchatMode = 'modal' | 'popover'
+export type HellotextWebchatStrategy = 'absolute' | 'fixed'
+export type HellotextWebchatBehaviourTrigger = 'onClick' | 'onLoad'
+
+export interface HellotextWebchatBehaviour {
+  trigger: HellotextWebchatBehaviourTrigger
+  delaySeconds: 0 | 5 | 10 | 30
+  firstVisitOnly: boolean
+  oncePerSession: boolean
+}
+
 export interface HellotextWebchatConfig {
   id?: string
   container?: string
   placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
   classes?: string | string[]
   triggerClasses?: string | string[]
-  behaviour?: 'modal' | 'popover'
+  mode?: HellotextWebchatMode
+  behaviour?: HellotextWebchatBehaviour
   style?: {
     primaryColor?: string
     secondaryColor?: string
     typography?: string
   }
-  strategy?: 'absolute' | 'fixed'
+  strategy?: HellotextWebchatStrategy
 }
 
 export interface HellotextBusinessCountry {

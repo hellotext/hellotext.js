@@ -33,6 +33,13 @@ class Hellotext {
       ...(config.webchat || {}),
     }
 
+    const hasExplicitBehaviourOverride = (
+      config.webchat &&
+      config.webchat !== false &&
+      Object.prototype.hasOwnProperty.call(config.webchat, 'behaviour')
+    )
+    Configuration.webchat.behaviourOverride = hasExplicitBehaviourOverride
+
     if (webchatConfig && webchatConfig.id) {
       Configuration.webchat.assign(webchatConfig)
       this.webchat = await Webchat.load(webchatConfig.id)

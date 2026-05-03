@@ -2,23 +2,57 @@ import { Webchat } from '../../../src/core/configuration/webchat';
 
 beforeEach(() => {
   Webchat.strategy = null
+  Webchat.mode = 'popover'
+  Webchat.behaviour = null
+  Webchat.behaviourOverride = false
 })
 
 describe('Webchat', () => {
-  describe('behaviour', () => {
+  describe('mode', () => {
     it('is POPOVER by default', () => {
-      expect(Webchat.behaviour).toEqual('popover')
+      expect(Webchat.mode).toEqual('popover')
     });
 
     it('can be set to modal', () => {
-      Webchat.behaviour = 'modal'
-      expect(Webchat.behaviour).toEqual('modal')
+      Webchat.mode = 'modal'
+      expect(Webchat.mode).toEqual('modal')
     });
 
     it('throws an exception when an invalid value is supplied', () => {
       expect(() => {
-        Webchat.behaviour = 'invalid'
-      }).toThrowError('Invalid behaviour value: invalid')
+        Webchat.mode = 'invalid'
+      }).toThrowError('Invalid mode value: invalid')
+    });
+  })
+
+  describe('behaviour', () => {
+    it('is null by default', () => {
+      expect(Webchat.behaviour).toBe(null)
+    });
+
+    it('can be set to an auto-open behaviour object', () => {
+      const behaviour = {
+        trigger: 'onLoad',
+        delaySeconds: 5,
+        firstVisitOnly: true,
+        oncePerSession: true
+      }
+
+      Webchat.behaviour = behaviour
+
+      expect(Webchat.behaviour).toEqual(behaviour)
+    });
+
+    it('throws an exception when the old modal/popover string is supplied', () => {
+      expect(() => {
+        Webchat.behaviour = 'modal'
+      }).toThrowError('Invalid behaviour value: modal')
+    });
+
+    it('tracks whether an explicit behaviour override was supplied', () => {
+      Webchat.behaviourOverride = true
+
+      expect(Webchat.hasBehaviourOverride).toBe(true)
     });
   })
 

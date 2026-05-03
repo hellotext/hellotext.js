@@ -4,7 +4,7 @@
 
 import WebchatController from '../../src/controllers/webchat_controller'
 import Hellotext from '../../src/hellotext'
-import { Webchat as WebchatConfiguration } from '../../src/core/configuration/webchat'
+import { Webchat as WebchatConfiguration, modes } from '../../src/core/configuration/webchat'
 import { usePopover } from '../../src/controllers/mixins/usePopover'
 
 // Mock dependencies
@@ -46,7 +46,8 @@ describe('WebchatController', () => {
     mockBroadcastChannel = {
       postMessage: jest.fn(),
       addEventListener: jest.fn(),
-      removeEventListener: jest.fn()
+      removeEventListener: jest.fn(),
+      close: jest.fn()
     }
 
     global.BroadcastChannel = jest.fn(() => mockBroadcastChannel)
@@ -917,6 +918,26 @@ describe('WebchatController', () => {
     })
   })
 
+  describe('onClickOutside', () => {
+    it('closes the popover when mode is popover and the click is outside the controller element', () => {
+      WebchatConfiguration.mode = modes.POPOVER
+      controller.openValue = true
+
+      controller.onClickOutside({ target: document.createElement('div') })
+
+      expect(controller.openValue).toBe(false)
+    })
+
+    it('does not close the popover when mode is modal', () => {
+      WebchatConfiguration.mode = modes.MODAL
+      controller.openValue = true
+
+      controller.onClickOutside({ target: document.createElement('div') })
+
+      expect(controller.openValue).toBe(true)
+    })
+  })
+
   describe('connect', () => {
     let mockTrigger
     let mockPopover
@@ -924,6 +945,7 @@ describe('WebchatController', () => {
     let mockToolbar
     let mockWebChatChannel
     let mockLocalStorage
+    let mockSessionStorage
 
     beforeEach(() => {
       mockTrigger = document.createElement('button')
@@ -953,6 +975,15 @@ describe('WebchatController', () => {
         value: mockLocalStorage,
         writable: true
       })
+      mockSessionStorage = {
+        getItem: jest.fn().mockReturnValue(null),
+        setItem: jest.fn(),
+        removeItem: jest.fn()
+      }
+      Object.defineProperty(window, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true
+      })
 
       Object.assign(Hellotext, {
         business: {
@@ -975,6 +1006,7 @@ describe('WebchatController', () => {
 
     afterEach(() => {
       usePopover.mockReset()
+      jest.useRealTimers()
     })
 
     it('sets up floating UI for the teaser with absolute positioning', () => {
@@ -1009,6 +1041,146 @@ describe('WebchatController', () => {
         trigger: mockTrigger,
         popover: mockPopover
       })
+    })
+
+    it('does not schedule an automatic open for click-triggered behaviour', () => {
+      jest.useFakeTimers()
+
+      controller.openValue = false
+      controller.behaviourValue = {
+        trigger: 'on_click',
+        delay_seconds: 0,
+        first_visit_only: true,
+        once_per_session: true
+      }
+
+      controller.connect()
+      jest.runOnlyPendingTimers()
+
+      expect(controller.openValue).toBe(false)
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(controller.firstVisitKey(), '1')
+      expect(mockSessionStorage.setItem).not.toHaveBeenCalledWith(controller.sessionKey(), '1')
+    })
+
+    it('opens after the configured on-load delay and marks enabled gates', () => {
+      jest.useFakeTimers()
+
+      controller.openValue = false
+      controller.behaviourValue = {
+        trigger: 'on_load',
+        delay_seconds: 5,
+        first_visit_only: true,
+        once_per_session: true
+      }
+
+      controller.connect()
+
+      jest.advanceTimersByTime(4999)
+      expect(controller.openValue).toBe(false)
+
+      jest.advanceTimersByTime(1)
+
+      expect(controller.openValue).toBe(true)
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(controller.firstVisitKey(), '1')
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(controller.sessionKey(), '1')
+    })
+
+    it('opens immediately after connect when the on-load delay is zero', () => {
+      jest.useFakeTimers()
+
+      controller.openValue = false
+      controller.behaviourValue = {
+        trigger: 'on_load',
+        delay_seconds: 0,
+        first_visit_only: false,
+        once_per_session: false
+      }
+
+      controller.connect()
+      expect(controller.openValue).toBe(false)
+
+      jest.runOnlyPendingTimers()
+
+      expect(controller.openValue).toBe(true)
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(controller.firstVisitKey(), '1')
+      expect(mockSessionStorage.setItem).not.toHaveBeenCalledWith(controller.sessionKey(), '1')
+    })
+
+    it('does not auto-open when the first visit gate has already been marked', () => {
+      jest.useFakeTimers()
+      mockLocalStorage.getItem.mockImplementation(key => (
+        key === controller.firstVisitKey() ? '1' : null
+      ))
+
+      controller.openValue = false
+      controller.behaviourValue = {
+        trigger: 'on_load',
+        delay_seconds: 0,
+        first_visit_only: true,
+        once_per_session: false
+      }
+
+      controller.connect()
+      jest.runOnlyPendingTimers()
+
+      expect(controller.openValue).toBe(false)
+    })
+
+    it('does not auto-open when the session gate has already been marked', () => {
+      jest.useFakeTimers()
+      mockSessionStorage.getItem.mockImplementation(key => (
+        key === controller.sessionKey() ? '1' : null
+      ))
+
+      controller.openValue = false
+      controller.behaviourValue = {
+        trigger: 'on_load',
+        delay_seconds: 0,
+        first_visit_only: false,
+        once_per_session: true
+      }
+
+      controller.connect()
+      jest.runOnlyPendingTimers()
+
+      expect(controller.openValue).toBe(false)
+    })
+
+    it('does not mark gates when the widget is already open before the timer fires', () => {
+      jest.useFakeTimers()
+
+      controller.openValue = true
+      controller.behaviourValue = {
+        trigger: 'on_load',
+        delay_seconds: 5,
+        first_visit_only: true,
+        once_per_session: true
+      }
+
+      controller.connect()
+      jest.advanceTimersByTime(5000)
+
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(controller.firstVisitKey(), '1')
+      expect(mockSessionStorage.setItem).not.toHaveBeenCalledWith(controller.sessionKey(), '1')
+    })
+
+    it('clears pending behaviour opens on disconnect', () => {
+      jest.useFakeTimers()
+
+      controller.openValue = false
+      controller.behaviourValue = {
+        trigger: 'on_load',
+        delay_seconds: 5,
+        first_visit_only: false,
+        once_per_session: false
+      }
+      controller.floatingUICleanup = jest.fn()
+
+      controller.connect()
+      controller.disconnect()
+      jest.advanceTimersByTime(5000)
+
+      expect(controller.openValue).toBe(false)
     })
   })
 

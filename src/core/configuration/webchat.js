@@ -28,13 +28,13 @@ const strategies = {
 }
 
 /**
- * @typedef {'modal' | 'popover'} Behaviour
+ * @typedef {'modal' | 'popover'} Mode
  */
 
 /**
- * @enum {Behaviour}
+ * @enum {Mode}
  */
-const behaviors = {
+const modes = {
   MODAL: 'modal',
   POPOVER: 'popover',
 }
@@ -55,7 +55,8 @@ const behaviors = {
  * @property {Placement} placement - the placement of the webchat within the container, defaults to "bottom-right".
  * @property {String} classes - additional classes to apply to the webchat popup.
  * @property {String} triggerClasses - additional classes to apply to the webchat popup trigger.
- * @property {Behaviour} behaviour - the behaviour of the webchat, defaults to 'popover'.
+ * @property {Mode} mode - how the webchat behaves while open, defaults to 'popover'.
+ * @property {Object} behaviour - runtime opening behaviour for the webchat.
  * @property {Style} style - the style of the webchat.
  * @property {Strategy} strategy - the strategy used to position the webchat. Defaults to 'absolute'
  */
@@ -67,7 +68,9 @@ class Webchat {
   static _classes = []
   static _triggerClasses = []
   static _style = {}
-  static _behaviour = behaviors.POPOVER
+  static _mode = modes.POPOVER
+  static _behaviour = null
+  static _hasBehaviourOverride = false
   static _strategy = null
 
   static set container(value) {
@@ -160,16 +163,41 @@ class Webchat {
     this._style = value
   }
 
+  static get mode() {
+    return this._mode
+  }
+
+  static set mode(value) {
+    if (!Object.values(modes).includes(value)) {
+      throw new Error(`Invalid mode value: ${value}`)
+    }
+
+    this._mode = value
+  }
+
   static get behaviour() {
     return this._behaviour
   }
 
   static set behaviour(value) {
-    if (!Object.values(behaviors).includes(value)) {
+    if (value == null) {
+      this._behaviour = value
+      return
+    }
+
+    if (typeof value !== 'object' || Array.isArray(value)) {
       throw new Error(`Invalid behaviour value: ${value}`)
     }
 
     this._behaviour = value
+  }
+
+  static get hasBehaviourOverride() {
+    return this._hasBehaviourOverride
+  }
+
+  static set behaviourOverride(value) {
+    this._hasBehaviourOverride = !!value
   }
 
   static get strategy() {
@@ -206,4 +234,4 @@ class Webchat {
   }
 }
 
-export { behaviors, Webchat }
+export { modes, Webchat }
