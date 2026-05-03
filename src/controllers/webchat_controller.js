@@ -445,11 +445,13 @@ export default class extends Controller {
   // has connected the appended message target. Claiming the id in memory closes
   // that window, while the target check still drops messages rendered earlier.
   claimMessageId(id) {
+    const messageTargets = this.messageTargets || []
+
     if (this.messageIds.has(id)) return false
 
     this.messageIds.add(id)
 
-    return !this.messageTargets.some(element => element.dataset.id === id)
+    return !messageTargets.some(element => element.dataset.id === id)
   }
 
   updateMessageTeaser(teaser) {
