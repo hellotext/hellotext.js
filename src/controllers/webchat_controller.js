@@ -10,6 +10,7 @@ import { Webchat as WebchatConfiguration, modes } from '../core/configuration/we
 
 import { usePopover } from './mixins/usePopover'
 import { useBehaviour } from './webchat/useBehaviour'
+import { useOpeningSequence } from './webchat/useOpeningSequence'
 import { useTeaser } from './webchat/useTeaser'
 
 export default class extends Controller {
@@ -57,6 +58,8 @@ export default class extends Controller {
     'typingIndicatorTemplate',
     'teaser',
     'teaserMessage',
+    'openingSequence',
+    'openingSequenceMessage',
   ]
 
   initialize() {
@@ -86,6 +89,7 @@ export default class extends Controller {
   connect() {
     useBehaviour(this)
     usePopover(this)
+    useOpeningSequence(this)
     useTeaser(this)
 
     this.popoverTarget.classList.add(...WebchatConfiguration.classes)
@@ -102,6 +106,7 @@ export default class extends Controller {
     }
 
     this.setupTeaser()
+    this.setupOpeningSequence()
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onTypingStart(this.onTypingStart)
@@ -124,6 +129,7 @@ export default class extends Controller {
   disconnect() {
     this.cancelBehaviourOpen()
     this.teardownTeaser()
+    this.teardownOpeningSequence()
 
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
@@ -353,6 +359,8 @@ export default class extends Controller {
       this.messageTeaserValue = null
     }
 
+    this.startOpeningSequence()
+
     if (this.unreadCounterTarget.style.display === 'none') return
 
     this.unreadCounterTarget.style.display = 'none'
@@ -519,6 +527,7 @@ export default class extends Controller {
 
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
+    this.appendOpeningSequenceMessageIds(formData)
 
     const element = this.buildMessageElement()
     const attachment = cardElement.querySelector('img')?.cloneNode(true)
@@ -562,6 +571,7 @@ export default class extends Controller {
     const data = await response.json()
 
     this.dispatch('set:id', { target: element, detail: data.id })
+    this.clearRevealedOpeningSequenceMessageIds()
 
     const message = {
       id: data.id,
@@ -596,6 +606,7 @@ export default class extends Controller {
     formData.append('message[body]', text)
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
+    this.appendOpeningSequenceMessageIds(formData)
 
     const element = this.buildMessageElement()
 
@@ -636,6 +647,7 @@ export default class extends Controller {
 
     const data = await response.json()
     element.setAttribute('data-id', data.id)
+    this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', {
       id: data.id,
@@ -687,6 +699,7 @@ export default class extends Controller {
 
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
+    this.appendOpeningSequenceMessageIds(formData)
 
     const element = this.buildMessageElement()
 
@@ -756,6 +769,7 @@ export default class extends Controller {
     const data = await response.json()
     element.setAttribute('data-id', data.id)
     message.id = data.id
+    this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
 

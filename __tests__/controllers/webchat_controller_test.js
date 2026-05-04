@@ -6,6 +6,7 @@ import WebchatController from '../../src/controllers/webchat_controller'
 import Hellotext from '../../src/hellotext'
 import { Webchat as WebchatConfiguration, modes } from '../../src/core/configuration/webchat'
 import { usePopover } from '../../src/controllers/mixins/usePopover'
+import { useOpeningSequence } from '../../src/controllers/webchat/useOpeningSequence'
 import { useTeaser } from '../../src/controllers/webchat/useTeaser'
 
 // Mock dependencies
@@ -1333,6 +1334,8 @@ describe('WebchatController', () => {
 
     beforeEach(() => {
       useTeaser(controller)
+      useOpeningSequence(controller)
+      controller.setupOpeningSequence()
       mockTeaser = document.createElement('div')
       mockUnreadCounter = document.createElement('div')
       mockUnreadCounter.style.display = 'none'
@@ -1392,6 +1395,345 @@ describe('WebchatController', () => {
 
       expect(controller.messageTeaserValue).toBe(null)
       expect(mockTeaser.classList.contains('invisible')).toBe(true)
+    })
+  })
+
+  describe('opening sequence', () => {
+    let mockHellotext
+    let mockLocalStorage
+    let mockMessagesAPI
+    let mockMessageTemplate
+    let mockOpeningSequence
+    let mockUnreadCounter
+    let mockWebChatChannel
+
+    beforeEach(() => {
+      jest.useFakeTimers()
+      useTeaser(controller)
+      useOpeningSequence(controller)
+      controller.setupOpeningSequence()
+
+      mockMessageTemplate = document.createElement('div')
+      mockMessageTemplate.style.display = 'none'
+      const bodyElement = document.createElement('div')
+      bodyElement.setAttribute('data-body', '')
+      const attachmentContainer = document.createElement('div')
+      attachmentContainer.setAttribute('data-attachment-container', '')
+      mockMessageTemplate.appendChild(bodyElement)
+      mockMessageTemplate.appendChild(attachmentContainer)
+      mockMessagesContainer.appendChild(mockMessageTemplate)
+
+      mockOpeningSequence = document.createElement('section')
+      mockUnreadCounter = document.createElement('div')
+      mockUnreadCounter.style.display = 'none'
+      mockUnreadCounter.innerText = '0'
+
+      mockMessagesAPI = {
+        create: jest.fn(),
+        markAsSeen: jest.fn()
+      }
+
+      mockWebChatChannel = {
+        updateSubscriptionWith: jest.fn()
+      }
+
+      mockHellotext = {
+        session: 'test-session-123',
+        eventEmitter: {
+          dispatch: jest.fn()
+        }
+      }
+
+      mockLocalStorage = {
+        setItem: jest.fn(),
+        getItem: jest.fn(),
+        removeItem: jest.fn()
+      }
+
+      controller.conversationIdValue = ''
+      controller.messageTemplateTarget = mockMessageTemplate
+      controller.messagesContainerTarget = mockMessagesContainer
+      controller.openingSequenceTarget = mockOpeningSequence
+      controller.popoverTarget = document.createElement('div')
+      controller.fadeOutClasses = ['fade-out']
+      controller.scrolled = true
+      controller.unreadCounterTarget = mockUnreadCounter
+      controller.messagesAPI = mockMessagesAPI
+      controller.webChatChannel = mockWebChatChannel
+      controller.broadcastChannel = mockBroadcastChannel
+      controller.files = []
+      controller.resizeInput = jest.fn()
+      controller.show = jest.fn()
+      controller.showOptimisticTypingIndicator = jest.fn()
+      controller.resetTypingIndicatorTimer = jest.fn()
+      controller.typingIndicatorVisible = true
+
+      Object.defineProperty(controller, 'onMobile', {
+        get: () => true,
+        configurable: true
+      })
+      Object.defineProperty(controller, 'hasOpeningSequenceTarget', {
+        get: () => true,
+        configurable: true
+      })
+      Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
+        get: () => false,
+        configurable: true
+      })
+      Object.defineProperty(mockMessagesContainer, 'scrollHeight', {
+        value: 640,
+        configurable: true
+      })
+
+      mockMessagesContainer.scroll = jest.fn()
+      Element.prototype.scrollIntoView = jest.fn()
+
+      Object.defineProperty(window, 'localStorage', {
+        value: mockLocalStorage,
+        writable: true
+      })
+
+      Object.assign(Hellotext, mockHellotext)
+
+      const { Locale } = require('../../src/core/configuration/locale')
+      Object.assign(Locale, {
+        toString: jest.fn().mockReturnValue('en')
+      })
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    const setOpeningSequenceMessages = configs => {
+      const messages = configs.map(({ id, delay }) => {
+        const message = document.createElement('article')
+        message.hidden = true
+        message.dataset.openingSequenceMessageId = id
+        message.dataset.delaySeconds = String(delay)
+        mockOpeningSequence.appendChild(message)
+
+        return message
+      })
+
+      Object.defineProperty(controller, 'openingSequenceMessageTargets', {
+        get: () => messages,
+        configurable: true
+      })
+
+      return messages
+    }
+
+    const setupSuccessfulMessageResponse = (response = {}) => {
+      mockMessagesAPI.create.mockResolvedValue({
+        failed: false,
+        json: jest.fn().mockResolvedValue({
+          id: 'server-message-123',
+          conversation: 'current-conversation',
+          ...response
+        })
+      })
+    }
+
+    const setupFailedMessageResponse = () => {
+      mockMessagesAPI.create.mockResolvedValue({ failed: true })
+    }
+
+    const setupComposeTargets = () => {
+      controller.inputTarget = document.createElement('textarea')
+      controller.inputTarget.value = 'hello'
+      controller.attachmentInputTarget = document.createElement('input')
+      controller.attachmentContainerTarget = document.createElement('section')
+      controller.errorMessageContainerTarget = document.createElement('section')
+    }
+
+    it('does nothing without an opening sequence target', () => {
+      const [message] = setOpeningSequenceMessages([{ id: 'shown', delay: 1 }])
+      Object.defineProperty(controller, 'hasOpeningSequenceTarget', {
+        get: () => false,
+        configurable: true
+      })
+
+      controller.startOpeningSequence()
+      jest.advanceTimersByTime(1000)
+
+      expect(controller.openingSequenceStarted).toBe(false)
+      expect(message.hidden).toBe(true)
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual([])
+    })
+
+    it('does nothing when a conversation already exists', () => {
+      const [message] = setOpeningSequenceMessages([{ id: 'shown', delay: 1 }])
+      controller.conversationIdValue = 'existing-conversation'
+
+      controller.startOpeningSequence()
+      jest.advanceTimersByTime(1000)
+
+      expect(controller.openingSequenceStarted).toBe(false)
+      expect(message.hidden).toBe(true)
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual([])
+    })
+
+    it('does nothing without opening sequence messages', () => {
+      setOpeningSequenceMessages([])
+
+      controller.startOpeningSequence()
+
+      expect(controller.openingSequenceStarted).toBe(false)
+      expect(controller.openingSequenceTimeout).toBe(null)
+    })
+
+    it('starts once when the webchat opens without a conversation', () => {
+      setOpeningSequenceMessages([{ id: 'shown', delay: 1 }])
+
+      controller.onPopoverOpened()
+      const firstTimeout = controller.openingSequenceTimeout
+      controller.onPopoverOpened()
+
+      expect(controller.openingSequenceStarted).toBe(true)
+      expect(controller.openingSequenceTimeout).toBe(firstTimeout)
+      expect(mockMessagesAPI.markAsSeen).not.toHaveBeenCalled()
+    })
+
+    it('reveals staged messages using each message delay', () => {
+      const messages = setOpeningSequenceMessages([
+        { id: 'first', delay: 2 },
+        { id: 'second', delay: 3 }
+      ])
+
+      controller.startOpeningSequence()
+
+      jest.advanceTimersByTime(1999)
+      expect(messages[0].hidden).toBe(true)
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual([])
+
+      jest.advanceTimersByTime(1)
+      expect(messages[0].parentNode).toBe(mockMessagesContainer)
+      expect(messages[0].hidden).toBe(false)
+      expect(Array.from(mockMessagesContainer.children)).toEqual([messages[0], mockMessageTemplate])
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual(['first'])
+      expect(mockMessagesContainer.scroll).toHaveBeenCalledWith({
+        top: 640,
+        behavior: 'smooth'
+      })
+
+      jest.advanceTimersByTime(2999)
+      expect(messages[1].hidden).toBe(true)
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual(['first'])
+
+      jest.advanceTimersByTime(1)
+      expect(messages[1].parentNode).toBe(mockMessagesContainer)
+      expect(messages[1].hidden).toBe(false)
+      expect(Array.from(mockMessagesContainer.children)).toEqual([
+        messages[0],
+        messages[1],
+        mockMessageTemplate
+      ])
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual(['first', 'second'])
+    })
+
+    it('reveals zero-delay messages through the timer path', () => {
+      const [message] = setOpeningSequenceMessages([{ id: 'immediate', delay: 0 }])
+
+      controller.startOpeningSequence()
+      expect(message.hidden).toBe(true)
+
+      jest.advanceTimersByTime(0)
+
+      expect(message.hidden).toBe(false)
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual(['immediate'])
+    })
+
+    it('clears pending opening sequence timers on teardown', () => {
+      const [message] = setOpeningSequenceMessages([{ id: 'late', delay: 5 }])
+
+      controller.startOpeningSequence()
+      controller.teardownOpeningSequence()
+      jest.advanceTimersByTime(5000)
+
+      expect(message.hidden).toBe(true)
+      expect(controller.openingSequenceTimeout).toBe(null)
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual([])
+    })
+
+    it('cancels pending messages and sends only revealed ids with a compose message', async () => {
+      const messages = setOpeningSequenceMessages([
+        { id: 'shown', delay: 0 },
+        { id: 'unrevealed', delay: 5 }
+      ])
+      setupComposeTargets()
+      setupSuccessfulMessageResponse()
+
+      controller.startOpeningSequence()
+      jest.advanceTimersByTime(0)
+
+      await controller.sendMessage({ target: controller.inputTarget })
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.getAll('message[opening_sequence_message_ids][]')).toEqual(['shown'])
+      expect(messages[1].hidden).toBe(true)
+      expect(controller.openingSequenceCancelled).toBe(true)
+      expect(controller.openingSequenceTimeout).toBe(null)
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual([])
+    })
+
+    it('keeps revealed ids when the first compose message fails', async () => {
+      setOpeningSequenceMessages([{ id: 'shown', delay: 0 }])
+      setupComposeTargets()
+      setupFailedMessageResponse()
+
+      controller.startOpeningSequence()
+      jest.advanceTimersByTime(0)
+
+      await controller.sendMessage({ target: controller.inputTarget })
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.getAll('message[opening_sequence_message_ids][]')).toEqual(['shown'])
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual(['shown'])
+    })
+
+    it('sends revealed ids with a teaser quick reply', async () => {
+      setOpeningSequenceMessages([{ id: 'shown', delay: 0 }])
+      setupSuccessfulMessageResponse()
+      const button = document.createElement('button')
+      button.dataset.text = 'I need help'
+
+      controller.startOpeningSequence()
+      jest.advanceTimersByTime(0)
+
+      await controller.sendTeaserQuickReply({
+        currentTarget: button,
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn()
+      })
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.getAll('message[opening_sequence_message_ids][]')).toEqual(['shown'])
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual([])
+    })
+
+    it('sends revealed ids with a message quick reply', async () => {
+      setOpeningSequenceMessages([{ id: 'shown', delay: 0 }])
+      setupSuccessfulMessageResponse()
+      controller.dispatch = jest.fn()
+      const cardElement = document.createElement('section')
+
+      controller.startOpeningSequence()
+      jest.advanceTimersByTime(0)
+
+      await controller.sendQuickReplyMessage({
+        detail: {
+          id: 'opening-message',
+          product: 'product-1',
+          buttonId: 'button-1',
+          body: 'Quick reply',
+          cardElement
+        }
+      })
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.getAll('message[opening_sequence_message_ids][]')).toEqual(['shown'])
+      expect(controller.revealedOpeningSequenceMessageIds).toEqual([])
     })
   })
 
@@ -1484,6 +1826,8 @@ describe('WebchatController', () => {
 
   describe('onTeaserClick', () => {
     beforeEach(() => {
+      useOpeningSequence(controller)
+      controller.setupOpeningSequence()
       useTeaser(controller)
       controller.show = jest.fn()
     })
@@ -1516,6 +1860,8 @@ describe('WebchatController', () => {
     let mockWebChatChannel
 
     beforeEach(() => {
+      useOpeningSequence(controller)
+      controller.setupOpeningSequence()
       mockMessageTemplate = document.createElement('div')
       mockMessageTemplate.style.display = 'none'
       const bodyElement = document.createElement('div')
@@ -1773,6 +2119,8 @@ describe('WebchatController', () => {
     let mockClearTimeout
 
     beforeEach(() => {
+      useOpeningSequence(controller)
+      controller.setupOpeningSequence()
       // Set up message template mock
       mockMessageTemplate = document.createElement('div')
       mockMessageTemplate.id = 'template'
