@@ -10,6 +10,7 @@ import { Webchat as WebchatConfiguration, modes } from '../core/configuration/we
 
 import { usePopover } from './mixins/usePopover'
 import { useBehaviour } from './webchat/useBehaviour'
+import { useTeaser } from './webchat/useTeaser'
 
 export default class extends Controller {
   static values = {
@@ -55,6 +56,7 @@ export default class extends Controller {
     'typingIndicator',
     'typingIndicatorTemplate',
     'teaser',
+    'teaserMessage',
   ]
 
   initialize() {
@@ -84,6 +86,7 @@ export default class extends Controller {
   connect() {
     useBehaviour(this)
     usePopover(this)
+    useTeaser(this)
 
     this.popoverTarget.classList.add(...WebchatConfiguration.classes)
     this.triggerTarget.classList.add(...WebchatConfiguration.triggerClasses)
@@ -97,6 +100,8 @@ export default class extends Controller {
         strategy: 'absolute',
       })
     }
+
+    this.setupTeaser()
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onTypingStart(this.onTypingStart)
@@ -118,6 +123,8 @@ export default class extends Controller {
 
   disconnect() {
     this.cancelBehaviourOpen()
+    this.teardownTeaser()
+
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
 
@@ -322,6 +329,7 @@ export default class extends Controller {
 
   onPopoverOpened() {
     this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    this.hideTeaser()
 
     if (!this.onMobile) {
       this.inputTarget.focus()
@@ -345,10 +353,6 @@ export default class extends Controller {
       this.messageTeaserValue = null
     }
 
-    if (this.hasTeaserTarget) {
-      this.teaserTarget.classList.add('invisible')
-    }
-
     if (this.unreadCounterTarget.style.display === 'none') return
 
     this.unreadCounterTarget.style.display = 'none'
@@ -361,11 +365,7 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
 
-    if (this.hasTeaserTarget && this.teaserValue.body) {
-      this.teaserTarget.innerHTML = this.teaserValue.body
-
-      this.teaserTarget.classList.remove('invisible')
-    }
+    this.restoreTeaser()
   }
 
   onMessageReaction(message) {
@@ -574,6 +574,89 @@ export default class extends Controller {
     }
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
+  }
+
+  async sendTeaserQuickReply(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const button = event.currentTarget
+    const text = [button.dataset.text, button.dataset.value, button.textContent]
+      .map(value => (value || '').trim())
+      .find(value => value.length > 0)
+
+    if (!text) return
+
+    this.show()
+
+    const value = (button.dataset.value || '').trim() || text
+    const buttonType = (button.dataset.type || '').trim() || 'quick_reply'
+    const formData = new FormData()
+
+    formData.append('message[body]', text)
+    formData.append('session', Hellotext.session)
+    formData.append('locale', Locale.toString())
+
+    const element = this.buildMessageElement()
+
+    element.querySelector('[data-body]').innerText = text
+
+    if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
+      this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+    } else {
+      this.messagesContainerTarget.appendChild(element)
+    }
+
+    element.scrollIntoView({ behavior: 'smooth' })
+
+    this.broadcastChannel.postMessage({
+      type: 'message:sent',
+      element: element.outerHTML,
+    })
+
+    if (!this.typingIndicatorVisible) {
+      clearTimeout(this.optimisticTypingTimeout)
+      this.optimisticTypingTimeout = setTimeout(() => {
+        this.showOptimisticTypingIndicator()
+      }, this.optimisticTypingIndicatorWaitValue)
+    }
+
+    const response = await this.messagesAPI.create(formData)
+
+    if (response.failed) {
+      clearTimeout(this.optimisticTypingTimeout)
+
+      this.broadcastChannel.postMessage({
+        type: 'message:failed',
+        id: element.id,
+      })
+
+      return element.classList.add('failed')
+    }
+
+    const data = await response.json()
+    element.setAttribute('data-id', data.id)
+
+    Hellotext.eventEmitter.dispatch('webchat:message:sent', {
+      id: data.id,
+      body: text,
+      attachments: [],
+      type: 'quick_reply',
+      teaser: {
+        text,
+        value,
+        type: buttonType,
+      },
+    })
+
+    if (data.conversation && data.conversation !== this.conversationIdValue) {
+      this.conversationIdValue = data.conversation
+      this.webChatChannel.updateSubscriptionWith(this.conversationIdValue)
+    }
+
+    if (this.typingIndicatorVisible) {
+      this.resetTypingIndicatorTimer()
+    }
   }
 
   async sendMessage(e) {

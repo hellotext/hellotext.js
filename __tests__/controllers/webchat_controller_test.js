@@ -6,6 +6,7 @@ import WebchatController from '../../src/controllers/webchat_controller'
 import Hellotext from '../../src/hellotext'
 import { Webchat as WebchatConfiguration, modes } from '../../src/core/configuration/webchat'
 import { usePopover } from '../../src/controllers/mixins/usePopover'
+import { useTeaser } from '../../src/controllers/webchat/useTeaser'
 
 // Mock dependencies
 jest.mock('../../src/api/webchat/messages')
@@ -1009,11 +1010,32 @@ describe('WebchatController', () => {
       jest.useRealTimers()
     })
 
-    it('sets up floating UI for the teaser with absolute positioning', () => {
+    const setHasTeaserTarget = value => {
       Object.defineProperty(controller, 'hasTeaserTarget', {
-        get: () => true,
+        get: () => value,
         configurable: true
       })
+    }
+
+    const setTeaserMessages = delays => {
+      const messages = delays.map(delay => {
+        const message = document.createElement('section')
+        message.dataset.delaySeconds = String(delay)
+        mockTeaser.appendChild(message)
+
+        return message
+      })
+
+      Object.defineProperty(controller, 'teaserMessageTargets', {
+        get: () => messages,
+        configurable: true
+      })
+
+      return messages
+    }
+
+    it('sets up floating UI for the teaser with absolute positioning', () => {
+      setHasTeaserTarget(true)
 
       controller.connect()
 
@@ -1029,10 +1051,7 @@ describe('WebchatController', () => {
     })
 
     it('does not set up teaser positioning without a teaser target', () => {
-      Object.defineProperty(controller, 'hasTeaserTarget', {
-        get: () => false,
-        configurable: true
-      })
+      setHasTeaserTarget(false)
 
       controller.connect()
 
@@ -1041,6 +1060,128 @@ describe('WebchatController', () => {
         trigger: mockTrigger,
         popover: mockPopover
       })
+    })
+
+    it('does not start teaser cycling without a teaser target', () => {
+      setHasTeaserTarget(false)
+      const messages = setTeaserMessages([2])
+
+      controller.connect()
+
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+      expect(controller.teaserCycleTimeout).toBe(null)
+    })
+
+    it('does not start teaser cycling when the teaser is invisible', () => {
+      mockTeaser.dataset.enabled = 'true'
+      mockTeaser.classList.add('invisible')
+      setHasTeaserTarget(true)
+      const messages = setTeaserMessages([2])
+
+      controller.connect()
+
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+      expect(controller.teaserCycleTimeout).toBe(null)
+    })
+
+    it('does not start teaser cycling when the teaser is disabled', () => {
+      mockTeaser.dataset.enabled = 'false'
+      setHasTeaserTarget(true)
+      const messages = setTeaserMessages([2])
+
+      controller.connect()
+
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+      expect(controller.teaserCycleTimeout).toBe(null)
+    })
+
+    it('does not start teaser cycling without teaser messages', () => {
+      mockTeaser.dataset.enabled = 'true'
+      setHasTeaserTarget(true)
+      setTeaserMessages([])
+
+      controller.connect()
+
+      expect(controller.teaserCycleTimeout).toBe(null)
+    })
+
+    it('shows the first teaser message and hides later messages on connect', () => {
+      jest.useFakeTimers()
+      mockTeaser.dataset.enabled = 'true'
+      setHasTeaserTarget(true)
+      const messages = setTeaserMessages([2, 4, 6])
+
+      controller.connect()
+
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+      expect(messages[1].classList.contains('hidden')).toBe(true)
+      expect(messages[2].classList.contains('hidden')).toBe(true)
+    })
+
+    it('does not cycle a single teaser message', () => {
+      jest.useFakeTimers()
+      mockTeaser.dataset.enabled = 'true'
+      setHasTeaserTarget(true)
+      setTeaserMessages([2])
+
+      controller.connect()
+
+      expect(controller.teaserCycleTimeout).toBe(null)
+    })
+
+    it('does not cycle when all teaser delays are zero', () => {
+      jest.useFakeTimers()
+      mockTeaser.dataset.enabled = 'true'
+      setHasTeaserTarget(true)
+      const messages = setTeaserMessages([0, 0])
+
+      controller.connect()
+      jest.runOnlyPendingTimers()
+
+      expect(controller.teaserCycleTimeout).toBe(null)
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+      expect(messages[1].classList.contains('hidden')).toBe(true)
+    })
+
+    it('cycles teaser messages using the next message delay and loops back', () => {
+      jest.useFakeTimers()
+      mockTeaser.dataset.enabled = 'true'
+      setHasTeaserTarget(true)
+      const messages = setTeaserMessages([1, 2, 3])
+
+      controller.connect()
+
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+
+      jest.advanceTimersByTime(1999)
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+
+      jest.advanceTimersByTime(1)
+      expect(messages[0].classList.contains('hidden')).toBe(true)
+      expect(messages[1].classList.contains('hidden')).toBe(false)
+
+      jest.advanceTimersByTime(3000)
+      expect(messages[1].classList.contains('hidden')).toBe(true)
+      expect(messages[2].classList.contains('hidden')).toBe(false)
+
+      jest.advanceTimersByTime(1000)
+      expect(messages[2].classList.contains('hidden')).toBe(true)
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+    })
+
+    it('clears pending teaser cycling on disconnect', () => {
+      jest.useFakeTimers()
+      mockTeaser.dataset.enabled = 'true'
+      setHasTeaserTarget(true)
+      const messages = setTeaserMessages([1, 1])
+      controller.floatingUICleanup = jest.fn()
+
+      controller.connect()
+      controller.disconnect()
+      jest.advanceTimersByTime(1000)
+
+      expect(messages[0].classList.contains('hidden')).toBe(false)
+      expect(messages[1].classList.contains('hidden')).toBe(true)
     })
 
     it('does not schedule an automatic open for click-triggered behaviour', () => {
@@ -1191,6 +1332,7 @@ describe('WebchatController', () => {
     let mockUnreadCounter
 
     beforeEach(() => {
+      useTeaser(controller)
       mockTeaser = document.createElement('div')
       mockUnreadCounter = document.createElement('div')
       mockUnreadCounter.style.display = 'none'
@@ -1258,6 +1400,7 @@ describe('WebchatController', () => {
     let mockLocalStorage
 
     beforeEach(() => {
+      useTeaser(controller)
       mockHellotext = {
         eventEmitter: {
           dispatch: jest.fn()
@@ -1294,38 +1437,328 @@ describe('WebchatController', () => {
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('hellotext--webchat--test-webchat-123', 'closed')
     })
 
-    it('shows the teaser again when the teaser has body content', () => {
+    it('shows the served teaser DOM again when it is enabled and has messages', () => {
       const teaser = document.createElement('div')
+      teaser.dataset.enabled = 'true'
       teaser.classList.add('invisible')
-      teaser.innerHTML = 'Incoming message teaser'
+      teaser.innerHTML = '<section>Served teaser</section>'
+      const teaserMessage = teaser.firstElementChild
 
       controller.teaserTarget = teaser
-      controller.teaserValue = { body: '<span>Need help?</span>' }
+      controller.teaserValue = { body: '<span>Legacy JSON teaser</span>' }
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
+        configurable: true
+      })
+      Object.defineProperty(controller, 'teaserMessageTargets', {
+        get: () => [teaserMessage],
         configurable: true
       })
 
       controller.onPopoverClosed()
 
-      expect(teaser.innerHTML).toBe('<span>Need help?</span>')
+      expect(teaser.innerHTML).toBe('<section>Served teaser</section>')
       expect(teaser.classList.contains('invisible')).toBe(false)
     })
 
-    it('keeps the teaser hidden when the teaser has no body content', () => {
+    it('keeps the teaser hidden when it has no served messages', () => {
       const teaser = document.createElement('div')
+      teaser.dataset.enabled = 'true'
       teaser.classList.add('invisible')
 
       controller.teaserTarget = teaser
-      controller.teaserValue = {}
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
+        configurable: true
+      })
+      Object.defineProperty(controller, 'teaserMessageTargets', {
+        get: () => [],
         configurable: true
       })
 
       controller.onPopoverClosed()
 
       expect(teaser.classList.contains('invisible')).toBe(true)
+    })
+  })
+
+  describe('onTeaserClick', () => {
+    beforeEach(() => {
+      useTeaser(controller)
+      controller.show = jest.fn()
+    })
+
+    it('opens the webchat when the teaser surface is clicked', () => {
+      const teaser = document.createElement('section')
+
+      controller.onTeaserClick({ target: teaser })
+
+      expect(controller.show).toHaveBeenCalled()
+    })
+
+    it('lets anchor clicks behave normally', () => {
+      const anchor = document.createElement('a')
+      const label = document.createElement('span')
+      anchor.appendChild(label)
+
+      controller.onTeaserClick({ target: label })
+
+      expect(controller.show).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('sendTeaserQuickReply', () => {
+    let mockMessageTemplate
+    let mockMessagesAPI
+    let mockHellotext
+    let mockLocale
+    let mockBroadcastChannel
+    let mockWebChatChannel
+
+    beforeEach(() => {
+      mockMessageTemplate = document.createElement('div')
+      mockMessageTemplate.style.display = 'none'
+      const bodyElement = document.createElement('div')
+      bodyElement.setAttribute('data-body', '')
+      mockMessageTemplate.appendChild(bodyElement)
+
+      controller.messageTemplateTarget = mockMessageTemplate
+      controller.messagesContainerTarget = mockMessagesContainer
+      controller.conversationIdValue = 'current-conversation'
+      controller.show = jest.fn()
+      controller.resetTypingIndicatorTimer = jest.fn()
+      controller.typingIndicatorVisible = true
+
+      Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
+        get: () => false,
+        configurable: true
+      })
+
+      mockMessagesAPI = {
+        create: jest.fn()
+      }
+      controller.messagesAPI = mockMessagesAPI
+
+      mockBroadcastChannel = {
+        postMessage: jest.fn()
+      }
+      controller.broadcastChannel = mockBroadcastChannel
+
+      mockWebChatChannel = {
+        updateSubscriptionWith: jest.fn()
+      }
+      controller.webChatChannel = mockWebChatChannel
+
+      mockHellotext = {
+        session: 'test-session-123',
+        eventEmitter: {
+          dispatch: jest.fn()
+        }
+      }
+      Object.assign(Hellotext, mockHellotext)
+
+      mockLocale = {
+        toString: jest.fn().mockReturnValue('en')
+      }
+      const { Locale } = require('../../src/core/configuration/locale')
+      Object.assign(Locale, mockLocale)
+
+      Element.prototype.scrollIntoView = jest.fn()
+
+      mockMessagesAPI.create.mockResolvedValue({
+        failed: false,
+        json: jest.fn().mockResolvedValue({
+          id: 'server-message-123',
+          conversation: 'current-conversation'
+        })
+      })
+    })
+
+    const buildTeaserButton = attributes => {
+      const button = document.createElement('button')
+      button.textContent = attributes.textContent || ''
+
+      Object.entries(attributes.dataset || {}).forEach(([key, value]) => {
+        button.dataset[key] = value
+      })
+
+      return button
+    }
+
+    const buildTeaserQuickReplyEvent = button => ({
+      currentTarget: button,
+      preventDefault: jest.fn(),
+      stopPropagation: jest.fn()
+    })
+
+    it('prevents the teaser button click from submitting or opening twice', async () => {
+      const button = buildTeaserButton({ dataset: { text: 'I need help' } })
+      const event = buildTeaserQuickReplyEvent(button)
+
+      await controller.sendTeaserQuickReply(event)
+
+      expect(event.preventDefault).toHaveBeenCalled()
+      expect(event.stopPropagation).toHaveBeenCalled()
+    })
+
+    it('uses data-text for the sent body before other button content', async () => {
+      const button = buildTeaserButton({
+        textContent: 'Visible fallback',
+        dataset: {
+          text: 'Data text',
+          value: 'Data value'
+        }
+      })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.get('message[body]')).toBe('Data text')
+    })
+
+    it('falls back to data-value for the sent body', async () => {
+      const button = buildTeaserButton({
+        textContent: 'Visible fallback',
+        dataset: {
+          value: 'Data value'
+        }
+      })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.get('message[body]')).toBe('Data value')
+    })
+
+    it('ignores blank data-text and falls back to data-value', async () => {
+      const button = buildTeaserButton({
+        textContent: 'Visible fallback',
+        dataset: {
+          text: '   ',
+          value: 'Data value'
+        }
+      })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.get('message[body]')).toBe('Data value')
+    })
+
+    it('falls back to trimmed button text for the sent body', async () => {
+      const button = buildTeaserButton({ textContent: '  Visible fallback  ' })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.get('message[body]')).toBe('Visible fallback')
+    })
+
+    it('does not open or send when the teaser button text is blank', async () => {
+      const button = buildTeaserButton({ textContent: '   ' })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      expect(controller.show).not.toHaveBeenCalled()
+      expect(mockMessagesAPI.create).not.toHaveBeenCalled()
+      expect(mockMessagesContainer.children).toHaveLength(0)
+    })
+
+    it('opens the webchat and creates form data for a customer message', async () => {
+      const button = buildTeaserButton({ dataset: { text: 'I need help' } })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      expect(controller.show).toHaveBeenCalled()
+      expect(mockMessagesAPI.create).toHaveBeenCalledWith(expect.any(FormData))
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.get('message[body]')).toBe('I need help')
+      expect(formData.get('session')).toBe('test-session-123')
+      expect(formData.get('locale')).toBe('en')
+    })
+
+    it('appends an optimistic customer bubble and broadcasts the sent message', async () => {
+      const button = buildTeaserButton({ dataset: { text: 'I need help' } })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      expect(mockMessagesContainer.children).toHaveLength(1)
+      const addedElement = mockMessagesContainer.children[0]
+
+      expect(addedElement.querySelector('[data-body]').innerText).toBe('I need help')
+      expect(addedElement.getAttribute('data-hellotext--webchat-target')).toBe('message')
+      expect(addedElement.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' })
+      expect(mockBroadcastChannel.postMessage).toHaveBeenCalledWith({
+        type: 'message:sent',
+        element: expect.any(String)
+      })
+    })
+
+    it('sets the server id and dispatches a quick reply event without card reply fields', async () => {
+      const button = buildTeaserButton({
+        dataset: {
+          text: 'I need help',
+          value: 'need_help',
+          type: 'quick_reply'
+        }
+      })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      const addedElement = mockMessagesContainer.children[0]
+      expect(addedElement.getAttribute('data-id')).toBe('server-message-123')
+
+      expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledWith('webchat:message:sent', {
+        id: 'server-message-123',
+        body: 'I need help',
+        attachments: [],
+        type: 'quick_reply',
+        teaser: {
+          text: 'I need help',
+          value: 'need_help',
+          type: 'quick_reply'
+        }
+      })
+
+      const message = mockHellotext.eventEmitter.dispatch.mock.calls[0][1]
+      expect(message).not.toHaveProperty('replied_to')
+      expect(message).not.toHaveProperty('product')
+      expect(message).not.toHaveProperty('button')
+    })
+
+    it('updates the webchat channel when the response changes conversation', async () => {
+      mockMessagesAPI.create.mockResolvedValue({
+        failed: false,
+        json: jest.fn().mockResolvedValue({
+          id: 'server-message-123',
+          conversation: 'new-conversation'
+        })
+      })
+      const button = buildTeaserButton({ dataset: { text: 'I need help' } })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      expect(controller.conversationIdValue).toBe('new-conversation')
+      expect(mockWebChatChannel.updateSubscriptionWith).toHaveBeenCalledWith('new-conversation')
+    })
+
+    it('broadcasts and marks the optimistic bubble failed when sending fails', async () => {
+      mockMessagesAPI.create.mockResolvedValue({ failed: true })
+      const button = buildTeaserButton({ dataset: { text: 'I need help' } })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      const addedElement = mockMessagesContainer.children[0]
+      expect(mockBroadcastChannel.postMessage).toHaveBeenLastCalledWith({
+        type: 'message:failed',
+        id: addedElement.id
+      })
+      expect(addedElement.classList.contains('failed')).toBe(true)
+      expect(mockHellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith(
+        'webchat:message:sent',
+        expect.anything()
+      )
     })
   })
 
