@@ -36,7 +36,7 @@ describe('WebchatController', () => {
     Object.defineProperty(controller, 'element', {
       value: mockElement,
       writable: false,
-      configurable: true
+      configurable: true,
     })
 
     controller.messagesContainerTarget = mockMessagesContainer
@@ -49,13 +49,13 @@ describe('WebchatController', () => {
       postMessage: jest.fn(),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
-      close: jest.fn()
+      close: jest.fn(),
     }
 
     global.BroadcastChannel = jest.fn(() => mockBroadcastChannel)
 
     global.DOMParser = jest.fn(() => ({
-      parseFromString: jest.fn()
+      parseFromString: jest.fn(),
     }))
 
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
@@ -81,7 +81,7 @@ describe('WebchatController', () => {
         const mockDocument = { body: mockBody }
 
         const mockDOMParser = {
-          parseFromString: jest.fn().mockReturnValue(mockDocument)
+          parseFromString: jest.fn().mockReturnValue(mockDocument),
         }
         global.DOMParser = jest.fn(() => mockDOMParser)
 
@@ -90,8 +90,8 @@ describe('WebchatController', () => {
         const event = {
           data: {
             type: 'message:sent',
-            element: mockHtmlString
-          }
+            element: mockHtmlString,
+          },
         }
 
         controller.onOutboundMessageSent(event)
@@ -120,7 +120,7 @@ describe('WebchatController', () => {
         const mockDocument = { body: mockBody }
 
         const mockDOMParser = {
-          parseFromString: jest.fn().mockReturnValue(mockDocument)
+          parseFromString: jest.fn().mockReturnValue(mockDocument),
         }
         global.DOMParser = jest.fn(() => mockDOMParser)
 
@@ -129,8 +129,8 @@ describe('WebchatController', () => {
         const event = {
           data: {
             type: 'message:sent',
-            element: complexHtml
-          }
+            element: complexHtml,
+          },
         }
 
         controller.onOutboundMessageSent(event)
@@ -152,8 +152,8 @@ describe('WebchatController', () => {
         const event = {
           data: {
             type: 'message:failed',
-            id: messageId
-          }
+            id: messageId,
+          },
         }
 
         controller.onOutboundMessageSent(event)
@@ -166,8 +166,8 @@ describe('WebchatController', () => {
         const event = {
           data: {
             type: 'message:failed',
-            id: 'non-existent-message'
-          }
+            id: 'non-existent-message',
+          },
         }
 
         expect(() => controller.onOutboundMessageSent(event)).not.toThrow()
@@ -193,8 +193,8 @@ describe('WebchatController', () => {
         const event = {
           data: {
             type: 'message:failed',
-            id: 'message-2'
-          }
+            id: 'message-2',
+          },
         }
 
         controller.onOutboundMessageSent(event)
@@ -210,8 +210,8 @@ describe('WebchatController', () => {
         const event = {
           data: {
             type: 'unknown:event',
-            someData: 'test'
-          }
+            someData: 'test',
+          },
         }
 
         controller.onOutboundMessageSent(event)
@@ -222,8 +222,8 @@ describe('WebchatController', () => {
       it('handles missing type gracefully', () => {
         const event = {
           data: {
-            someData: 'test'
-          }
+            someData: 'test',
+          },
         }
 
         controller.onOutboundMessageSent(event)
@@ -251,17 +251,16 @@ describe('WebchatController', () => {
         const mockDocument = { body: mockBody }
 
         const mockDOMParser = {
-          parseFromString: jest.fn().mockReturnValue(mockDocument)
+          parseFromString: jest.fn().mockReturnValue(mockDocument),
         }
         global.DOMParser = jest.fn(() => mockDOMParser)
 
         const event = {
           data: {
             type: 'message:sent',
-            element: ''
-          }
+            element: '',
+          },
         }
-
 
         expect(() => controller.onOutboundMessageSent(event)).toThrow()
       })
@@ -274,7 +273,7 @@ describe('WebchatController', () => {
         const mockDocument = { body: mockBody }
 
         const mockDOMParser = {
-          parseFromString: jest.fn().mockReturnValue(mockDocument)
+          parseFromString: jest.fn().mockReturnValue(mockDocument),
         }
         global.DOMParser = jest.fn(() => mockDOMParser)
 
@@ -283,8 +282,8 @@ describe('WebchatController', () => {
         const event = {
           data: {
             type: 'message:sent',
-            element: malformedHtml
-          }
+            element: malformedHtml,
+          },
         }
 
         controller.onOutboundMessageSent(event)
@@ -329,15 +328,15 @@ describe('WebchatController', () => {
 
       // Mock messagesAPI
       mockMessagesAPI = {
-        markAsSeen: jest.fn()
+        markAsSeen: jest.fn(),
       }
       controller.messagesAPI = mockMessagesAPI
 
       // Mock Hellotext
       mockHellotext = {
         eventEmitter: {
-          dispatch: jest.fn()
-        }
+          dispatch: jest.fn(),
+        },
       }
 
       // Mock scrollIntoView
@@ -352,7 +351,7 @@ describe('WebchatController', () => {
       it('creates and appends a message element with body content', () => {
         const message = {
           body: '<p>Hello world!</p>',
-          id: 'msg-123'
+          id: 'msg-123',
         }
 
         controller.onMessageReceived(message)
@@ -369,17 +368,19 @@ describe('WebchatController', () => {
 
         const message = {
           body: '<p>Hello once</p>',
-          id: 'duplicate-msg'
+          id: 'duplicate-msg',
         }
 
         controller.onMessageReceived(message)
         controller.onMessageReceived({
           ...message,
-          body: '<p>Hello twice</p>'
+          body: '<p>Hello twice</p>',
         })
 
         expect(mockMessagesContainer.children).toHaveLength(1)
-        expect(mockMessagesContainer.children[0].querySelector('[data-body]').innerHTML).toBe('<p>Hello once</p>')
+        expect(mockMessagesContainer.children[0].querySelector('[data-body]').innerHTML).toBe(
+          '<p>Hello once</p>',
+        )
         expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledTimes(1)
       })
 
@@ -389,12 +390,12 @@ describe('WebchatController', () => {
 
         Object.defineProperty(controller, 'messageTargets', {
           get: () => [renderedMessage],
-          configurable: true
+          configurable: true,
         })
 
         controller.onMessageReceived({
           body: '<p>Already rendered</p>',
-          id: 'rendered-msg'
+          id: 'rendered-msg',
         })
 
         expect(mockMessagesContainer.children).toHaveLength(0)
@@ -404,7 +405,7 @@ describe('WebchatController', () => {
       it('handles plain text messages', () => {
         const message = {
           body: 'Simple text message',
-          id: 'msg-456'
+          id: 'msg-456',
         }
 
         controller.onMessageReceived(message)
@@ -416,13 +417,15 @@ describe('WebchatController', () => {
       it('handles HTML content in message body', () => {
         const message = {
           body: '<strong>Bold text</strong> and <em>italic text</em>',
-          id: 'msg-789'
+          id: 'msg-789',
         }
 
         controller.onMessageReceived(message)
 
         const addedElement = mockMessagesContainer.children[0]
-        expect(addedElement.querySelector('[data-body]').innerHTML).toBe('<strong>Bold text</strong> and <em>italic text</em>')
+        expect(addedElement.querySelector('[data-body]').innerHTML).toBe(
+          '<strong>Bold text</strong> and <em>italic text</em>',
+        )
       })
     })
 
@@ -430,7 +433,7 @@ describe('WebchatController', () => {
       it('processes single attachment correctly', () => {
         const message = {
           body: 'Message with attachment',
-          attachments: ['https://example.com/image1.jpg']
+          attachments: ['https://example.com/image1.jpg'],
         }
 
         controller.onMessageReceived(message)
@@ -450,8 +453,8 @@ describe('WebchatController', () => {
           attachments: [
             'https://example.com/image1.jpg',
             'https://example.com/image2.png',
-            'https://example.com/image3.gif'
-          ]
+            'https://example.com/image3.gif',
+          ],
         }
 
         controller.onMessageReceived(message)
@@ -467,7 +470,7 @@ describe('WebchatController', () => {
 
       it('handles messages without attachments', () => {
         const message = {
-          body: 'Message without attachments'
+          body: 'Message without attachments',
         }
 
         controller.onMessageReceived(message)
@@ -480,7 +483,7 @@ describe('WebchatController', () => {
       it('handles empty attachments array', () => {
         const message = {
           body: 'Message with empty attachments',
-          attachments: []
+          attachments: [],
         }
 
         controller.onMessageReceived(message)
@@ -494,7 +497,7 @@ describe('WebchatController', () => {
     describe('scroll behavior', () => {
       it('scrolls new message into view smoothly', () => {
         const message = {
-          body: 'Scroll test message'
+          body: 'Scroll test message',
         }
 
         controller.onMessageReceived(message)
@@ -512,7 +515,7 @@ describe('WebchatController', () => {
       it('marks message as seen when chat is open', () => {
         const message = {
           body: 'Open chat message',
-          id: 'msg-open-chat'
+          id: 'msg-open-chat',
         }
 
         controller.onMessageReceived(message)
@@ -527,7 +530,7 @@ describe('WebchatController', () => {
 
       it('does not mark message as seen when chat is closed', () => {
         const message = {
-          body: 'Closed chat message'
+          body: 'Closed chat message',
         }
 
         controller.onMessageReceived(message)
@@ -537,15 +540,26 @@ describe('WebchatController', () => {
 
     describe('message teaser handling', () => {
       let mockTeaser
+      let mockSessionStorage
 
       beforeEach(() => {
+        useTeaser(controller)
         mockTeaser = document.createElement('div')
         mockTeaser.innerHTML = 'Configured teaser'
         controller.teaserTarget = mockTeaser
+        mockSessionStorage = {
+          getItem: jest.fn().mockReturnValue(null),
+          setItem: jest.fn(),
+          removeItem: jest.fn(),
+        }
+        Object.defineProperty(window, 'sessionStorage', {
+          value: mockSessionStorage,
+          writable: true,
+        })
 
         Object.defineProperty(controller, 'hasTeaserTarget', {
           get: () => true,
-          configurable: true
+          configurable: true,
         })
       })
 
@@ -556,11 +570,29 @@ describe('WebchatController', () => {
         controller.onMessageReceived({
           body: 'Closed chat message',
           id: 'msg-closed-teaser',
-          teaser: '<span>Message teaser</span>'
+          teaser: '<span>Message teaser</span>',
         })
 
         expect(mockTeaser.innerHTML).toBe('<span>Message teaser</span>')
         expect(mockTeaser.classList.contains('invisible')).toBe(false)
+      })
+
+      it('keeps incoming message teasers ephemeral without marking the session teaser seen', () => {
+        controller.openValue = false
+        mockTeaser.classList.add('invisible')
+
+        controller.onMessageReceived({
+          body: 'Closed chat message',
+          id: 'msg-ephemeral-teaser',
+          teaser: '<span>Ephemeral teaser</span>',
+        })
+
+        expect(mockTeaser.innerHTML).toBe('<span>Ephemeral teaser</span>')
+        expect(mockTeaser.classList.contains('invisible')).toBe(false)
+        expect(mockSessionStorage.setItem).not.toHaveBeenCalledWith(
+          'hellotext:webchat:test-webchat-id:teaser-seen',
+          'true',
+        )
       })
 
       it('overrides and hides the teaser when an open chat receives a message teaser', () => {
@@ -569,7 +601,7 @@ describe('WebchatController', () => {
         controller.onMessageReceived({
           body: 'Open chat message',
           id: 'msg-open-teaser',
-          teaser: '<span>Open message teaser</span>'
+          teaser: '<span>Open message teaser</span>',
         })
 
         expect(mockTeaser.innerHTML).toBe('<span>Open message teaser</span>')
@@ -583,13 +615,12 @@ describe('WebchatController', () => {
 
         controller.onMessageReceived({
           body: 'Message without teaser',
-          id: 'msg-without-teaser'
+          id: 'msg-without-teaser',
         })
 
         expect(mockTeaser.innerHTML).toBe('Configured teaser')
         expect(mockTeaser.classList.contains('invisible')).toBe(true)
       })
-
     })
 
     describe('typing indicator timeout clearance', () => {
@@ -602,7 +633,7 @@ describe('WebchatController', () => {
         controller.typingIndicatorTarget = mockTypingIndicatorTarget
         // Mock hasTypingIndicatorTarget to return true when target exists
         Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
-          get: () => !!controller.typingIndicatorTarget
+          get: () => !!controller.typingIndicatorTarget,
         })
 
         mockClearTimeout = jest.fn()
@@ -616,7 +647,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-typing-clear'
+          id: 'msg-typing-clear',
         }
 
         controller.onMessageReceived(message)
@@ -630,7 +661,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-typing-remove'
+          id: 'msg-typing-remove',
         }
 
         controller.onMessageReceived(message)
@@ -643,7 +674,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-typing-hide'
+          id: 'msg-typing-hide',
         }
 
         controller.onMessageReceived(message)
@@ -656,7 +687,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-no-typing'
+          id: 'msg-no-typing',
         }
 
         controller.onMessageReceived(message)
@@ -669,7 +700,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-no-typing-remove'
+          id: 'msg-no-typing-remove',
         }
 
         controller.onMessageReceived(message)
@@ -681,12 +712,12 @@ describe('WebchatController', () => {
 
         const message1 = {
           body: 'First message',
-          id: 'msg-1'
+          id: 'msg-1',
         }
 
         const message2 = {
           body: 'Second message',
-          id: 'msg-2'
+          id: 'msg-2',
         }
 
         controller.onMessageReceived(message1)
@@ -708,7 +739,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-timeout-id'
+          id: 'msg-timeout-id',
         }
 
         controller.onMessageReceived(message)
@@ -721,7 +752,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-null-timeout'
+          id: 'msg-null-timeout',
         }
 
         controller.onMessageReceived(message)
@@ -734,7 +765,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-undefined-timeout'
+          id: 'msg-undefined-timeout',
         }
 
         controller.onMessageReceived(message)
@@ -747,7 +778,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-null-target'
+          id: 'msg-null-target',
         }
 
         expect(() => controller.onMessageReceived(message)).not.toThrow()
@@ -761,7 +792,7 @@ describe('WebchatController', () => {
 
         const message = {
           body: 'Test message',
-          id: 'msg-undefined-target'
+          id: 'msg-undefined-target',
         }
 
         expect(() => controller.onMessageReceived(message)).not.toThrow()
@@ -773,7 +804,7 @@ describe('WebchatController', () => {
     describe('edge cases and error handling', () => {
       it('handles missing message body gracefully', () => {
         const message = {
-          id: 'msg-no-body'
+          id: 'msg-no-body',
         }
 
         expect(() => controller.onMessageReceived(message)).not.toThrow()
@@ -790,7 +821,7 @@ describe('WebchatController', () => {
       it('handles message with null attachments', () => {
         const message = {
           body: 'Message with null attachments',
-          attachments: null
+          attachments: null,
         }
 
         expect(() => controller.onMessageReceived(message)).not.toThrow()
@@ -802,7 +833,7 @@ describe('WebchatController', () => {
 
       it('handles malformed HTML in message body', () => {
         const message = {
-          body: '<div><span>Unclosed tags and <strong>bold text'
+          body: '<div><span>Unclosed tags and <strong>bold text',
         }
 
         expect(() => controller.onMessageReceived(message)).not.toThrow()
@@ -825,7 +856,7 @@ describe('WebchatController', () => {
           `,
           attachments: ['https://example.com/file.pdf'],
           id: 'complex-msg',
-          metadata: { important: true }
+          metadata: { important: true },
         }
 
         controller.onMessageReceived(message)
@@ -843,7 +874,7 @@ describe('WebchatController', () => {
 
     beforeEach(() => {
       mockWebChatChannel = {
-        startTypingIndicator: jest.fn()
+        startTypingIndicator: jest.fn(),
       }
       controller.webChatChannel = mockWebChatChannel
       controller.hasSentTypingIndicator = false
@@ -852,7 +883,7 @@ describe('WebchatController', () => {
       // Mock inputTarget for resizeInput method
       controller.inputTarget = {
         style: {},
-        scrollHeight: 50
+        scrollHeight: 50,
       }
     })
 
@@ -964,38 +995,38 @@ describe('WebchatController', () => {
       mockWebChatChannel = {
         onMessage: jest.fn(),
         onTypingStart: jest.fn(),
-        onReaction: jest.fn()
+        onReaction: jest.fn(),
       }
       controller.webChatChannel = mockWebChatChannel
 
       mockLocalStorage = {
         getItem: jest.fn().mockReturnValue(null),
         setItem: jest.fn(),
-        removeItem: jest.fn()
+        removeItem: jest.fn(),
       }
       Object.defineProperty(window, 'localStorage', {
         value: mockLocalStorage,
-        writable: true
+        writable: true,
       })
       mockSessionStorage = {
         getItem: jest.fn().mockReturnValue(null),
         setItem: jest.fn(),
-        removeItem: jest.fn()
+        removeItem: jest.fn(),
       }
       Object.defineProperty(window, 'sessionStorage', {
         value: mockSessionStorage,
-        writable: true
+        writable: true,
       })
 
       Object.assign(Hellotext, {
         business: {
           features: {
-            white_label: true
-          }
+            white_label: true,
+          },
         },
         eventEmitter: {
-          dispatch: jest.fn()
-        }
+          dispatch: jest.fn(),
+        },
       })
 
       WebchatConfiguration.classes = []
@@ -1014,26 +1045,40 @@ describe('WebchatController', () => {
     const setHasTeaserTarget = value => {
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => value,
-        configurable: true
+        configurable: true,
       })
     }
 
     const setTeaserMessages = delays => {
+      mockTeaser.innerHTML = ''
+
       const messages = delays.map(delay => {
         const message = document.createElement('section')
-        message.dataset.delaySeconds = String(delay)
+        message.setAttribute('data-teaser-message', 'true')
+
+        if (delay !== undefined) {
+          message.dataset.delaySeconds = String(delay)
+        }
+
         mockTeaser.appendChild(message)
 
         return message
       })
 
-      Object.defineProperty(controller, 'teaserMessageTargets', {
-        get: () => messages,
-        configurable: true
-      })
-
       return messages
     }
+
+    const allowPreConversationTeaser = () => {
+      controller.conversationIdValue = ''
+      controller.openValue = false
+
+      Object.defineProperty(controller, 'messageTargets', {
+        get: () => [],
+        configurable: true,
+      })
+    }
+
+    const teaserSeenKey = () => `hellotext:webchat:${controller.idValue}:teaser-seen`
 
     it('sets up floating UI for the teaser with absolute positioning', () => {
       setHasTeaserTarget(true)
@@ -1042,12 +1087,12 @@ describe('WebchatController', () => {
 
       expect(controller.setupFloatingUI).toHaveBeenNthCalledWith(1, {
         trigger: mockTrigger,
-        popover: mockPopover
+        popover: mockPopover,
       })
       expect(controller.setupFloatingUI).toHaveBeenNthCalledWith(2, {
         trigger: mockTrigger,
         popover: mockTeaser,
-        strategy: 'absolute'
+        strategy: 'absolute',
       })
     })
 
@@ -1059,11 +1104,12 @@ describe('WebchatController', () => {
       expect(controller.setupFloatingUI).toHaveBeenCalledTimes(1)
       expect(controller.setupFloatingUI).toHaveBeenCalledWith({
         trigger: mockTrigger,
-        popover: mockPopover
+        popover: mockPopover,
       })
     })
 
     it('does not start teaser cycling without a teaser target', () => {
+      allowPreConversationTeaser()
       setHasTeaserTarget(false)
       const messages = setTeaserMessages([2])
 
@@ -1073,55 +1119,50 @@ describe('WebchatController', () => {
       expect(controller.teaserCycleTimeout).toBe(null)
     })
 
-    it('does not start teaser cycling when the teaser is invisible', () => {
-      mockTeaser.dataset.enabled = 'true'
-      mockTeaser.classList.add('invisible')
+    it('does not start teaser presentation when the session has already seen it', () => {
+      allowPreConversationTeaser()
+      mockSessionStorage.getItem.mockImplementation(key =>
+        key === teaserSeenKey() ? 'true' : null,
+      )
       setHasTeaserTarget(true)
       const messages = setTeaserMessages([2])
 
       controller.connect()
 
+      expect(mockTeaser.classList.contains('invisible')).toBe(true)
       expect(messages[0].classList.contains('hidden')).toBe(false)
       expect(controller.teaserCycleTimeout).toBe(null)
     })
 
-    it('does not start teaser cycling when the teaser is disabled', () => {
-      mockTeaser.dataset.enabled = 'false'
-      setHasTeaserTarget(true)
-      const messages = setTeaserMessages([2])
-
-      controller.connect()
-
-      expect(messages[0].classList.contains('hidden')).toBe(false)
-      expect(controller.teaserCycleTimeout).toBe(null)
-    })
-
-    it('does not start teaser cycling without teaser messages', () => {
-      mockTeaser.dataset.enabled = 'true'
+    it('hides the teaser without teaser messages', () => {
+      allowPreConversationTeaser()
       setHasTeaserTarget(true)
       setTeaserMessages([])
 
       controller.connect()
 
+      expect(mockTeaser.classList.contains('invisible')).toBe(true)
       expect(controller.teaserCycleTimeout).toBe(null)
     })
 
     it('shows the first teaser message and hides later messages on connect', () => {
       jest.useFakeTimers()
-      mockTeaser.dataset.enabled = 'true'
+      allowPreConversationTeaser()
+      mockTeaser.classList.add('invisible')
       setHasTeaserTarget(true)
       const messages = setTeaserMessages([2, 4, 6])
 
       controller.connect()
 
+      expect(mockTeaser.classList.contains('invisible')).toBe(false)
       expect(messages[0].classList.contains('hidden')).toBe(false)
       expect(messages[1].classList.contains('hidden')).toBe(true)
       expect(messages[2].classList.contains('hidden')).toBe(true)
     })
 
-    it('does not cycle a single teaser message', () => {
+    it('does not schedule timers for a single teaser message', () => {
       jest.useFakeTimers()
-      mockTeaser.dataset.enabled = 'true'
+      allowPreConversationTeaser()
       setHasTeaserTarget(true)
       setTeaserMessages([2])
 
@@ -1130,23 +1171,35 @@ describe('WebchatController', () => {
       expect(controller.teaserCycleTimeout).toBe(null)
     })
 
-    it('does not cycle when all teaser delays are zero', () => {
+    it('uses a 250ms minimum before advancing zero or blank teaser delays', () => {
       jest.useFakeTimers()
-      mockTeaser.dataset.enabled = 'true'
+      allowPreConversationTeaser()
       setHasTeaserTarget(true)
-      const messages = setTeaserMessages([0, 0])
+      const messages = setTeaserMessages([0, undefined, 1])
 
       controller.connect()
-      jest.runOnlyPendingTimers()
 
-      expect(controller.teaserCycleTimeout).toBe(null)
+      jest.advanceTimersByTime(249)
       expect(messages[0].classList.contains('hidden')).toBe(false)
       expect(messages[1].classList.contains('hidden')).toBe(true)
+      expect(messages[2].classList.contains('hidden')).toBe(true)
+
+      jest.advanceTimersByTime(1)
+      expect(messages[0].classList.contains('hidden')).toBe(true)
+      expect(messages[1].classList.contains('hidden')).toBe(false)
+      expect(messages[2].classList.contains('hidden')).toBe(true)
+
+      jest.advanceTimersByTime(249)
+      expect(messages[1].classList.contains('hidden')).toBe(false)
+
+      jest.advanceTimersByTime(1)
+      expect(messages[1].classList.contains('hidden')).toBe(true)
+      expect(messages[2].classList.contains('hidden')).toBe(false)
     })
 
-    it('cycles teaser messages using the next message delay and loops back', () => {
+    it('advances teaser messages using the current message delay and stops after the last', () => {
       jest.useFakeTimers()
-      mockTeaser.dataset.enabled = 'true'
+      allowPreConversationTeaser()
       setHasTeaserTarget(true)
       const messages = setTeaserMessages([1, 2, 3])
 
@@ -1154,25 +1207,30 @@ describe('WebchatController', () => {
 
       expect(messages[0].classList.contains('hidden')).toBe(false)
 
-      jest.advanceTimersByTime(1999)
+      jest.advanceTimersByTime(999)
       expect(messages[0].classList.contains('hidden')).toBe(false)
 
       jest.advanceTimersByTime(1)
       expect(messages[0].classList.contains('hidden')).toBe(true)
       expect(messages[1].classList.contains('hidden')).toBe(false)
 
-      jest.advanceTimersByTime(3000)
+      jest.advanceTimersByTime(1999)
+      expect(messages[1].classList.contains('hidden')).toBe(false)
+
+      jest.advanceTimersByTime(1)
       expect(messages[1].classList.contains('hidden')).toBe(true)
       expect(messages[2].classList.contains('hidden')).toBe(false)
 
-      jest.advanceTimersByTime(1000)
-      expect(messages[2].classList.contains('hidden')).toBe(true)
-      expect(messages[0].classList.contains('hidden')).toBe(false)
+      jest.advanceTimersByTime(10000)
+      expect(messages[0].classList.contains('hidden')).toBe(true)
+      expect(messages[1].classList.contains('hidden')).toBe(true)
+      expect(messages[2].classList.contains('hidden')).toBe(false)
+      expect(controller.teaserCycleTimeout).toBe(null)
     })
 
     it('clears pending teaser cycling on disconnect', () => {
       jest.useFakeTimers()
-      mockTeaser.dataset.enabled = 'true'
+      allowPreConversationTeaser()
       setHasTeaserTarget(true)
       const messages = setTeaserMessages([1, 1])
       controller.floatingUICleanup = jest.fn()
@@ -1185,6 +1243,47 @@ describe('WebchatController', () => {
       expect(messages[1].classList.contains('hidden')).toBe(true)
     })
 
+    it('marks the teaser seen and hides it when the webchat is already open', () => {
+      allowPreConversationTeaser()
+      controller.openValue = true
+      setHasTeaserTarget(true)
+      setTeaserMessages([1])
+
+      controller.connect()
+
+      expect(mockTeaser.classList.contains('invisible')).toBe(true)
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(teaserSeenKey(), 'true')
+    })
+
+    it('marks the teaser seen and hides it when a conversation already exists', () => {
+      controller.conversationIdValue = 'existing-conversation'
+      controller.openValue = false
+      setHasTeaserTarget(true)
+      setTeaserMessages([1])
+
+      controller.connect()
+
+      expect(mockTeaser.classList.contains('invisible')).toBe(true)
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(teaserSeenKey(), 'true')
+    })
+
+    it('marks the teaser seen and hides it when rendered messages already exist', () => {
+      const renderedMessage = document.createElement('article')
+      controller.conversationIdValue = ''
+      controller.openValue = false
+      setHasTeaserTarget(true)
+      setTeaserMessages([1])
+      Object.defineProperty(controller, 'messageTargets', {
+        get: () => [renderedMessage],
+        configurable: true,
+      })
+
+      controller.connect()
+
+      expect(mockTeaser.classList.contains('invisible')).toBe(true)
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(teaserSeenKey(), 'true')
+    })
+
     it('does not schedule an automatic open for click-triggered behaviour', () => {
       jest.useFakeTimers()
 
@@ -1193,7 +1292,7 @@ describe('WebchatController', () => {
         trigger: 'on_click',
         delay_seconds: 0,
         first_visit_only: true,
-        once_per_session: true
+        once_per_session: true,
       }
 
       controller.connect()
@@ -1212,7 +1311,7 @@ describe('WebchatController', () => {
         trigger: 'on_load',
         delay_seconds: 5,
         first_visit_only: true,
-        once_per_session: true
+        once_per_session: true,
       }
 
       controller.connect()
@@ -1235,7 +1334,7 @@ describe('WebchatController', () => {
         trigger: 'on_load',
         delay_seconds: 0,
         first_visit_only: false,
-        once_per_session: false
+        once_per_session: false,
       }
 
       controller.connect()
@@ -1250,16 +1349,16 @@ describe('WebchatController', () => {
 
     it('does not auto-open when the first visit gate has already been marked', () => {
       jest.useFakeTimers()
-      mockLocalStorage.getItem.mockImplementation(key => (
-        key === controller.firstVisitKey() ? '1' : null
-      ))
+      mockLocalStorage.getItem.mockImplementation(key =>
+        key === controller.firstVisitKey() ? '1' : null,
+      )
 
       controller.openValue = false
       controller.behaviourValue = {
         trigger: 'on_load',
         delay_seconds: 0,
         first_visit_only: true,
-        once_per_session: false
+        once_per_session: false,
       }
 
       controller.connect()
@@ -1270,16 +1369,16 @@ describe('WebchatController', () => {
 
     it('does not auto-open when the session gate has already been marked', () => {
       jest.useFakeTimers()
-      mockSessionStorage.getItem.mockImplementation(key => (
-        key === controller.sessionKey() ? '1' : null
-      ))
+      mockSessionStorage.getItem.mockImplementation(key =>
+        key === controller.sessionKey() ? '1' : null,
+      )
 
       controller.openValue = false
       controller.behaviourValue = {
         trigger: 'on_load',
         delay_seconds: 0,
         first_visit_only: false,
-        once_per_session: true
+        once_per_session: true,
       }
 
       controller.connect()
@@ -1296,7 +1395,7 @@ describe('WebchatController', () => {
         trigger: 'on_load',
         delay_seconds: 5,
         first_visit_only: true,
-        once_per_session: true
+        once_per_session: true,
       }
 
       controller.connect()
@@ -1314,7 +1413,7 @@ describe('WebchatController', () => {
         trigger: 'on_load',
         delay_seconds: 5,
         first_visit_only: false,
-        once_per_session: false
+        once_per_session: false,
       }
       controller.floatingUICleanup = jest.fn()
 
@@ -1329,6 +1428,7 @@ describe('WebchatController', () => {
   describe('onPopoverOpened', () => {
     let mockHellotext
     let mockLocalStorage
+    let mockSessionStorage
     let mockTeaser
     let mockUnreadCounter
 
@@ -1346,28 +1446,38 @@ describe('WebchatController', () => {
       controller.teaserTarget = mockTeaser
       controller.unreadCounterTarget = mockUnreadCounter
       controller.messagesAPI = {
-        markAsSeen: jest.fn()
+        markAsSeen: jest.fn(),
       }
 
       Object.defineProperty(controller, 'onMobile', {
         get: () => true,
-        configurable: true
+        configurable: true,
       })
 
       mockHellotext = {
         eventEmitter: {
-          dispatch: jest.fn()
-        }
+          dispatch: jest.fn(),
+        },
       }
 
       mockLocalStorage = {
         setItem: jest.fn(),
         getItem: jest.fn(),
-        removeItem: jest.fn()
+        removeItem: jest.fn(),
       }
       Object.defineProperty(window, 'localStorage', {
         value: mockLocalStorage,
-        writable: true
+        writable: true,
+      })
+
+      mockSessionStorage = {
+        getItem: jest.fn().mockReturnValue(null),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+      }
+      Object.defineProperty(window, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true,
       })
 
       Object.assign(Hellotext, mockHellotext)
@@ -1376,19 +1486,24 @@ describe('WebchatController', () => {
     it('hides the teaser when the popover opens', () => {
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
-        configurable: true
+        configurable: true,
       })
+      controller.idValue = 'test-webchat-id'
 
       controller.onPopoverOpened()
 
       expect(mockTeaser.classList.contains('invisible')).toBe(true)
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        'hellotext:webchat:test-webchat-id:teaser-seen',
+        'true',
+      )
     })
 
     it('clears the transient message teaser when the popover opens', () => {
       controller.messageTeaserValue = 'Incoming message teaser'
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
-        configurable: true
+        configurable: true,
       })
 
       controller.onPopoverOpened()
@@ -1406,6 +1521,7 @@ describe('WebchatController', () => {
     let mockOpeningSequence
     let mockUnreadCounter
     let mockWebChatChannel
+    let mockSessionStorage
 
     beforeEach(() => {
       jest.useFakeTimers()
@@ -1430,24 +1546,30 @@ describe('WebchatController', () => {
 
       mockMessagesAPI = {
         create: jest.fn(),
-        markAsSeen: jest.fn()
+        markAsSeen: jest.fn(),
       }
 
       mockWebChatChannel = {
-        updateSubscriptionWith: jest.fn()
+        updateSubscriptionWith: jest.fn(),
       }
 
       mockHellotext = {
         session: 'test-session-123',
         eventEmitter: {
-          dispatch: jest.fn()
-        }
+          dispatch: jest.fn(),
+        },
       }
 
       mockLocalStorage = {
         setItem: jest.fn(),
         getItem: jest.fn(),
-        removeItem: jest.fn()
+        removeItem: jest.fn(),
+      }
+
+      mockSessionStorage = {
+        getItem: jest.fn().mockReturnValue(null),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
       }
 
       controller.conversationIdValue = ''
@@ -1470,19 +1592,23 @@ describe('WebchatController', () => {
 
       Object.defineProperty(controller, 'onMobile', {
         get: () => true,
-        configurable: true
+        configurable: true,
       })
       Object.defineProperty(controller, 'hasOpeningSequenceTarget', {
         get: () => true,
-        configurable: true
+        configurable: true,
       })
       Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
         get: () => false,
-        configurable: true
+        configurable: true,
+      })
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => false,
+        configurable: true,
       })
       Object.defineProperty(mockMessagesContainer, 'scrollHeight', {
         value: 640,
-        configurable: true
+        configurable: true,
       })
 
       mockMessagesContainer.scroll = jest.fn()
@@ -1490,14 +1616,18 @@ describe('WebchatController', () => {
 
       Object.defineProperty(window, 'localStorage', {
         value: mockLocalStorage,
-        writable: true
+        writable: true,
+      })
+      Object.defineProperty(window, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true,
       })
 
       Object.assign(Hellotext, mockHellotext)
 
       const { Locale } = require('../../src/core/configuration/locale')
       Object.assign(Locale, {
-        toString: jest.fn().mockReturnValue('en')
+        toString: jest.fn().mockReturnValue('en'),
       })
     })
 
@@ -1518,7 +1648,7 @@ describe('WebchatController', () => {
 
       Object.defineProperty(controller, 'openingSequenceMessageTargets', {
         get: () => messages,
-        configurable: true
+        configurable: true,
       })
 
       return messages
@@ -1530,8 +1660,8 @@ describe('WebchatController', () => {
         json: jest.fn().mockResolvedValue({
           id: 'server-message-123',
           conversation: 'current-conversation',
-          ...response
-        })
+          ...response,
+        }),
       })
     }
 
@@ -1551,7 +1681,7 @@ describe('WebchatController', () => {
       const [message] = setOpeningSequenceMessages([{ id: 'shown', delay: 1 }])
       Object.defineProperty(controller, 'hasOpeningSequenceTarget', {
         get: () => false,
-        configurable: true
+        configurable: true,
       })
 
       controller.startOpeningSequence()
@@ -1598,7 +1728,7 @@ describe('WebchatController', () => {
     it('reveals staged messages using each message delay', () => {
       const messages = setOpeningSequenceMessages([
         { id: 'first', delay: 2 },
-        { id: 'second', delay: 3 }
+        { id: 'second', delay: 3 },
       ])
 
       controller.startOpeningSequence()
@@ -1614,7 +1744,7 @@ describe('WebchatController', () => {
       expect(controller.revealedOpeningSequenceMessageIds).toEqual(['first'])
       expect(mockMessagesContainer.scroll).toHaveBeenCalledWith({
         top: 640,
-        behavior: 'smooth'
+        behavior: 'smooth',
       })
 
       jest.advanceTimersByTime(2999)
@@ -1627,7 +1757,7 @@ describe('WebchatController', () => {
       expect(Array.from(mockMessagesContainer.children)).toEqual([
         messages[0],
         messages[1],
-        mockMessageTemplate
+        mockMessageTemplate,
       ])
       expect(controller.revealedOpeningSequenceMessageIds).toEqual(['first', 'second'])
     })
@@ -1659,7 +1789,7 @@ describe('WebchatController', () => {
     it('cancels pending messages and sends only revealed ids with a compose message', async () => {
       const messages = setOpeningSequenceMessages([
         { id: 'shown', delay: 0 },
-        { id: 'unrevealed', delay: 5 }
+        { id: 'unrevealed', delay: 5 },
       ])
       setupComposeTargets()
       setupSuccessfulMessageResponse()
@@ -1675,6 +1805,10 @@ describe('WebchatController', () => {
       expect(controller.openingSequenceCancelled).toBe(true)
       expect(controller.openingSequenceTimeout).toBe(null)
       expect(controller.revealedOpeningSequenceMessageIds).toEqual([])
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        'hellotext:webchat:test-webchat-id:teaser-seen',
+        'true',
+      )
     })
 
     it('keeps revealed ids when the first compose message fails', async () => {
@@ -1704,7 +1838,7 @@ describe('WebchatController', () => {
       await controller.sendTeaserQuickReply({
         currentTarget: button,
         preventDefault: jest.fn(),
-        stopPropagation: jest.fn()
+        stopPropagation: jest.fn(),
       })
 
       const formData = mockMessagesAPI.create.mock.calls[0][0]
@@ -1727,8 +1861,8 @@ describe('WebchatController', () => {
           product: 'product-1',
           buttonId: 'button-1',
           body: 'Quick reply',
-          cardElement
-        }
+          cardElement,
+        },
       })
 
       const formData = mockMessagesAPI.create.mock.calls[0][0]
@@ -1745,19 +1879,19 @@ describe('WebchatController', () => {
       useTeaser(controller)
       mockHellotext = {
         eventEmitter: {
-          dispatch: jest.fn()
-        }
+          dispatch: jest.fn(),
+        },
       }
 
       // Mock localStorage
       mockLocalStorage = {
         setItem: jest.fn(),
         getItem: jest.fn(),
-        removeItem: jest.fn()
+        removeItem: jest.fn(),
       }
       Object.defineProperty(window, 'localStorage', {
         value: mockLocalStorage,
-        writable: true
+        writable: true,
       })
 
       // Import and setup Hellotext mock
@@ -1776,46 +1910,38 @@ describe('WebchatController', () => {
 
       controller.onPopoverClosed()
 
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('hellotext--webchat--test-webchat-123', 'closed')
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'hellotext--webchat--test-webchat-123',
+        'closed',
+      )
     })
 
-    it('shows the served teaser DOM again when it is enabled and has messages', () => {
+    it('does not restore the pre-conversation teaser after close', () => {
       const teaser = document.createElement('div')
-      teaser.dataset.enabled = 'true'
       teaser.classList.add('invisible')
-      teaser.innerHTML = '<section>Served teaser</section>'
-      const teaserMessage = teaser.firstElementChild
+      teaser.innerHTML = '<section data-teaser-message>Pre-conversation teaser</section>'
 
       controller.teaserTarget = teaser
-      controller.teaserValue = { body: '<span>Legacy JSON teaser</span>' }
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
-        configurable: true
+        configurable: true,
       })
-      Object.defineProperty(controller, 'teaserMessageTargets', {
-        get: () => [teaserMessage],
-        configurable: true
-      })
+      controller.startTeaserPresentation = jest.fn()
 
       controller.onPopoverClosed()
 
-      expect(teaser.innerHTML).toBe('<section>Served teaser</section>')
-      expect(teaser.classList.contains('invisible')).toBe(false)
+      expect(teaser.classList.contains('invisible')).toBe(true)
+      expect(controller.startTeaserPresentation).not.toHaveBeenCalled()
     })
 
-    it('keeps the teaser hidden when it has no served messages', () => {
+    it('keeps the teaser hidden when closing after the session flag is set', () => {
       const teaser = document.createElement('div')
-      teaser.dataset.enabled = 'true'
       teaser.classList.add('invisible')
 
       controller.teaserTarget = teaser
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
-        configurable: true
-      })
-      Object.defineProperty(controller, 'teaserMessageTargets', {
-        get: () => [],
-        configurable: true
+        configurable: true,
       })
 
       controller.onPopoverClosed()
@@ -1825,11 +1951,27 @@ describe('WebchatController', () => {
   })
 
   describe('onTeaserClick', () => {
+    let mockSessionStorage
+
     beforeEach(() => {
       useOpeningSequence(controller)
       controller.setupOpeningSequence()
       useTeaser(controller)
+      controller.teaserTarget = document.createElement('section')
       controller.show = jest.fn()
+      mockSessionStorage = {
+        getItem: jest.fn().mockReturnValue(null),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+      }
+      Object.defineProperty(window, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true,
+      })
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true,
+      })
     })
 
     it('opens the webchat when the teaser surface is clicked', () => {
@@ -1838,6 +1980,10 @@ describe('WebchatController', () => {
       controller.onTeaserClick({ target: teaser })
 
       expect(controller.show).toHaveBeenCalled()
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        'hellotext:webchat:test-webchat-id:teaser-seen',
+        'true',
+      )
     })
 
     it('lets anchor clicks behave normally', () => {
@@ -1858,10 +2004,12 @@ describe('WebchatController', () => {
     let mockLocale
     let mockBroadcastChannel
     let mockWebChatChannel
+    let mockSessionStorage
 
     beforeEach(() => {
       useOpeningSequence(controller)
       controller.setupOpeningSequence()
+      useTeaser(controller)
       mockMessageTemplate = document.createElement('div')
       mockMessageTemplate.style.display = 'none'
       const bodyElement = document.createElement('div')
@@ -1871,40 +2019,55 @@ describe('WebchatController', () => {
       controller.messageTemplateTarget = mockMessageTemplate
       controller.messagesContainerTarget = mockMessagesContainer
       controller.conversationIdValue = 'current-conversation'
+      controller.teaserTarget = document.createElement('section')
       controller.show = jest.fn()
       controller.resetTypingIndicatorTimer = jest.fn()
       controller.typingIndicatorVisible = true
 
       Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
         get: () => false,
-        configurable: true
+        configurable: true,
       })
 
       mockMessagesAPI = {
-        create: jest.fn()
+        create: jest.fn(),
       }
       controller.messagesAPI = mockMessagesAPI
 
       mockBroadcastChannel = {
-        postMessage: jest.fn()
+        postMessage: jest.fn(),
       }
       controller.broadcastChannel = mockBroadcastChannel
 
       mockWebChatChannel = {
-        updateSubscriptionWith: jest.fn()
+        updateSubscriptionWith: jest.fn(),
       }
       controller.webChatChannel = mockWebChatChannel
+
+      mockSessionStorage = {
+        getItem: jest.fn().mockReturnValue(null),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+      }
+      Object.defineProperty(window, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true,
+      })
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true,
+      })
 
       mockHellotext = {
         session: 'test-session-123',
         eventEmitter: {
-          dispatch: jest.fn()
-        }
+          dispatch: jest.fn(),
+        },
       }
       Object.assign(Hellotext, mockHellotext)
 
       mockLocale = {
-        toString: jest.fn().mockReturnValue('en')
+        toString: jest.fn().mockReturnValue('en'),
       }
       const { Locale } = require('../../src/core/configuration/locale')
       Object.assign(Locale, mockLocale)
@@ -1915,8 +2078,8 @@ describe('WebchatController', () => {
         failed: false,
         json: jest.fn().mockResolvedValue({
           id: 'server-message-123',
-          conversation: 'current-conversation'
-        })
+          conversation: 'current-conversation',
+        }),
       })
     })
 
@@ -1934,7 +2097,7 @@ describe('WebchatController', () => {
     const buildTeaserQuickReplyEvent = button => ({
       currentTarget: button,
       preventDefault: jest.fn(),
-      stopPropagation: jest.fn()
+      stopPropagation: jest.fn(),
     })
 
     it('prevents the teaser button click from submitting or opening twice', async () => {
@@ -1947,13 +2110,27 @@ describe('WebchatController', () => {
       expect(event.stopPropagation).toHaveBeenCalled()
     })
 
-    it('uses data-text for the sent body before other button content', async () => {
+    it('uses data-value for the sent body before other button content', async () => {
       const button = buildTeaserButton({
         textContent: 'Visible fallback',
         dataset: {
           text: 'Data text',
-          value: 'Data value'
-        }
+          value: 'Data value',
+        },
+      })
+
+      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
+
+      const formData = mockMessagesAPI.create.mock.calls[0][0]
+      expect(formData.get('message[body]')).toBe('Data value')
+    })
+
+    it('falls back to data-text for the sent body', async () => {
+      const button = buildTeaserButton({
+        textContent: 'Visible fallback',
+        dataset: {
+          text: 'Data text',
+        },
       })
 
       await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
@@ -1962,33 +2139,19 @@ describe('WebchatController', () => {
       expect(formData.get('message[body]')).toBe('Data text')
     })
 
-    it('falls back to data-value for the sent body', async () => {
+    it('ignores blank data-value and falls back to data-text', async () => {
       const button = buildTeaserButton({
         textContent: 'Visible fallback',
         dataset: {
-          value: 'Data value'
-        }
+          value: '   ',
+          text: 'Data text',
+        },
       })
 
       await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
 
       const formData = mockMessagesAPI.create.mock.calls[0][0]
-      expect(formData.get('message[body]')).toBe('Data value')
-    })
-
-    it('ignores blank data-text and falls back to data-value', async () => {
-      const button = buildTeaserButton({
-        textContent: 'Visible fallback',
-        dataset: {
-          text: '   ',
-          value: 'Data value'
-        }
-      })
-
-      await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
-
-      const formData = mockMessagesAPI.create.mock.calls[0][0]
-      expect(formData.get('message[body]')).toBe('Data value')
+      expect(formData.get('message[body]')).toBe('Data text')
     })
 
     it('falls back to trimmed button text for the sent body', async () => {
@@ -2022,6 +2185,11 @@ describe('WebchatController', () => {
       expect(formData.get('message[body]')).toBe('I need help')
       expect(formData.get('session')).toBe('test-session-123')
       expect(formData.get('locale')).toBe('en')
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        'hellotext:webchat:test-webchat-id:teaser-seen',
+        'true',
+      )
+      expect(controller.teaserTarget.classList.contains('invisible')).toBe(true)
     })
 
     it('appends an optimistic customer bubble and broadcasts the sent message', async () => {
@@ -2037,7 +2205,7 @@ describe('WebchatController', () => {
       expect(addedElement.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth' })
       expect(mockBroadcastChannel.postMessage).toHaveBeenCalledWith({
         type: 'message:sent',
-        element: expect.any(String)
+        element: expect.any(String),
       })
     })
 
@@ -2046,8 +2214,8 @@ describe('WebchatController', () => {
         dataset: {
           text: 'I need help',
           value: 'need_help',
-          type: 'quick_reply'
-        }
+          type: 'quick_reply',
+        },
       })
 
       await controller.sendTeaserQuickReply(buildTeaserQuickReplyEvent(button))
@@ -2057,14 +2225,14 @@ describe('WebchatController', () => {
 
       expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledWith('webchat:message:sent', {
         id: 'server-message-123',
-        body: 'I need help',
+        body: 'need_help',
         attachments: [],
         type: 'quick_reply',
         teaser: {
-          text: 'I need help',
+          text: 'need_help',
           value: 'need_help',
-          type: 'quick_reply'
-        }
+          type: 'quick_reply',
+        },
       })
 
       const message = mockHellotext.eventEmitter.dispatch.mock.calls[0][1]
@@ -2078,8 +2246,8 @@ describe('WebchatController', () => {
         failed: false,
         json: jest.fn().mockResolvedValue({
           id: 'server-message-123',
-          conversation: 'new-conversation'
-        })
+          conversation: 'new-conversation',
+        }),
       })
       const button = buildTeaserButton({ dataset: { text: 'I need help' } })
 
@@ -2098,12 +2266,12 @@ describe('WebchatController', () => {
       const addedElement = mockMessagesContainer.children[0]
       expect(mockBroadcastChannel.postMessage).toHaveBeenLastCalledWith({
         type: 'message:failed',
-        id: addedElement.id
+        id: addedElement.id,
       })
       expect(addedElement.classList.contains('failed')).toBe(true)
       expect(mockHellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith(
         'webchat:message:sent',
-        expect.anything()
+        expect.anything(),
       )
     })
   })
@@ -2117,10 +2285,12 @@ describe('WebchatController', () => {
     let mockImageElement
     let mockBroadcastChannel
     let mockClearTimeout
+    let mockSessionStorage
 
     beforeEach(() => {
       useOpeningSequence(controller)
       controller.setupOpeningSequence()
+      useTeaser(controller)
       // Set up message template mock
       mockMessageTemplate = document.createElement('div')
       mockMessageTemplate.id = 'template'
@@ -2145,10 +2315,11 @@ describe('WebchatController', () => {
       // Mock the targets
       controller.messageTemplateTarget = mockMessageTemplate
       controller.messagesContainerTarget = mockMessagesContainer
+      controller.teaserTarget = document.createElement('section')
 
       // Mock messagesAPI
       mockMessagesAPI = {
-        create: jest.fn()
+        create: jest.fn(),
       }
       controller.messagesAPI = mockMessagesAPI
 
@@ -2156,20 +2327,34 @@ describe('WebchatController', () => {
       mockHellotext = {
         session: 'test-session-123',
         eventEmitter: {
-          dispatch: jest.fn()
-        }
+          dispatch: jest.fn(),
+        },
       }
 
       // Mock Locale
       mockLocale = {
-        toString: jest.fn().mockReturnValue('en')
+        toString: jest.fn().mockReturnValue('en'),
       }
 
       // Mock broadcast channel
       mockBroadcastChannel = {
-        postMessage: jest.fn()
+        postMessage: jest.fn(),
       }
       controller.broadcastChannel = mockBroadcastChannel
+
+      mockSessionStorage = {
+        getItem: jest.fn().mockReturnValue(null),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+      }
+      Object.defineProperty(window, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true,
+      })
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true,
+      })
 
       // Mock clearTimeout
       mockClearTimeout = jest.fn()
@@ -2194,8 +2379,8 @@ describe('WebchatController', () => {
         const mockResponse = {
           failed: false,
           json: jest.fn().mockResolvedValue({
-            id: 'server-message-123'
-          })
+            id: 'server-message-123',
+          }),
         }
         mockMessagesAPI.create.mockResolvedValue(mockResponse)
       })
@@ -2206,7 +2391,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Quick reply message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2220,6 +2405,11 @@ describe('WebchatController', () => {
         expect(formData.get('message[button]')).toBe('btn-789')
         expect(formData.get('session')).toBe('test-session-123')
         expect(formData.get('locale')).toBe('en')
+        expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+          'hellotext:webchat:test-webchat-id:teaser-seen',
+          'true',
+        )
+        expect(controller.teaserTarget.classList.contains('invisible')).toBe(true)
       })
 
       it('builds and appends message element to container', async () => {
@@ -2228,7 +2418,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Test message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2245,7 +2435,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Message with image',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2267,7 +2457,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Scroll test',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2282,14 +2472,14 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Broadcast test',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
 
         expect(mockBroadcastChannel.postMessage).toHaveBeenCalledWith({
           type: 'message:sent',
-          element: expect.any(String)
+          element: expect.any(String),
         })
 
         const broadcastCall = mockBroadcastChannel.postMessage.mock.calls[0][0]
@@ -2304,14 +2494,14 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'ID dispatch test',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
 
         expect(controller.dispatch).toHaveBeenCalledWith('set:id', {
           target: expect.any(Element),
-          detail: 'server-message-123'
+          detail: 'server-message-123',
         })
       })
 
@@ -2321,7 +2511,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Event dispatch test',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2333,7 +2523,7 @@ describe('WebchatController', () => {
           replied_to: 'original-123',
           product: 'product-456',
           button: 'btn-789',
-          type: 'quick_reply'
+          type: 'quick_reply',
         })
       })
     })
@@ -2341,7 +2531,7 @@ describe('WebchatController', () => {
     describe('failed message sending', () => {
       beforeEach(() => {
         const mockFailedResponse = {
-          failed: true
+          failed: true,
         }
         mockMessagesAPI.create.mockResolvedValue(mockFailedResponse)
         controller.optimisticTypingTimeout = 'mock-timeout-id'
@@ -2353,7 +2543,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Failed message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2367,14 +2557,14 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Failed message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
 
         expect(mockBroadcastChannel.postMessage).toHaveBeenCalledWith({
           type: 'message:failed',
-          id: expect.any(String)
+          id: expect.any(String),
         })
       })
 
@@ -2384,7 +2574,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Failed message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2399,7 +2589,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Failed message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2413,12 +2603,15 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Failed message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
 
-        expect(mockHellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('webchat:message:sent', expect.anything())
+        expect(mockHellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith(
+          'webchat:message:sent',
+          expect.anything(),
+        )
       })
     })
 
@@ -2427,8 +2620,8 @@ describe('WebchatController', () => {
         const mockResponse = {
           failed: false,
           json: jest.fn().mockResolvedValue({
-            id: 'server-message-123'
-          })
+            id: 'server-message-123',
+          }),
         }
         mockMessagesAPI.create.mockResolvedValue(mockResponse)
       })
@@ -2442,7 +2635,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'No attachment message',
-          cardElement: mockCardElementNoImage
+          cardElement: mockCardElementNoImage,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2462,7 +2655,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Null attachment message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2481,7 +2674,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: '',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2493,7 +2686,7 @@ describe('WebchatController', () => {
       it('handles missing event detail properties', async () => {
         const eventDetail = {
           body: 'Minimal message',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2507,7 +2700,7 @@ describe('WebchatController', () => {
       it('handles API response without id', async () => {
         const mockResponse = {
           failed: false,
-          json: jest.fn().mockResolvedValue({})
+          json: jest.fn().mockResolvedValue({}),
         }
         mockMessagesAPI.create.mockResolvedValue(mockResponse)
 
@@ -2516,14 +2709,14 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'No ID response',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
 
         expect(controller.dispatch).toHaveBeenCalledWith('set:id', {
           target: expect.any(Element),
-          detail: undefined
+          detail: undefined,
         })
       })
 
@@ -2535,18 +2728,20 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Network error test',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
-        await expect(controller.sendQuickReplyMessage({ detail: eventDetail })).rejects.toThrow('Network error')
+        await expect(controller.sendQuickReplyMessage({ detail: eventDetail })).rejects.toThrow(
+          'Network error',
+        )
       })
 
       it('inserts message before typing indicator when visible', async () => {
         const mockResponse = {
           failed: false,
           json: jest.fn().mockResolvedValue({
-            id: 'server-message-123'
-          })
+            id: 'server-message-123',
+          }),
         }
         mockMessagesAPI.create.mockResolvedValue(mockResponse)
 
@@ -2558,7 +2753,7 @@ describe('WebchatController', () => {
         controller.typingIndicatorTarget = mockTypingIndicator
         controller.typingIndicatorVisible = true
         Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
-          get: () => true
+          get: () => true,
         })
 
         const eventDetail = {
@@ -2566,7 +2761,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Insert before typing',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2581,14 +2776,14 @@ describe('WebchatController', () => {
         const mockResponse = {
           failed: false,
           json: jest.fn().mockResolvedValue({
-            id: 'server-message-123'
-          })
+            id: 'server-message-123',
+          }),
         }
         mockMessagesAPI.create.mockResolvedValue(mockResponse)
 
         controller.typingIndicatorVisible = false
         Object.defineProperty(controller, 'hasTypingIndicatorTarget', {
-          get: () => false
+          get: () => false,
         })
 
         const eventDetail = {
@@ -2596,7 +2791,7 @@ describe('WebchatController', () => {
           product: 'product-456',
           buttonId: 'btn-789',
           body: 'Normal append',
-          cardElement: mockCardElement
+          cardElement: mockCardElement,
         }
 
         await controller.sendQuickReplyMessage({ detail: eventDetail })
@@ -2612,18 +2807,18 @@ describe('WebchatController', () => {
     beforeEach(() => {
       // Mock DOMParser for carousel tests
       global.DOMParser = jest.fn(() => ({
-        parseFromString: jest.fn((html) => ({
+        parseFromString: jest.fn(html => ({
           body: {
-            firstElementChild: document.createElement('div')
-          }
-        }))
+            firstElementChild: document.createElement('div'),
+          },
+        })),
       }))
 
       // Mock Hellotext
       mockHellotext = {
         eventEmitter: {
-          dispatch: jest.fn()
-        }
+          dispatch: jest.fn(),
+        },
       }
 
       const Hellotext = require('../../src/hellotext').default
@@ -2633,14 +2828,14 @@ describe('WebchatController', () => {
     it('handles carousel messages correctly', () => {
       controller.openValue = true // Set to open to avoid unread counter issues
       const mockMessagesAPI = {
-        markAsSeen: jest.fn()
+        markAsSeen: jest.fn(),
       }
       controller.messagesAPI = mockMessagesAPI
 
       const message = {
         id: 'carousel-123',
         html: '<div class="carousel">Test Carousel</div>',
-        carousel: { title: 'Test' }
+        carousel: { title: 'Test' },
       }
 
       controller.onMessageReceived(message)
@@ -2655,14 +2850,14 @@ describe('WebchatController', () => {
     it('silently drops a duplicate carousel message that was already claimed in memory', () => {
       controller.openValue = true
       const mockMessagesAPI = {
-        markAsSeen: jest.fn()
+        markAsSeen: jest.fn(),
       }
       controller.messagesAPI = mockMessagesAPI
 
       const message = {
         id: 'carousel-duplicate',
         html: '<div>Carousel</div>',
-        carousel: {}
+        carousel: {},
       }
 
       controller.onMessageReceived(message)
@@ -2676,14 +2871,14 @@ describe('WebchatController', () => {
     it('marks carousel as seen when chat is open', () => {
       controller.openValue = true
       const mockMessagesAPI = {
-        markAsSeen: jest.fn()
+        markAsSeen: jest.fn(),
       }
       controller.messagesAPI = mockMessagesAPI
 
       const message = {
         id: 'carousel-read',
         html: '<div>Carousel</div>',
-        carousel: {}
+        carousel: {},
       }
 
       controller.onMessageReceived(message)
@@ -2700,7 +2895,7 @@ describe('WebchatController', () => {
       const message = {
         id: 'carousel-unread',
         html: '<div>Carousel</div>',
-        carousel: {}
+        carousel: {},
       }
 
       controller.onMessageReceived(message)
@@ -2720,14 +2915,14 @@ describe('WebchatController', () => {
       controller.teaserTarget = teaser
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
-        configurable: true
+        configurable: true,
       })
 
       const message = {
         id: 'carousel-teaser-closed',
         html: '<div>Carousel</div>',
         carousel: {},
-        teaser: '<span>Carousel teaser</span>'
+        teaser: '<span>Carousel teaser</span>',
       }
 
       controller.onMessageReceived(message)
@@ -2740,7 +2935,7 @@ describe('WebchatController', () => {
     it('hides the message teaser for carousel messages when chat is open', () => {
       controller.openValue = true
       const mockMessagesAPI = {
-        markAsSeen: jest.fn()
+        markAsSeen: jest.fn(),
       }
       controller.messagesAPI = mockMessagesAPI
 
@@ -2748,14 +2943,14 @@ describe('WebchatController', () => {
       controller.teaserTarget = teaser
       Object.defineProperty(controller, 'hasTeaserTarget', {
         get: () => true,
-        configurable: true
+        configurable: true,
       })
 
       const message = {
         id: 'carousel-teaser-open',
         html: '<div>Carousel</div>',
         carousel: {},
-        teaser: '<span>Carousel teaser</span>'
+        teaser: '<span>Carousel teaser</span>',
       }
 
       controller.onMessageReceived(message)

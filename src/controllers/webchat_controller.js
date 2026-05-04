@@ -57,7 +57,6 @@ export default class extends Controller {
     'typingIndicator',
     'typingIndicatorTemplate',
     'teaser',
-    'teaserMessage',
     'openingSequence',
     'openingSequenceMessage',
   ]
@@ -335,7 +334,7 @@ export default class extends Controller {
 
   onPopoverOpened() {
     this.popoverTarget.classList.remove(...this.fadeOutClasses)
-    this.hideTeaser()
+    this.dismissTeaserForSession?.()
 
     if (!this.onMobile) {
       this.inputTarget.focus()
@@ -372,8 +371,6 @@ export default class extends Controller {
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
-
-    this.restoreTeaser()
   }
 
   onMessageReaction(message) {
@@ -404,6 +401,8 @@ export default class extends Controller {
     const { id, body, attachments, teaser } = message
 
     if (!this.claimMessageId(id)) return
+
+    this.hideTeaser?.()
 
     if (message.carousel) {
       return this.insertCarouselMessage(message)
@@ -518,6 +517,8 @@ export default class extends Controller {
   }
 
   async sendQuickReplyMessage({ detail: { id, product, buttonId, body, cardElement } }) {
+    this.dismissTeaserForSession?.()
+
     const formData = new FormData()
 
     formData.append('message[body]', body)
@@ -591,12 +592,13 @@ export default class extends Controller {
     event.stopPropagation()
 
     const button = event.currentTarget
-    const text = [button.dataset.text, button.dataset.value, button.textContent]
+    const text = [button.dataset.value, button.dataset.text, button.textContent]
       .map(value => (value || '').trim())
       .find(value => value.length > 0)
 
     if (!text) return
 
+    this.dismissTeaserForSession?.()
     this.show()
 
     const value = (button.dataset.value || '').trim() || text
@@ -672,8 +674,6 @@ export default class extends Controller {
   }
 
   async sendMessage(e) {
-    const formData = new FormData()
-
     const message = {
       body: this.inputTarget.value,
       attachments: this.files,
@@ -686,6 +686,10 @@ export default class extends Controller {
 
       return
     }
+
+    this.dismissTeaserForSession?.()
+
+    const formData = new FormData()
 
     if (this.inputTarget.value.trim().length > 0) {
       formData.append('message[body]', this.inputTarget.value)
