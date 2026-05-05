@@ -49,8 +49,6 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | behaviour      | The runtime opening behaviour of the webchat                                                                                             | Object | Dashboard      |
 | strategy       | The positioning strategy for the webchat when it is open and the ancestor is scrolled                                                    | Enum   | `absolute`     |
 
-**Migration note:** `webchat.behaviour: 'modal' | 'popover'` is now `webchat.mode`. The `behaviour` key now accepts the auto-open behaviour object described below.
-
 ### Position
 
 The default position for a webchat is `bottom-right`, but you can specify any of the following values
@@ -215,17 +213,6 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
     },
   },
 })
-```
-
-When Hellotext.js writes the behaviour to the Webchat controller, it serializes the value to the runtime attribute shape:
-
-```json
-{
-  "trigger": "on_load",
-  "delay_seconds": 5,
-  "first_visit_only": true,
-  "once_per_session": true
-}
 ```
 
 ### Strategy
