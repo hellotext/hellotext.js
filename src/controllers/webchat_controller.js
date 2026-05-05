@@ -584,16 +584,17 @@ export default class extends Controller {
     event.stopPropagation()
 
     const button = event.currentTarget
-    const text = [button.dataset.value, button.dataset.text, button.textContent]
-      .map(value => (value || '').trim())
-      .find(value => value.length > 0)
+    const value = (button.dataset.value || '').trim()
+    const label = [button.dataset.text, button.textContent]
+      .map(text => (text || '').trim())
+      .find(text => text.length > 0)
+    const text = value || label
 
     if (!text) return
 
     this.dismissTeaserForSession?.()
     this.show()
 
-    const value = (button.dataset.value || '').trim() || text
     const buttonType = (button.dataset.type || '').trim() || 'quick_reply'
     const formData = new FormData()
 
@@ -649,8 +650,8 @@ export default class extends Controller {
       attachments: [],
       type: 'quick_reply',
       teaser: {
-        text,
-        value,
+        text: label || text,
+        value: value || text,
         type: buttonType,
       },
     })

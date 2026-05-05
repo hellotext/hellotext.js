@@ -2341,7 +2341,7 @@ describe('WebchatController', () => {
         attachments: [],
         type: 'quick_reply',
         teaser: {
-          text: 'need_help',
+          text: 'I need help',
           value: 'need_help',
           type: 'quick_reply',
         },
