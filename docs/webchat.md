@@ -7,7 +7,7 @@ When a business has a webchat configured through the dashboard, this is enough:
 Hellotext.initialize('PUBLIC_BUSINESS_ID')
 ```
 
-Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount. Overrides are sparse: dashboard settings remain the saved defaults, and Hellotext.js sends supplied values with the Webchat request so the returned widget can use them for that page load.
+Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount. Overrides are sparse and do not update dashboard settings.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', { webchat: false })
@@ -60,7 +60,7 @@ The default position for a webchat is `bottom-right`, but you can specify any of
 
 ### Appearance
 
-The `appearance` object provides sparse overrides for the configured Webchat. Hellotext.js keeps this public configuration in camelCase and sends it with the Webchat request. These values affect the returned widget for the current page load and do not update dashboard settings.
+The `appearance` object provides sparse overrides for the configured Webchat. These values customize the mounted widget and do not update dashboard settings.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', {
@@ -79,19 +79,14 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 
 The following properties are accepted.
 
-| Property         | Description                                                                                                      | Type   |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------- | ------ |
-| header.name      | Business name shown in the Webchat header.                                                                       | String |
-| launcher.iconUrl | Image URL used for the launcher icon. When present, it is shown in minimized and expanded states.                 | String |
-
-Request params:
-
-- `webchat[appearance][header][name]`
-- `webchat[appearance][launcher][icon_url]`
+| Property         | Description                                                                                      | Type   |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ------ |
+| header.name      | Business name shown in the Webchat header.                                                       | String |
+| launcher.iconUrl | Image URL used for the launcher icon. When present, it is shown in minimized and expanded states. | String |
 
 ### WhatsApp
 
-The `whatsapp` object configures WhatsApp handoff. The public JavaScript API uses WhatsApp vocabulary, while the Webchat request maps it to the handoff fields. These values affect the returned widget for the current page load and do not update dashboard settings.
+The `whatsapp` object configures optional WhatsApp handoff. These values customize the mounted widget and do not update dashboard settings.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', {
@@ -106,15 +101,10 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 
 The following properties are accepted.
 
-| Property          | Description                                                                                               | Type    |
-| ----------------- | --------------------------------------------------------------------------------------------------------- | ------- |
-| number            | WhatsApp number sent as the handoff identifier.                                                           | String  |
-| restrictToChannel | Whether the Webchat should restrict the conversation path to the configured WhatsApp channel.              | Boolean |
-
-Request params:
-
-- `webchat[handoff][identifier]`
-- `webchat[handoff][restrict_to_channel]`
+| Property          | Description                                                                                  | Type    |
+| ----------------- | -------------------------------------------------------------------------------------------- | ------- |
+| number            | WhatsApp phone number used by the handoff action.                                             | String  |
+| restrictToChannel | Whether the Webchat should restrict the conversation path to the configured WhatsApp channel. | Boolean |
 
 ### Mode
 
