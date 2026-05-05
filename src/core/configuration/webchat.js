@@ -56,7 +56,7 @@ const modes = {
 
 /**
  * @typedef {Object} WhatsApp
- * @property {string} [number] - WhatsApp number used by the server handoff configuration.
+ * @property {string} [number] - WhatsApp number used by the handoff configuration.
  * @property {boolean} [restrictToChannel] - Whether handoff should be restricted to the configured channel.
  */
 
@@ -67,13 +67,11 @@ const modes = {
  * @property {String} id - the id of the webchat.
  * @property {String} container - the container to append the webchat to, defaults to 'body'
  * @property {Placement} placement - the placement of the webchat within the container, defaults to "bottom-right".
- * @property {String} classes - additional classes to apply to the webchat popup.
- * @property {String} triggerClasses - additional classes to apply to the webchat popup trigger.
  * @property {Mode} mode - how the webchat behaves while open, defaults to 'popover'.
  * @property {Object} behaviour - runtime opening behaviour for the webchat.
  * @property {Style} style - the style of the webchat.
- * @property {Appearance} appearance - server-rendered appearance overrides.
- * @property {WhatsApp} whatsapp - server-rendered WhatsApp handoff overrides.
+ * @property {Appearance} appearance - appearance overrides.
+ * @property {WhatsApp} whatsapp - WhatsApp handoff overrides.
  * @property {Strategy} strategy - the strategy used to position the webchat. Defaults to 'absolute'
  */
 
@@ -81,8 +79,6 @@ class Webchat {
   static _id
   static _container = 'body'
   static _placement = 'bottom-right'
-  static _classes = []
-  static _triggerClasses = []
   static _style = {}
   static _appearance = {}
   static _whatsapp = {}
@@ -109,38 +105,6 @@ class Webchat {
 
   static get placement() {
     return this._placement
-  }
-
-  static set classes(value) {
-    if (!Array.isArray(value) && typeof value !== 'string') {
-      throw new Error('classes must be an array or a string')
-    }
-
-    this._classes = value
-  }
-
-  static get classes() {
-    if (typeof this._classes === 'string') {
-      return this._classes.split(',').map(c => c.trim())
-    } else {
-      return this._classes
-    }
-  }
-
-  static set triggerClasses(value) {
-    if (!Array.isArray(value) && typeof value !== 'string') {
-      throw new Error('triggerClasses must be an array or a string')
-    }
-
-    this._triggerClasses = value
-  }
-
-  static get triggerClasses() {
-    if (typeof this._triggerClasses === 'string') {
-      return this._triggerClasses.split(',').map(c => c.trim())
-    } else {
-      return this._triggerClasses
-    }
   }
 
   static set id(value) {

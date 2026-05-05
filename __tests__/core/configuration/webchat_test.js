@@ -120,68 +120,6 @@ describe('Webchat', () => {
     });
   })
 
-  describe('classes', () => {
-    it('is an empty array by default', () => {
-      expect(Webchat.classes).toEqual([])
-    });
-
-    describe('setting value to a String', () => {
-      it('can be set to a string value', () => {
-        Webchat.classes = 'custom-class'
-      });
-
-      it('returns an array of the values', () => {
-        Webchat.classes = 'custom-class, another-class'
-        expect(Webchat.classes).toEqual(['custom-class', 'another-class'])
-      });
-    });
-
-    it('can be set to an Array', () => {
-      Webchat.classes = ['custom-class']
-      expect(Webchat.classes).toEqual(['custom-class'])
-    });
-
-    it('throws an exception when an invalid value is supplied', () => {
-      expect(() => {
-        Webchat.classes = { invalid: 'value' }
-      }).toThrowError('classes must be an array or a string')
-    });
-  })
-
-  describe('triggerClasses', () => {
-    it('is an empty array by default', () => {
-      expect(Webchat.triggerClasses).toEqual([undefined])
-    });
-
-    describe('setting value to a String', () => {
-      it('can be set to a string value', () => {
-        Webchat.triggerClasses = 'custom-class'
-      });
-
-      it('returns an array of the values', () => {
-        Webchat.triggerClasses = 'custom-class, another-class'
-        expect(Webchat.triggerClasses).toEqual(['custom-class', 'another-class'])
-      });
-    });
-
-    describe('when setting value to an Array', () => {
-      it('can be set', () => {
-        Webchat.triggerClasses = ['custom-class']
-      });
-
-      it('returns the value', () => {
-        Webchat.triggerClasses = ['custom-class', 'another-class']
-        expect(Webchat.triggerClasses).toEqual(['custom-class', 'another-class'])
-      });
-    })
-
-    it('throws an exception when an invalid value is supplied', () => {
-      expect(() => {
-        Webchat.triggerClasses = { invalid: 'value' }
-      }).toThrowError('triggerClasses must be an array or a string')
-    });
-  })
-
   describe('styles', () => {
     it('raises an exception when an invalid style is set', () => {
       expect(() => {

@@ -1124,9 +1124,6 @@ describe('WebchatController', () => {
         },
       })
 
-      WebchatConfiguration.classes = []
-      WebchatConfiguration.triggerClasses = []
-
       usePopover.mockImplementation(controller => {
         controller.setupFloatingUI = jest.fn()
       })

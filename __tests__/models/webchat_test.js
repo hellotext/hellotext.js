@@ -50,7 +50,7 @@ describe('Webchat', () => {
     })
   })
 
-  it('preserves the Rails-rendered behaviour value when no explicit JS override exists', async () => {
+  it('preserves the rendered behaviour value when no explicit JS override exists', async () => {
     const article = document.createElement('article')
     const renderedBehaviour = JSON.stringify({
       trigger: 'on_load',

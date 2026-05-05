@@ -1,7 +1,7 @@
 // This mixin owns automatic opening only. The webchat controller still owns the
 // Stimulus lifecycle and `usePopover` still owns the mechanics of opening and
-// closing the popover. Keeping this policy here gives the Rails/dashboard
-// behaviour value one place to translate into timers, storage gates, and cleanup.
+// closing the popover. Keeping this policy here gives the configured behaviour
+// value one place to translate into timers, storage gates, and cleanup.
 export const useBehaviour = controller => {
   Object.assign(controller, {
     // Called from `connect` after the controller has wired channels, targets,

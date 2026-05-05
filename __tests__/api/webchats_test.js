@@ -39,7 +39,7 @@ describe('WebchatsAPI', () => {
     return new URL(global.fetch.mock.calls[0][0]).searchParams
   }
 
-  it('serializes appearance and WhatsApp overrides for the server-rendered webchat', async () => {
+  it('serializes appearance and WhatsApp overrides for the webchat request', async () => {
     Configuration.webchat.appearance = {
       header: {
         name: 'Acme Support',

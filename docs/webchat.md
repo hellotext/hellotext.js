@@ -7,7 +7,7 @@ When a business has a webchat configured through the dashboard, this is enough:
 Hellotext.initialize('PUBLIC_BUSINESS_ID')
 ```
 
-Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount. Overrides are sparse and request-local: dashboard settings remain the saved defaults, and Hellotext.js sends supplied values with the webchat HTML request so Rails can render the final DOM for that page load.
+Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount. Overrides are sparse: dashboard settings remain the saved defaults, and Hellotext.js sends supplied values with the Webchat request so the returned widget can use them for that page load.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', { webchat: false })
@@ -19,8 +19,6 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
     id,
     container,
     placement,
-    classes,
-    triggerClasses,
     appearance: {
       header: {
         name,
@@ -45,10 +43,8 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | id             | The id of the webchat to load. Overrides the dashboard webchat id when provided.                                                         | String | Dashboard id   |
 | container      | The container to append the webchat to, must be a valid CSS selector. If none specified, the webchat is appended at the end of the body. | String | `body`         |
 | placement      | The placement of the webchat, determined according to the parent `container`.                                                            | Enum   | `bottom-right` |
-| classes        | An array or comma separated String of additional CSS classes to apply to the webchat popover.                                            | String | null           |
-| triggerClasses | An array or comma separated String of additional CSS classes to apply to the webchat trigger.                                            | String | null           |
-| appearance     | Server-rendered appearance overrides for the configured Webchat.                                                                         | Object | Dashboard      |
-| whatsapp       | Server-rendered WhatsApp handoff overrides for the configured Webchat.                                                                   | Object | Dashboard      |
+| appearance     | Appearance overrides for the configured Webchat.                                                                                         | Object | Dashboard      |
+| whatsapp       | WhatsApp handoff overrides for the configured Webchat.                                                                                   | Object | Dashboard      |
 | mode           | The mode of the webchat when it is open and a click was made outside of it                                                               | Enum   | `popover`      |
 | behaviour      | The runtime opening behaviour of the webchat                                                                                             | Object | Dashboard      |
 | strategy       | The positioning strategy for the webchat when it is open and the ancestor is scrolled                                                    | Enum   | `absolute`     |
@@ -66,7 +62,7 @@ The default position for a webchat is `bottom-right`, but you can specify any of
 
 ### Appearance
 
-The `appearance` object provides sparse overrides for the server-rendered webchat. Hellotext.js keeps this public configuration in camelCase and serializes it to Rails-shaped params on the webchat HTML request, where Rails merges it with the dashboard configuration before rendering. These values are request-local and do not update dashboard settings.
+The `appearance` object provides sparse overrides for the configured Webchat. Hellotext.js keeps this public configuration in camelCase and sends it with the Webchat request. These values affect the returned widget for the current page load and do not update dashboard settings.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', {
@@ -87,17 +83,17 @@ The following properties are accepted.
 
 | Property         | Description                                                                                                      | Type   |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------- | ------ |
-| header.name      | Business name shown in the server-rendered webchat header.                                                       | String |
-| launcher.iconUrl | Image URL used for the server-rendered launcher icon. When present, it is shown in minimized and expanded states. | String |
+| header.name      | Business name shown in the Webchat header.                                                                       | String |
+| launcher.iconUrl | Image URL used for the launcher icon. When present, it is shown in minimized and expanded states.                 | String |
 
-Serialized request params:
+Request params:
 
 - `webchat[appearance][header][name]`
 - `webchat[appearance][launcher][icon_url]`
 
 ### WhatsApp
 
-The `whatsapp` object configures the server-rendered WhatsApp handoff. The public JavaScript API uses WhatsApp vocabulary, while the Rails request maps it to the existing handoff configuration. These values are request-local and do not update dashboard settings.
+The `whatsapp` object configures WhatsApp handoff. The public JavaScript API uses WhatsApp vocabulary, while the Webchat request maps it to the handoff fields. These values affect the returned widget for the current page load and do not update dashboard settings.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', {
@@ -114,10 +110,10 @@ The following properties are accepted.
 
 | Property          | Description                                                                                               | Type    |
 | ----------------- | --------------------------------------------------------------------------------------------------------- | ------- |
-| number            | WhatsApp number sent to Rails as the handoff identifier.                                                  | String  |
-| restrictToChannel | Whether the server-rendered webchat should restrict the conversation path to the configured WhatsApp channel. | Boolean |
+| number            | WhatsApp number sent as the handoff identifier.                                                           | String  |
+| restrictToChannel | Whether the Webchat should restrict the conversation path to the configured WhatsApp channel.              | Boolean |
 
-Serialized request params:
+Request params:
 
 - `webchat[handoff][identifier]`
 - `webchat[handoff][restrict_to_channel]`
@@ -221,7 +217,7 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 })
 ```
 
-When Hellotext.js writes the behaviour to the Stimulus controller, it serializes the value to the Rails-rendered shape:
+When Hellotext.js writes the behaviour to the Webchat controller, it serializes the value to the runtime attribute shape:
 
 ```json
 {

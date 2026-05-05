@@ -91,9 +91,6 @@ export default class extends Controller {
     useOpeningSequence(this)
     useTeaser(this)
 
-    this.popoverTarget.classList.add(...WebchatConfiguration.classes)
-    this.triggerTarget.classList.add(...WebchatConfiguration.triggerClasses)
-
     this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
 
     if (this.hasTeaserTarget) {

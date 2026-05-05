@@ -39,8 +39,6 @@ export interface HellotextWebchatConfig {
   id?: string
   container?: string
   placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-  classes?: string | string[]
-  triggerClasses?: string | string[]
   mode?: HellotextWebchatMode
   behaviour?: HellotextWebchatBehaviour
   style?: {
