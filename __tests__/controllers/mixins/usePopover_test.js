@@ -65,4 +65,25 @@ describe('usePopover', () => {
       strategy: 'fixed'
     })
   })
+
+  it('cancels a pending behaviour open before showing the popover', () => {
+    controller.cancelBehaviourOpen = jest.fn()
+
+    usePopover(controller)
+    controller.show()
+
+    expect(controller.cancelBehaviourOpen).toHaveBeenCalledTimes(1)
+    expect(controller.openValue).toBe(true)
+  })
+
+  it('cancels a pending behaviour open before toggling the popover', () => {
+    controller.openValue = false
+    controller.cancelBehaviourOpen = jest.fn()
+
+    usePopover(controller)
+    controller.toggle()
+
+    expect(controller.cancelBehaviourOpen).toHaveBeenCalledTimes(1)
+    expect(controller.openValue).toBe(true)
+  })
 })

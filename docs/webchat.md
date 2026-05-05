@@ -7,7 +7,7 @@ When a business has a webchat configured through the dashboard, this is enough:
 Hellotext.initialize('PUBLIC_BUSINESS_ID')
 ```
 
-Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount.
+Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount. Overrides are sparse and do not update dashboard settings.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', { webchat: false })
@@ -19,13 +19,19 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
     id,
     container,
     placement,
-    classes,
-    triggerClasses,
-    style: {
-      primaryColor,
-      secondaryColor,
-      typography,
+    appearance: {
+      header: {
+        name,
+      },
+      launcher: {
+        iconUrl,
+      },
     },
+    whatsapp: {
+      number,
+      restrictToChannel,
+    },
+    mode,
     behaviour,
     strategy,
   },
@@ -37,10 +43,10 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | id             | The id of the webchat to load. Overrides the dashboard webchat id when provided.                                                         | String | Dashboard id   |
 | container      | The container to append the webchat to, must be a valid CSS selector. If none specified, the webchat is appended at the end of the body. | String | `body`         |
 | placement      | The placement of the webchat, determined according to the parent `container`.                                                            | Enum   | `bottom-right` |
-| classes        | An array or comma separated String of additional CSS classes to apply to the webchat popover.                                            | String | null           |
-| triggerClasses | An array or comma separated String of additional CSS classes to apply to the webchat trigger.                                            | String | null           |
-| style          | Style overrides to the WebChat's style configuration as created on the dashboard.                                                        | Object | null           |
-| behaviour      | The behaviour of the webchat when it is open and a click was made outside of it                                                          | Enum   | `popover`      |
+| appearance     | Appearance overrides for the configured Webchat.                                                                                         | Object | Dashboard      |
+| whatsapp       | WhatsApp handoff overrides for the configured Webchat.                                                                                   | Object | Dashboard      |
+| mode           | The mode of the webchat when it is open and a click was made outside of it                                                               | Enum   | `popover`      |
+| behaviour      | The runtime opening behaviour of the webchat                                                                                             | Object | Dashboard      |
 | strategy       | The positioning strategy for the webchat when it is open and the ancestor is scrolled                                                    | Enum   | `absolute`     |
 
 ### Position
@@ -52,37 +58,152 @@ The default position for a webchat is `bottom-right`, but you can specify any of
 - `top-left`
 - `top-right`
 
-### Style
+### Appearance
 
-The following properties are accepted for the `style` object.
+The `appearance` object provides sparse overrides for the configured Webchat. These values customize the mounted widget and do not update dashboard settings.
 
-- `primaryColor` - The primary color of the Webchat. Must be either in hex or rgb/a formats. Affects the following elements:
-  - Trigger background
-  - Popover header background
-  - Agent icon color
-  - Toolbar button hover
-  - Incoming message background
+```js
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    appearance: {
+      header: {
+        name: 'Acme Support',
+      },
+      launcher: {
+        iconUrl: 'https://example.com/webchat-icon.png',
+      },
+    },
+  },
+})
+```
 
-The primary color is controlled via a `--webchat-primary-color` CSS variable.
+The following properties are accepted.
 
-- `secondaryColor` - The secondary color of the webchat. Must be either in hex or rgb/a formats. Affects the following elements:
-  - Trigger icon color
-  - Popover header text color
-  - Agent icon background
-  - Incoming message text color
+| Property         | Description                                                                                      | Type   |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ------ |
+| header.name      | Business name shown in the Webchat header.                                                       | String |
+| launcher.iconUrl | Image URL used for the launcher icon. When present, it is shown in minimized and expanded states. | String |
 
-The secondary color is controlled via a `--webchat-secondary-color` CSS variable.
+### WhatsApp
 
-- `typography` - The font family to use for the webchat.
+The `whatsapp` object configures optional WhatsApp handoff. These values customize the mounted widget and do not update dashboard settings.
 
-All properties accept a valid CSS value, for example, `primaryColor: '#EEEEEE'` or `secondaryColor: '#ff0000'`.
+```js
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    whatsapp: {
+      number: '+15551234567',
+      restrictToChannel: true,
+    },
+  },
+})
+```
 
-### behaviour
+The following properties are accepted.
+
+| Property          | Description                                                                                  | Type    |
+| ----------------- | -------------------------------------------------------------------------------------------- | ------- |
+| number            | WhatsApp phone number used by the handoff action.                                             | String  |
+| restrictToChannel | Whether the Webchat should restrict the conversation path to the configured WhatsApp channel. | Boolean |
+
+### Mode
 
 Determines how the webchat functions when it is open and a click is made outside of it. The following values are accepted.
 
 - `popover` - Closes the webchat when a click is made outside of it. This is the default behaviour.
 - `modal` - Prevents the webchat from closing when a click is made outside of it. The webchat can only be closed by clicking on the trigger.
+
+```js
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    mode: 'popover',
+  },
+})
+```
+
+### Behaviour
+
+Determines what opens the webchat at runtime. The public JavaScript configuration uses camelCase.
+
+```js
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    behaviour: {
+      trigger: 'onLoad',
+      delaySeconds: 5,
+      firstVisitOnly: true,
+      oncePerSession: true,
+    },
+  },
+})
+```
+
+The following properties are accepted.
+
+| Property       | Description                                                                                         | Type    |
+| -------------- | --------------------------------------------------------------------------------------------------- | ------- |
+| trigger        | `onClick` keeps the current click-only behaviour. `onLoad` opens the webchat after `delaySeconds`. | Enum    |
+| delaySeconds   | Delay before opening on load. Accepted values are `0`, `5`, `10`, and `30`.                         | Number  |
+| firstVisitOnly | When true, the automatic open only happens once for the visitor.                                    | Boolean |
+| oncePerSession | When true, the automatic open only happens once per browser session.                                | Boolean |
+
+Examples:
+
+```js
+// Click-only, no automatic open.
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    behaviour: {
+      trigger: 'onClick',
+      delaySeconds: 0,
+      firstVisitOnly: false,
+      oncePerSession: false,
+    },
+  },
+})
+```
+
+```js
+// Open immediately after mount.
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    behaviour: {
+      trigger: 'onLoad',
+      delaySeconds: 0,
+      firstVisitOnly: false,
+      oncePerSession: false,
+    },
+  },
+})
+```
+
+```js
+// Open after five seconds, once per browser session.
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    behaviour: {
+      trigger: 'onLoad',
+      delaySeconds: 5,
+      firstVisitOnly: false,
+      oncePerSession: true,
+    },
+  },
+})
+```
+
+```js
+// Open only on the first visit.
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    behaviour: {
+      trigger: 'onLoad',
+      delaySeconds: 5,
+      firstVisitOnly: true,
+      oncePerSession: false,
+    },
+  },
+})
+```
 
 ### Strategy
 

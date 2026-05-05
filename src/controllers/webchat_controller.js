@@ -6,10 +6,12 @@ import WebchatChannel from '../channels/webchat_channel'
 import Hellotext from '../hellotext'
 
 import { Locale } from '../core'
-import { Webchat as WebchatConfiguration, behaviors } from '../core/configuration/webchat'
+import { Webchat as WebchatConfiguration, modes } from '../core/configuration/webchat'
 
-import { LogoBuilder } from '../builders/logo_builder'
 import { usePopover } from './mixins/usePopover'
+import { useBehaviour } from './webchat/useBehaviour'
+import { useOpeningSequence } from './webchat/useOpeningSequence'
+import { useTeaser } from './webchat/useTeaser'
 
 export default class extends Controller {
   static values = {
@@ -28,6 +30,8 @@ export default class extends Controller {
     padding: { type: Number, default: 24 },
     optimisticTypingIndicatorWait: { type: Number, default: 1000 }, // 1 second,
     teaser: Object,
+    messageTeaser: String,
+    behaviour: Object,
   }
 
   static classes = ['fadeOut']
@@ -53,6 +57,8 @@ export default class extends Controller {
     'typingIndicator',
     'typingIndicatorTemplate',
     'teaser',
+    'openingSequence',
+    'openingSequenceMessage',
   ]
 
   initialize() {
@@ -65,6 +71,7 @@ export default class extends Controller {
     )
 
     this.files = []
+    this.messageIds = new Set()
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
@@ -79,10 +86,10 @@ export default class extends Controller {
   }
 
   connect() {
+    useBehaviour(this)
     usePopover(this)
-
-    this.popoverTarget.classList.add(...WebchatConfiguration.classes)
-    this.triggerTarget.classList.add(...WebchatConfiguration.triggerClasses)
+    useOpeningSequence(this)
+    useTeaser(this)
 
     this.setupFloatingUI({ trigger: this.triggerTarget, popover: this.popoverTarget })
 
@@ -94,6 +101,9 @@ export default class extends Controller {
       })
     }
 
+    this.setupTeaser()
+    this.setupOpeningSequence()
+
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onTypingStart(this.onTypingStart)
 
@@ -101,21 +111,22 @@ export default class extends Controller {
 
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
 
-    if (!Hellotext.business.features.white_label) {
-      this.toolbarTarget.appendChild(LogoBuilder.build())
-    }
-
     if (this.shouldOpenOnMount) {
       this.openValue = true
     }
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
     this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
+    this.scheduleBehaviourOpen()
 
     super.connect()
   }
 
   disconnect() {
+    this.cancelBehaviourOpen()
+    this.teardownTeaser()
+    this.teardownOpeningSequence()
+
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
 
@@ -283,7 +294,7 @@ export default class extends Controller {
           image.src = attachmentUrl
           image.style.display = 'block'
 
-          element.querySelector('[data-attachment-container]').appendChild(image)
+          this.messageAttachmentsContainer(element)?.appendChild(image)
         })
       }
 
@@ -301,7 +312,7 @@ export default class extends Controller {
 
   onClickOutside(event) {
     if (
-      WebchatConfiguration.behaviour === behaviors.POPOVER &&
+      WebchatConfiguration.mode === modes.POPOVER &&
       this.openValue &&
       event.target.nodeType &&
       this.element.contains(event.target) === false
@@ -320,6 +331,7 @@ export default class extends Controller {
 
   onPopoverOpened() {
     this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    this.dismissTeaserForSession?.()
 
     if (!this.onMobile) {
       this.inputTarget.focus()
@@ -339,9 +351,11 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:opened')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'opened')
 
-    if (this.hasTeaserTarget) {
-      this.teaserTarget.classList.add('hidden')
+    if (this.messageTeaserValue) {
+      this.messageTeaserValue = null
     }
+
+    this.startOpeningSequence()
 
     if (this.unreadCounterTarget.style.display === 'none') return
 
@@ -354,10 +368,6 @@ export default class extends Controller {
   onPopoverClosed() {
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
-
-    if (this.hasTeaserTarget && this.teaserValue.body) {
-      this.teaserTarget.classList.remove('hidden')
-    }
   }
 
   onMessageReaction(message) {
@@ -385,7 +395,11 @@ export default class extends Controller {
   }
 
   onMessageReceived(message) {
-    const { id, body, attachments } = message
+    const { id, body, attachments, teaser } = message
+
+    if (!this.claimMessageId(id)) return
+
+    this.hideTeaser?.()
 
     if (message.carousel) {
       return this.insertCarouselMessage(message)
@@ -398,6 +412,8 @@ export default class extends Controller {
     element.style.display = 'flex'
 
     element.querySelector('[data-body]').innerHTML = div.innerHTML
+
+    element.setAttribute('data-id', id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
     if (attachments) {
@@ -406,7 +422,7 @@ export default class extends Controller {
         image.src = attachmentUrl
         image.style.display = 'block'
 
-        element.querySelector('[data-attachment-container]').appendChild(image)
+        this.messageAttachmentsContainer(element)?.appendChild(image)
       })
     }
 
@@ -420,20 +436,44 @@ export default class extends Controller {
 
     element.scrollIntoView({ behavior: 'smooth' })
 
+    this.updateMessageTeaser(teaser)
+
     if (this.openValue) {
       this.messagesAPI.markAsSeen(id)
       return
     }
 
-    this.unreadCounterTarget.style.display = 'flex'
+    this.incrementUnreadCounter()
+  }
 
-    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
-    this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
+  // TCP broadcasts may deliver the same incoming message twice before Stimulus
+  // has connected the appended message target. Claiming the id in memory closes
+  // that window, while the target check still drops messages rendered earlier.
+  claimMessageId(id) {
+    const messageTargets = this.messageTargets || []
+
+    if (this.messageIds.has(id)) return false
+
+    this.messageIds.add(id)
+
+    return !messageTargets.some(element => element.dataset.id === id)
+  }
+
+  updateMessageTeaser(teaser) {
+    this.messageTeaserValue = teaser
+
+    if (this.messageTeaserValue && this.hasTeaserTarget) {
+      this.teaserTarget.innerHTML = this.messageTeaserValue
+      this.teaserTarget.classList.toggle('invisible', this.openValue)
+    }
   }
 
   insertCarouselMessage(message) {
     const html = message.html
     const element = new DOMParser().parseFromString(html, 'text/html').body.firstElementChild
+
+    element.setAttribute('data-id', message.id)
+    element.setAttribute('data-hellotext--webchat-target', 'message')
 
     this.clearTypingIndicator()
     this.messagesContainerTarget.appendChild(element)
@@ -445,14 +485,14 @@ export default class extends Controller {
       body: element.querySelector('[data-body]')?.innerText || '',
     })
 
+    this.updateMessageTeaser(message.teaser)
+
     if (this.openValue) {
       this.messagesAPI.markAsSeen(message.id)
       return
     }
 
-    this.unreadCounterTarget.style.display = 'flex'
-    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
-    this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
+    this.incrementUnreadCounter()
   }
 
   resizeInput() {
@@ -469,6 +509,8 @@ export default class extends Controller {
   }
 
   async sendQuickReplyMessage({ detail: { id, product, buttonId, body, cardElement } }) {
+    this.dismissTeaserForSession?.()
+
     const formData = new FormData()
 
     formData.append('message[body]', body)
@@ -478,6 +520,7 @@ export default class extends Controller {
 
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
+    this.appendOpeningSequenceMessageIds(formData)
 
     const element = this.buildMessageElement()
     const attachment = cardElement.querySelector('img')?.cloneNode(true)
@@ -488,7 +531,7 @@ export default class extends Controller {
       attachment.removeAttribute('width')
       attachment.removeAttribute('height')
 
-      element.querySelector('[data-attachment-container]').appendChild(attachment)
+      this.messageAttachmentsContainer(element)?.appendChild(attachment)
     }
 
     if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
@@ -521,6 +564,7 @@ export default class extends Controller {
     const data = await response.json()
 
     this.dispatch('set:id', { target: element, detail: data.id })
+    this.clearRevealedOpeningSequenceMessageIds()
 
     const message = {
       id: data.id,
@@ -535,9 +579,94 @@ export default class extends Controller {
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
   }
 
-  async sendMessage(e) {
+  async sendTeaserQuickReply(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const button = event.currentTarget
+    const value = (button.dataset.value || '').trim()
+    const label = [button.dataset.text, button.textContent]
+      .map(text => (text || '').trim())
+      .find(text => text.length > 0)
+    const text = value || label
+
+    if (!text) return
+
+    this.dismissTeaserForSession?.()
+    this.show()
+
+    const buttonType = (button.dataset.type || '').trim() || 'quick_reply'
     const formData = new FormData()
 
+    formData.append('message[body]', text)
+    formData.append('session', Hellotext.session)
+    formData.append('locale', Locale.toString())
+    this.appendOpeningSequenceMessageIds(formData)
+
+    const element = this.buildMessageElement()
+
+    element.querySelector('[data-body]').innerText = text
+
+    if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
+      this.messagesContainerTarget.insertBefore(element, this.typingIndicatorTarget)
+    } else {
+      this.messagesContainerTarget.appendChild(element)
+    }
+
+    element.scrollIntoView({ behavior: 'smooth' })
+
+    this.broadcastChannel.postMessage({
+      type: 'message:sent',
+      element: element.outerHTML,
+    })
+
+    if (!this.typingIndicatorVisible) {
+      clearTimeout(this.optimisticTypingTimeout)
+      this.optimisticTypingTimeout = setTimeout(() => {
+        this.showOptimisticTypingIndicator()
+      }, this.optimisticTypingIndicatorWaitValue)
+    }
+
+    const response = await this.messagesAPI.create(formData)
+
+    if (response.failed) {
+      clearTimeout(this.optimisticTypingTimeout)
+
+      this.broadcastChannel.postMessage({
+        type: 'message:failed',
+        id: element.id,
+      })
+
+      return element.classList.add('failed')
+    }
+
+    const data = await response.json()
+    element.setAttribute('data-id', data.id)
+    this.clearRevealedOpeningSequenceMessageIds()
+
+    Hellotext.eventEmitter.dispatch('webchat:message:sent', {
+      id: data.id,
+      body: text,
+      attachments: [],
+      type: 'quick_reply',
+      teaser: {
+        text: label || text,
+        value: value || text,
+        type: buttonType,
+      },
+    })
+
+    if (data.conversation && data.conversation !== this.conversationIdValue) {
+      this.conversationIdValue = data.conversation
+      this.webChatChannel.updateSubscriptionWith(this.conversationIdValue)
+    }
+
+    if (this.typingIndicatorVisible) {
+      this.resetTypingIndicatorTimer()
+    }
+  }
+
+  async sendMessage(e) {
     const message = {
       body: this.inputTarget.value,
       attachments: this.files,
@@ -551,6 +680,10 @@ export default class extends Controller {
       return
     }
 
+    this.dismissTeaserForSession?.()
+
+    const formData = new FormData()
+
     if (this.inputTarget.value.trim().length > 0) {
       formData.append('message[body]', this.inputTarget.value)
     } else {
@@ -563,6 +696,7 @@ export default class extends Controller {
 
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
+    this.appendOpeningSequenceMessageIds(formData)
 
     const element = this.buildMessageElement()
 
@@ -576,7 +710,7 @@ export default class extends Controller {
 
     if (attachments.length > 0) {
       attachments.forEach(attachment => {
-        element.querySelector('[data-attachment-container]').appendChild(attachment.cloneNode(true))
+        this.messageAttachmentsContainer(element)?.appendChild(attachment.cloneNode(true))
       })
     }
 
@@ -632,6 +766,7 @@ export default class extends Controller {
     const data = await response.json()
     element.setAttribute('data-id', data.id)
     message.id = data.id
+    this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
 
@@ -660,6 +795,17 @@ export default class extends Controller {
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
     return element
+  }
+
+  messageAttachmentsContainer(element) {
+    return element.querySelector('[data-attachments-container], [data-attachment-container]')
+  }
+
+  incrementUnreadCounter() {
+    this.unreadCounterTarget.style.display = 'flex'
+
+    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
+    this.unreadCounterTarget.innerText = Math.min(unreadCount, 9)
   }
 
   openAttachment() {
