@@ -22,11 +22,6 @@ describe('EmojiPickerController', () => {
     controller.buttonTarget = button
     controller.popoverTarget = popover
 
-    Object.defineProperty(controller, 'pickerObject', {
-      get: () => picker,
-      configurable: true
-    })
-
     usePopover.mockImplementation(controller => {
       controller.setupFloatingUI = jest.fn()
     })
@@ -36,7 +31,9 @@ describe('EmojiPickerController', () => {
     usePopover.mockReset()
   })
 
-  it('positions the picker absolutely against its button', () => {
+  it('positions the picker absolutely against its button without loading emoji assets immediately', () => {
+    controller.loadPickerDependencies = jest.fn()
+
     controller.connect()
 
     expect(controller.setupFloatingUI).toHaveBeenCalledWith({
@@ -44,6 +41,42 @@ describe('EmojiPickerController', () => {
       popover: popover,
       strategy: 'absolute'
     })
+    expect(controller.loadPickerDependencies).not.toHaveBeenCalled()
+    expect(popover.contains(picker)).toBe(false)
+  })
+
+  it('loads and appends the picker when the popover opens', async () => {
+    const Picker = jest.fn(() => picker)
+
+    controller.loadPickerDependencies = jest.fn().mockResolvedValue({
+      Picker,
+      i18n: { search: 'Search' },
+    })
+
+    controller.connect()
+    await controller.onPopoverOpened()
+
+    expect(controller.loadPickerDependencies).toHaveBeenCalledTimes(1)
+    expect(Picker).toHaveBeenCalledWith(expect.objectContaining({
+      onEmojiSelect: controller.onEmojiSelect,
+      i18n: { search: 'Search' },
+    }))
     expect(popover.contains(picker)).toBe(true)
+  })
+
+  it('loads the picker only once', async () => {
+    const Picker = jest.fn(() => picker)
+
+    controller.loadPickerDependencies = jest.fn().mockResolvedValue({
+      Picker,
+      i18n: { search: 'Search' },
+    })
+
+    controller.connect()
+    await controller.onPopoverOpened()
+    await controller.onPopoverOpened()
+
+    expect(controller.loadPickerDependencies).toHaveBeenCalledTimes(1)
+    expect(Picker).toHaveBeenCalledTimes(1)
   })
 })

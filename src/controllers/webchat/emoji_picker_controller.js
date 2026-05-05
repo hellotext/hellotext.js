@@ -1,11 +1,6 @@
 import { autoPlacement, offset, shift } from '@floating-ui/dom'
 import { Controller } from '@hotwired/stimulus'
 
-import en from '@emoji-mart/data/i18n/en.json'
-import es from '@emoji-mart/data/i18n/es.json'
-
-import { Picker } from 'emoji-mart'
-
 import { usePopover } from '../mixins/usePopover'
 
 export default class extends Controller {
@@ -22,10 +17,15 @@ export default class extends Controller {
 
   initialize() {
     this.onEmojiSelect = this.onEmojiSelect.bind(this)
+    this.pickerLoaded = false
+    this.pickerLoadPromise = null
+    this.connected = false
     super.initialize()
   }
 
   connect() {
+    this.connected = true
+
     usePopover(this)
 
     this.setupFloatingUI({
@@ -34,12 +34,12 @@ export default class extends Controller {
       strategy: 'absolute',
     })
 
-    this.popoverTarget.appendChild(this.pickerObject)
-
     super.connect()
   }
 
   disconnect() {
+    this.connected = false
+    this.pickerLoadPromise = null
     this.floatingUICleanup()
     super.disconnect()
   }
@@ -58,7 +58,44 @@ export default class extends Controller {
     }
   }
 
-  get pickerObject() {
+  async onPopoverOpened() {
+    await this.loadPicker()
+  }
+
+  async loadPicker() {
+    if (this.pickerLoaded) return
+
+    this.pickerLoadPromise ||= this.loadPickerDependencies()
+
+    const { Picker, i18n } = await this.pickerLoadPromise
+
+    if (!this.connected || this.pickerLoaded) return
+
+    this.popoverTarget.appendChild(this.buildPicker(Picker, i18n))
+    this.pickerLoaded = true
+  }
+
+  async loadPickerDependencies() {
+    const [pickerModule, i18nModule] = await Promise.all([
+      import(/* webpackChunkName: "webchat-emoji" */ 'emoji-mart'),
+      this.loadI18n(),
+    ])
+
+    return {
+      Picker: pickerModule.Picker,
+      i18n: i18nModule.default || i18nModule,
+    }
+  }
+
+  loadI18n() {
+    if (Hellotext.business.locale === 'es') {
+      return import(/* webpackChunkName: "webchat-emoji-es" */ '@emoji-mart/data/i18n/es.json')
+    }
+
+    return import(/* webpackChunkName: "webchat-emoji-en" */ '@emoji-mart/data/i18n/en.json')
+  }
+
+  buildPicker(Picker, i18n) {
     return new Picker({
       onEmojiSelect: this.onEmojiSelect,
       theme: 'light',
@@ -67,7 +104,7 @@ export default class extends Controller {
       skinTonePosition: 'none',
       emojiSize: this.sizeValue,
       perLine: this.perLineValue,
-      i18n: Hellotext.business.locale === 'es' ? es : en,
+      i18n,
     })
   }
 

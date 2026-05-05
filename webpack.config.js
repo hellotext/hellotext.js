@@ -3,10 +3,12 @@ module.exports = {
   entry: ['@hotwired/stimulus', './src/index.bundle.js'],
   output: {
     filename: 'hellotext.js',
+    chunkFilename: '[name].js',
     library: 'Hellotext',
     libraryTarget: 'umd',
     libraryExport: 'default',
     globalObject: "typeof self !== 'undefined' ? self : this",
+    publicPath: 'auto',
   },
   module: {
     rules: [
