@@ -21,6 +21,20 @@ export interface HellotextWebchatBehaviour {
   oncePerSession: boolean
 }
 
+export interface HellotextWebchatAppearance {
+  header?: {
+    name?: string | null
+  }
+  launcher?: {
+    iconUrl?: string | null
+  }
+}
+
+export interface HellotextWebchatWhatsApp {
+  number?: string | null
+  restrictToChannel?: boolean | null
+}
+
 export interface HellotextWebchatConfig {
   id?: string
   container?: string
@@ -34,6 +48,8 @@ export interface HellotextWebchatConfig {
     secondaryColor?: string
     typography?: string
   }
+  appearance?: HellotextWebchatAppearance
+  whatsapp?: HellotextWebchatWhatsApp
   strategy?: HellotextWebchatStrategy
 }
 

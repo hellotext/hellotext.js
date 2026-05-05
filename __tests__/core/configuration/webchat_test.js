@@ -5,6 +5,8 @@ beforeEach(() => {
   Webchat.mode = 'popover'
   Webchat.behaviour = null
   Webchat.behaviourOverride = false
+  Webchat.appearance = {}
+  Webchat.whatsapp = {}
 })
 
 describe('Webchat', () => {
@@ -230,6 +232,118 @@ describe('Webchat', () => {
           Webchat.style = { secondaryColor: 'red' }
         }).toThrowError('Invalid color value: red for secondaryColor. Colors must be hex or rgb/a.')
       });
+    })
+  })
+
+  describe('appearance', () => {
+    it('is an empty object by default', () => {
+      expect(Webchat.appearance).toEqual({})
+    })
+
+    it('accepts header and launcher overrides', () => {
+      Webchat.appearance = {
+        header: {
+          name: 'Acme Support'
+        },
+        launcher: {
+          iconUrl: 'https://example.com/icon.png'
+        }
+      }
+
+      expect(Webchat.appearance).toEqual({
+        header: {
+          name: 'Acme Support'
+        },
+        launcher: {
+          iconUrl: 'https://example.com/icon.png'
+        }
+      })
+    })
+
+    it('accepts null optional leaf values from dashboard defaults', () => {
+      Webchat.appearance = {
+        header: {
+          name: null
+        },
+        launcher: {
+          iconUrl: null
+        }
+      }
+
+      expect(Webchat.appearance).toEqual({
+        header: {
+          name: null
+        },
+        launcher: {
+          iconUrl: null
+        }
+      })
+    })
+
+    it('throws an exception when the value is not an object', () => {
+      expect(() => {
+        Webchat.appearance = 'invalid'
+      }).toThrowError('Appearance must be an object')
+    })
+
+    it('throws an exception when a nested value is not an object', () => {
+      expect(() => {
+        Webchat.appearance = { header: 'Acme Support' }
+      }).toThrowError('Appearance header must be an object')
+    })
+
+    it('throws an exception when a nested string value is invalid', () => {
+      expect(() => {
+        Webchat.appearance = { header: { name: 123 } }
+      }).toThrowError('Invalid appearance header.name value: 123')
+    })
+  })
+
+  describe('whatsapp', () => {
+    it('is an empty object by default', () => {
+      expect(Webchat.whatsapp).toEqual({})
+    })
+
+    it('accepts number and restrictToChannel overrides', () => {
+      Webchat.whatsapp = {
+        number: '+15551234567',
+        restrictToChannel: false
+      }
+
+      expect(Webchat.whatsapp).toEqual({
+        number: '+15551234567',
+        restrictToChannel: false
+      })
+    })
+
+    it('accepts a null optional number from dashboard defaults', () => {
+      Webchat.whatsapp = {
+        number: null,
+        restrictToChannel: false
+      }
+
+      expect(Webchat.whatsapp).toEqual({
+        number: null,
+        restrictToChannel: false
+      })
+    })
+
+    it('throws an exception when the value is not an object', () => {
+      expect(() => {
+        Webchat.whatsapp = 'invalid'
+      }).toThrowError('WhatsApp must be an object')
+    })
+
+    it('throws an exception when number is not a string', () => {
+      expect(() => {
+        Webchat.whatsapp = { number: 123 }
+      }).toThrowError('Invalid WhatsApp number value: 123')
+    })
+
+    it('throws an exception when restrictToChannel is not a boolean', () => {
+      expect(() => {
+        Webchat.whatsapp = { restrictToChannel: 'false' }
+      }).toThrowError('Invalid WhatsApp restrictToChannel value: false')
     })
   })
 })

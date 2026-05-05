@@ -7,7 +7,7 @@ When a business has a webchat configured through the dashboard, this is enough:
 Hellotext.initialize('PUBLIC_BUSINESS_ID')
 ```
 
-Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount.
+Install-level configuration can override dashboard settings. Passing `webchat: false` disables the automatic webchat mount. Overrides are sparse and request-local: dashboard settings remain the saved defaults, and Hellotext.js sends supplied values with the webchat HTML request so Rails can render the final DOM for that page load.
 
 ```js
 Hellotext.initialize('PUBLIC_BUSINESS_ID', { webchat: false })
@@ -21,10 +21,17 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
     placement,
     classes,
     triggerClasses,
-    style: {
-      primaryColor,
-      secondaryColor,
-      typography,
+    appearance: {
+      header: {
+        name,
+      },
+      launcher: {
+        iconUrl,
+      },
+    },
+    whatsapp: {
+      number,
+      restrictToChannel,
     },
     mode,
     behaviour,
@@ -40,7 +47,8 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | placement      | The placement of the webchat, determined according to the parent `container`.                                                            | Enum   | `bottom-right` |
 | classes        | An array or comma separated String of additional CSS classes to apply to the webchat popover.                                            | String | null           |
 | triggerClasses | An array or comma separated String of additional CSS classes to apply to the webchat trigger.                                            | String | null           |
-| style          | Style overrides to the WebChat's style configuration as created on the dashboard.                                                        | Object | null           |
+| appearance     | Server-rendered appearance overrides for the configured Webchat.                                                                         | Object | Dashboard      |
+| whatsapp       | Server-rendered WhatsApp handoff overrides for the configured Webchat.                                                                   | Object | Dashboard      |
 | mode           | The mode of the webchat when it is open and a click was made outside of it                                                               | Enum   | `popover`      |
 | behaviour      | The runtime opening behaviour of the webchat                                                                                             | Object | Dashboard      |
 | strategy       | The positioning strategy for the webchat when it is open and the ancestor is scrolled                                                    | Enum   | `absolute`     |
@@ -56,30 +64,63 @@ The default position for a webchat is `bottom-right`, but you can specify any of
 - `top-left`
 - `top-right`
 
-### Style
+### Appearance
 
-The following properties are accepted for the `style` object.
+The `appearance` object provides sparse overrides for the server-rendered webchat. Hellotext.js keeps this public configuration in camelCase and serializes it to Rails-shaped params on the webchat HTML request, where Rails merges it with the dashboard configuration before rendering. These values are request-local and do not update dashboard settings.
 
-- `primaryColor` - The primary color of the Webchat. Must be either in hex or rgb/a formats. Affects the following elements:
-  - Trigger background
-  - Popover header background
-  - Agent icon color
-  - Toolbar button hover
-  - Incoming message background
+```js
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    appearance: {
+      header: {
+        name: 'Acme Support',
+      },
+      launcher: {
+        iconUrl: 'https://example.com/webchat-icon.png',
+      },
+    },
+  },
+})
+```
 
-The primary color is controlled via a `--webchat-primary-color` CSS variable.
+The following properties are accepted.
 
-- `secondaryColor` - The secondary color of the webchat. Must be either in hex or rgb/a formats. Affects the following elements:
-  - Trigger icon color
-  - Popover header text color
-  - Agent icon background
-  - Incoming message text color
+| Property         | Description                                                                                                      | Type   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- | ------ |
+| header.name      | Business name shown in the server-rendered webchat header.                                                       | String |
+| launcher.iconUrl | Image URL used for the server-rendered launcher icon. When present, it is shown in minimized and expanded states. | String |
 
-The secondary color is controlled via a `--webchat-secondary-color` CSS variable.
+Serialized request params:
 
-- `typography` - The font family to use for the webchat.
+- `webchat[appearance][header][name]`
+- `webchat[appearance][launcher][icon_url]`
 
-All properties accept a valid CSS value, for example, `primaryColor: '#EEEEEE'` or `secondaryColor: '#ff0000'`.
+### WhatsApp
+
+The `whatsapp` object configures the server-rendered WhatsApp handoff. The public JavaScript API uses WhatsApp vocabulary, while the Rails request maps it to the existing handoff configuration. These values are request-local and do not update dashboard settings.
+
+```js
+Hellotext.initialize('PUBLIC_BUSINESS_ID', {
+  webchat: {
+    whatsapp: {
+      number: '+15551234567',
+      restrictToChannel: true,
+    },
+  },
+})
+```
+
+The following properties are accepted.
+
+| Property          | Description                                                                                               | Type    |
+| ----------------- | --------------------------------------------------------------------------------------------------------- | ------- |
+| number            | WhatsApp number sent to Rails as the handoff identifier.                                                  | String  |
+| restrictToChannel | Whether the server-rendered webchat should restrict the conversation path to the configured WhatsApp channel. | Boolean |
+
+Serialized request params:
+
+- `webchat[handoff][identifier]`
+- `webchat[handoff][restrict_to_channel]`
 
 ### Mode
 

@@ -297,7 +297,7 @@ export default class extends Controller {
           image.src = attachmentUrl
           image.style.display = 'block'
 
-          element.querySelector('[data-attachment-container]').appendChild(image)
+          this.messageAttachmentsContainer(element)?.appendChild(image)
         })
       }
 
@@ -425,7 +425,7 @@ export default class extends Controller {
         image.src = attachmentUrl
         image.style.display = 'block'
 
-        element.querySelector('[data-attachment-container]').appendChild(image)
+        this.messageAttachmentsContainer(element)?.appendChild(image)
       })
     }
 
@@ -446,10 +446,7 @@ export default class extends Controller {
       return
     }
 
-    this.unreadCounterTarget.style.display = 'flex'
-
-    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
-    this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
+    this.incrementUnreadCounter()
   }
 
   // TCP broadcasts may deliver the same incoming message twice before Stimulus
@@ -498,9 +495,7 @@ export default class extends Controller {
       return
     }
 
-    this.unreadCounterTarget.style.display = 'flex'
-    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
-    this.unreadCounterTarget.innerText = unreadCount > 99 ? '99+' : unreadCount
+    this.incrementUnreadCounter()
   }
 
   resizeInput() {
@@ -539,7 +534,7 @@ export default class extends Controller {
       attachment.removeAttribute('width')
       attachment.removeAttribute('height')
 
-      element.querySelector('[data-attachment-container]').appendChild(attachment)
+      this.messageAttachmentsContainer(element)?.appendChild(attachment)
     }
 
     if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
@@ -717,7 +712,7 @@ export default class extends Controller {
 
     if (attachments.length > 0) {
       attachments.forEach(attachment => {
-        element.querySelector('[data-attachment-container]').appendChild(attachment.cloneNode(true))
+        this.messageAttachmentsContainer(element)?.appendChild(attachment.cloneNode(true))
       })
     }
 
@@ -802,6 +797,17 @@ export default class extends Controller {
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
     return element
+  }
+
+  messageAttachmentsContainer(element) {
+    return element.querySelector('[data-attachments-container], [data-attachment-container]')
+  }
+
+  incrementUnreadCounter() {
+    this.unreadCounterTarget.style.display = 'flex'
+
+    const unreadCount = (parseInt(this.unreadCounterTarget.innerText) || 0) + 1
+    this.unreadCounterTarget.innerText = Math.min(unreadCount, 9)
   }
 
   openAttachment() {

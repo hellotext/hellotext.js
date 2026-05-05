@@ -447,6 +447,24 @@ describe('WebchatController', () => {
         expect(attachmentImage.style.display).toBe('block')
       })
 
+      it('renders attachments into the plural attachments container', () => {
+        const attachmentContainer = mockMessageTemplate.querySelector('[data-attachment-container]')
+        attachmentContainer.removeAttribute('data-attachment-container')
+        attachmentContainer.setAttribute('data-attachments-container', '')
+
+        controller.onMessageReceived({
+          body: 'Message with attachment',
+          id: 'msg-plural-attachment-container',
+          attachments: ['https://example.com/image1.jpg'],
+        })
+
+        const addedElement = mockMessagesContainer.children[0]
+        const pluralAttachmentContainer = addedElement.querySelector('[data-attachments-container]')
+
+        expect(pluralAttachmentContainer.children).toHaveLength(1)
+        expect(pluralAttachmentContainer.children[0].src).toBe('https://example.com/image1.jpg')
+      })
+
       it('processes multiple attachments correctly', () => {
         const message = {
           body: 'Message with multiple attachments',
@@ -535,6 +553,18 @@ describe('WebchatController', () => {
 
         controller.onMessageReceived(message)
         expect(mockMessagesAPI.markAsSeen).not.toHaveBeenCalled()
+      })
+
+      it('clamps the unread counter at 9 while chat is closed', () => {
+        mockUnreadCounter.innerText = '9'
+
+        controller.onMessageReceived({
+          body: 'Closed chat message',
+          id: 'msg-unread-cap',
+        })
+
+        expect(mockUnreadCounter.style.display).toBe('flex')
+        expect(mockUnreadCounter.innerText).toBe(9)
       })
     })
 
@@ -968,6 +998,71 @@ describe('WebchatController', () => {
       controller.onClickOutside({ target: document.createElement('div') })
 
       expect(controller.openValue).toBe(true)
+    })
+  })
+
+  describe('onScroll', () => {
+    let mockMessagesAPI
+    let mockMessageTemplate
+    let mockAttachmentImage
+
+    beforeEach(() => {
+      mockMessageTemplate = document.createElement('div')
+      const bodyElement = document.createElement('div')
+      bodyElement.setAttribute('data-body', '')
+      const attachmentContainer = document.createElement('div')
+      attachmentContainer.setAttribute('data-attachments-container', '')
+      mockMessageTemplate.appendChild(bodyElement)
+      mockMessageTemplate.appendChild(attachmentContainer)
+
+      mockAttachmentImage = document.createElement('img')
+      mockAttachmentImage.style.display = 'none'
+
+      controller.messageTemplateTarget = mockMessageTemplate
+      controller.attachmentImageTarget = mockAttachmentImage
+      controller.nextPageValue = 2
+      controller.fetchingNextPage = false
+      mockMessagesContainer.scrollTop = 0
+      mockMessagesContainer.scroll = jest.fn()
+
+      Object.defineProperty(mockMessagesContainer, 'scrollHeight', {
+        value: 500,
+        configurable: true,
+      })
+
+      mockMessagesAPI = {
+        index: jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({
+            next: null,
+            messages: [
+              {
+                body: '<p>Older message</p>',
+                attachments: ['https://example.com/older.jpg'],
+                state: 'sent',
+              },
+            ],
+          }),
+        }),
+      }
+      controller.messagesAPI = mockMessagesAPI
+
+      Object.assign(Hellotext, {
+        session: 'test-session-123',
+      })
+    })
+
+    it('renders paginated attachments into the plural attachments container', async () => {
+      await controller.onScroll()
+
+      const addedElement = mockMessagesContainer.children[0]
+      const attachmentContainer = addedElement.querySelector('[data-attachments-container]')
+
+      expect(mockMessagesAPI.index).toHaveBeenCalledWith({
+        page: 2,
+        session: 'test-session-123',
+      })
+      expect(attachmentContainer.children).toHaveLength(1)
+      expect(attachmentContainer.children[0].src).toBe('https://example.com/older.jpg')
     })
   })
 
@@ -1826,6 +1921,26 @@ describe('WebchatController', () => {
       expect(controller.revealedOpeningSequenceMessageIds).toEqual(['shown'])
     })
 
+    it('renders composed attachments into the plural attachments container', async () => {
+      const attachmentContainer = mockMessageTemplate.querySelector('[data-attachment-container]')
+      attachmentContainer.removeAttribute('data-attachment-container')
+      attachmentContainer.setAttribute('data-attachments-container', '')
+      setupComposeTargets()
+      setupSuccessfulMessageResponse()
+
+      const attachment = document.createElement('img')
+      attachment.src = 'https://example.com/composed.jpg'
+      controller.attachmentContainerTarget.appendChild(attachment)
+
+      await controller.sendMessage({ target: controller.inputTarget })
+
+      const addedElement = mockMessagesContainer.lastElementChild
+      const pluralAttachmentContainer = addedElement.querySelector('[data-attachments-container]')
+
+      expect(pluralAttachmentContainer.children).toHaveLength(1)
+      expect(pluralAttachmentContainer.children[0].src).toBe('https://example.com/composed.jpg')
+    })
+
     it('sends revealed ids with a teaser quick reply', async () => {
       setOpeningSequenceMessages([{ id: 'shown', delay: 0 }])
       setupSuccessfulMessageResponse()
@@ -2451,6 +2566,28 @@ describe('WebchatController', () => {
         expect(clonedImage.hasAttribute('height')).toBe(false)
       })
 
+      it('clones attachment images into the plural attachments container', async () => {
+        const attachmentContainer = mockMessageTemplate.querySelector('[data-attachment-container]')
+        attachmentContainer.removeAttribute('data-attachment-container')
+        attachmentContainer.setAttribute('data-attachments-container', '')
+
+        await controller.sendQuickReplyMessage({
+          detail: {
+            id: 'msg-123',
+            product: 'product-456',
+            buttonId: 'btn-789',
+            body: 'Message with image',
+            cardElement: mockCardElement,
+          },
+        })
+
+        const addedElement = mockMessagesContainer.children[0]
+        const pluralAttachmentContainer = addedElement.querySelector('[data-attachments-container]')
+
+        expect(pluralAttachmentContainer.children).toHaveLength(1)
+        expect(pluralAttachmentContainer.children[0].src).toBe('https://example.com/product.jpg')
+      })
+
       it('scrolls message into view smoothly', async () => {
         const eventDetail = {
           id: 'msg-123',
@@ -2902,6 +3039,22 @@ describe('WebchatController', () => {
 
       expect(mockUnreadCounter.style.display).toBe('flex')
       expect(mockUnreadCounter.innerText).toBe(3)
+    })
+
+    it('clamps the unread counter at 9 for carousel messages', () => {
+      controller.openValue = false
+      const mockUnreadCounter = document.createElement('div')
+      mockUnreadCounter.innerText = '9'
+      controller.unreadCounterTarget = mockUnreadCounter
+
+      controller.onMessageReceived({
+        id: 'carousel-unread-cap',
+        html: '<div>Carousel</div>',
+        carousel: {},
+      })
+
+      expect(mockUnreadCounter.style.display).toBe('flex')
+      expect(mockUnreadCounter.innerText).toBe(9)
     })
 
     it('shows the message teaser for carousel messages when chat is closed', () => {

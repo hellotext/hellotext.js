@@ -28,10 +28,9 @@ class Hellotext {
     this.query = new Query()
 
     const businessData = await this.business.hydrate()
-    const webchatConfig = config.webchat === false ? false : {
-      ...((businessData && businessData.webchat) || {}),
-      ...(config.webchat || {}),
-    }
+    const webchatConfig = config.webchat === false ?
+      false :
+      this.mergeWebchatConfig((businessData && businessData.webchat) || {}, config.webchat || {})
 
     const hasExplicitBehaviourOverride = (
       config.webchat &&
@@ -48,6 +47,28 @@ class Hellotext {
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()
     }
+  }
+
+  static mergeWebchatConfig(dashboardConfig, localConfig) {
+    return this.deepMergePlainObjects(dashboardConfig, localConfig)
+  }
+
+  static deepMergePlainObjects(base, override) {
+    const result = { ...base }
+
+    Object.entries(override).forEach(([key, value]) => {
+      if (this.isPlainObject(value) && this.isPlainObject(result[key])) {
+        result[key] = this.deepMergePlainObjects(result[key], value)
+      } else {
+        result[key] = value
+      }
+    })
+
+    return result
+  }
+
+  static isPlainObject(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
   }
 
   /**

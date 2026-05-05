@@ -57,6 +57,8 @@ describe("when initializing business metadata", () => {
     loadWebchat.mockRestore()
     Configuration.webchat.behaviour = null
     Configuration.webchat.behaviourOverride = false
+    Configuration.webchat.appearance = {}
+    Configuration.webchat.whatsapp = {}
   })
 
   it("fetches public business data by default and stores it", async () => {
@@ -145,6 +147,53 @@ describe("when initializing business metadata", () => {
     })
 
     expect(loadWebchat).toHaveBeenCalledWith("explicit-webchat")
+  })
+
+  it("deep merges explicit local webchat appearance and WhatsApp overrides with dashboard defaults", async () => {
+    mockBusinessFetch(defaultBusiness({
+      webchat: {
+        id: "dashboard-webchat",
+        appearance: {
+          header: {
+            name: "Dashboard Support",
+          },
+          launcher: {
+            iconUrl: "https://example.com/dashboard-icon.png",
+          },
+        },
+        whatsapp: {
+          number: "+15550000000",
+          restrictToChannel: true,
+        },
+      },
+    }))
+
+    await Hellotext.initialize("xy76ks", {
+      webchat: {
+        appearance: {
+          header: {
+            name: "Local Support",
+          },
+        },
+        whatsapp: {
+          restrictToChannel: false,
+        },
+      },
+    })
+
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(Configuration.webchat.appearance).toEqual({
+      header: {
+        name: "Local Support",
+      },
+      launcher: {
+        iconUrl: "https://example.com/dashboard-icon.png",
+      },
+    })
+    expect(Configuration.webchat.whatsapp).toEqual({
+      number: "+15550000000",
+      restrictToChannel: false,
+    })
   })
 
   it("skips webchat loading when webchat is false", async () => {

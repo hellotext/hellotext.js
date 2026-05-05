@@ -47,6 +47,20 @@ const modes = {
  */
 
 /**
+ * @typedef {Object} Appearance
+ * @property {Object} [header] - Header appearance overrides.
+ * @property {string} [header.name] - Business name shown in the webchat header.
+ * @property {Object} [launcher] - Launcher appearance overrides.
+ * @property {string} [launcher.iconUrl] - Image URL used for the launcher icon.
+ */
+
+/**
+ * @typedef {Object} WhatsApp
+ * @property {string} [number] - WhatsApp number used by the server handoff configuration.
+ * @property {boolean} [restrictToChannel] - Whether handoff should be restricted to the configured channel.
+ */
+
+/**
  * @class Webchat
  * @classdesc
  * Configuration for webchat
@@ -58,6 +72,8 @@ const modes = {
  * @property {Mode} mode - how the webchat behaves while open, defaults to 'popover'.
  * @property {Object} behaviour - runtime opening behaviour for the webchat.
  * @property {Style} style - the style of the webchat.
+ * @property {Appearance} appearance - server-rendered appearance overrides.
+ * @property {WhatsApp} whatsapp - server-rendered WhatsApp handoff overrides.
  * @property {Strategy} strategy - the strategy used to position the webchat. Defaults to 'absolute'
  */
 
@@ -68,6 +84,8 @@ class Webchat {
   static _classes = []
   static _triggerClasses = []
   static _style = {}
+  static _appearance = {}
+  static _whatsapp = {}
   static _mode = modes.POPOVER
   static _behaviour = null
   static _hasBehaviourOverride = false
@@ -163,6 +181,76 @@ class Webchat {
     this._style = value
   }
 
+  static get appearance() {
+    return this._appearance
+  }
+
+  static set appearance(value) {
+    if (!this.isPlainObject(value)) {
+      throw new Error('Appearance must be an object')
+    }
+
+    Object.entries(value).forEach(([key, nestedValue]) => {
+      if (!['header', 'launcher'].includes(key)) {
+        throw new Error(`Invalid appearance property: ${key}`)
+      }
+
+      if (!this.isPlainObject(nestedValue)) {
+        throw new Error(`Appearance ${key} must be an object`)
+      }
+
+      Object.entries(nestedValue).forEach(([nestedKey, propertyValue]) => {
+        if (key === 'header' && nestedKey !== 'name') {
+          throw new Error(`Invalid appearance header property: ${nestedKey}`)
+        }
+
+        if (key === 'launcher' && nestedKey !== 'iconUrl') {
+          throw new Error(`Invalid appearance launcher property: ${nestedKey}`)
+        }
+
+        if (propertyValue == null) {
+          return
+        }
+
+        if (typeof propertyValue !== 'string') {
+          throw new Error(`Invalid appearance ${key}.${nestedKey} value: ${propertyValue}`)
+        }
+      })
+    })
+
+    this._appearance = value
+  }
+
+  static get whatsapp() {
+    return this._whatsapp
+  }
+
+  static set whatsapp(value) {
+    if (!this.isPlainObject(value)) {
+      throw new Error('WhatsApp must be an object')
+    }
+
+    Object.entries(value).forEach(([key, nestedValue]) => {
+      if (!['number', 'restrictToChannel'].includes(key)) {
+        throw new Error(`Invalid WhatsApp property: ${key}`)
+      }
+
+      if (nestedValue == null) {
+        return
+      }
+
+      if (key === 'number' && typeof nestedValue !== 'string') {
+        throw new Error(`Invalid WhatsApp number value: ${nestedValue}`)
+      }
+
+      if (key === 'restrictToChannel' && typeof nestedValue !== 'boolean') {
+        throw new Error(`Invalid WhatsApp restrictToChannel value: ${nestedValue}`)
+      }
+    })
+
+    this._whatsapp = value
+  }
+
   static get mode() {
     return this._mode
   }
@@ -231,6 +319,10 @@ class Webchat {
       /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value) ||
       /^rgba?\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3},?\s*(0|1|0?\.\d+)?\s*\)$/.test(value)
     )
+  }
+
+  static isPlainObject(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
   }
 }
 
