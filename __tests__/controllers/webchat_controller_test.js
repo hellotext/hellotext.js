@@ -695,6 +695,45 @@ describe('WebchatController', () => {
         expect(mockTeaser.classList.contains('invisible')).toBe(false)
       })
 
+      it('continues handling inbound messages when the inbound teaser slot is missing', () => {
+        controller.openValue = false
+        mockTeaser.classList.add('invisible')
+
+        expect(() => {
+          controller.onMessageReceived({
+            body: 'Closed chat message',
+            id: 'msg-missing-inbound-teaser-targets',
+            teaser: '<span>Unsupported teaser</span>',
+          })
+        }).not.toThrow()
+
+        expect(mockMessagesContainer.children).toHaveLength(1)
+        expect(mockTeaser.innerHTML).toBe('Configured teaser')
+        expect(mockTeaser.classList.contains('invisible')).toBe(true)
+        expect(mockUnreadCounter.style.display).toBe('flex')
+        expect(mockUnreadCounter.innerText).toBe(1)
+      })
+
+      it('continues handling inbound messages when no teaser surface is rendered', () => {
+        controller.openValue = false
+        Object.defineProperty(controller, 'hasTeaserTarget', {
+          get: () => false,
+          configurable: true,
+        })
+
+        expect(() => {
+          controller.onMessageReceived({
+            body: 'Closed chat message',
+            id: 'msg-without-teaser-surface',
+            teaser: '<span>Unsupported teaser</span>',
+          })
+        }).not.toThrow()
+
+        expect(mockMessagesContainer.children).toHaveLength(1)
+        expect(mockUnreadCounter.style.display).toBe('flex')
+        expect(mockUnreadCounter.innerText).toBe(1)
+      })
+
       it('keeps incoming message teasers ephemeral without marking the session teaser seen', () => {
         controller.openValue = false
         mockTeaser.classList.add('invisible')
@@ -3080,8 +3119,16 @@ describe('WebchatController', () => {
         get: () => inboundMessageTeaser,
         configurable: true,
       })
+      Object.defineProperty(controller, 'hasInboundMessageTeaserTarget', {
+        get: () => true,
+        configurable: true,
+      })
       Object.defineProperty(controller, 'inboundMessageTeaserBodyTarget', {
         get: () => inboundMessageTeaserBody,
+        configurable: true,
+      })
+      Object.defineProperty(controller, 'hasInboundMessageTeaserBodyTarget', {
+        get: () => true,
         configurable: true,
       })
 
