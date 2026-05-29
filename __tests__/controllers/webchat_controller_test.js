@@ -593,9 +593,66 @@ describe('WebchatController', () => {
         })
       })
 
+      const setupInboundMessageTeaserTargets = () => {
+        mockTeaser.innerHTML = ''
+
+        const firstConfiguredTeaser = document.createElement('section')
+        firstConfiguredTeaser.className = 'hellotext--webchat-teaser-stack'
+        firstConfiguredTeaser.setAttribute('data-hellotext--webchat-target', 'teaserMessage')
+        firstConfiguredTeaser.setAttribute('data-teaser-message', 'true')
+        firstConfiguredTeaser.innerHTML = '<article class="hellotext--webchat-teaser-message">Configured one</article>'
+
+        const secondConfiguredTeaser = document.createElement('section')
+        secondConfiguredTeaser.className = 'hellotext--webchat-teaser-stack hidden'
+        secondConfiguredTeaser.setAttribute('data-hellotext--webchat-target', 'teaserMessage')
+        secondConfiguredTeaser.setAttribute('data-teaser-message', 'true')
+        secondConfiguredTeaser.innerHTML = '<article class="hellotext--webchat-teaser-message">Configured two</article>'
+
+        const inboundMessageTeaser = document.createElement('section')
+        inboundMessageTeaser.className = 'hellotext--webchat-teaser-stack hidden'
+        inboundMessageTeaser.setAttribute('data-hellotext--webchat-target', 'inboundMessageTeaser')
+
+        const inboundMessageTeaserBody = document.createElement('article')
+        inboundMessageTeaserBody.className = 'hellotext--webchat-teaser-message'
+        inboundMessageTeaserBody.setAttribute('data-hellotext--webchat-target', 'inboundMessageTeaserBody')
+        inboundMessageTeaser.appendChild(inboundMessageTeaserBody)
+
+        mockTeaser.append(firstConfiguredTeaser, secondConfiguredTeaser, inboundMessageTeaser)
+
+        Object.defineProperty(controller, 'teaserMessageTargets', {
+          get: () => [firstConfiguredTeaser, secondConfiguredTeaser],
+          configurable: true,
+        })
+        Object.defineProperty(controller, 'inboundMessageTeaserTarget', {
+          get: () => inboundMessageTeaser,
+          configurable: true,
+        })
+        Object.defineProperty(controller, 'hasInboundMessageTeaserTarget', {
+          get: () => true,
+          configurable: true,
+        })
+        Object.defineProperty(controller, 'inboundMessageTeaserBodyTarget', {
+          get: () => inboundMessageTeaserBody,
+          configurable: true,
+        })
+        Object.defineProperty(controller, 'hasInboundMessageTeaserBodyTarget', {
+          get: () => true,
+          configurable: true,
+        })
+
+        return {
+          firstConfiguredTeaser,
+          secondConfiguredTeaser,
+          inboundMessageTeaser,
+          inboundMessageTeaserBody,
+        }
+      }
+
       it('overrides and shows the teaser when a closed chat receives a message teaser', () => {
         controller.openValue = false
         mockTeaser.classList.add('invisible')
+        const { firstConfiguredTeaser, secondConfiguredTeaser, inboundMessageTeaser, inboundMessageTeaserBody } =
+          setupInboundMessageTeaserTargets()
 
         controller.onMessageReceived({
           body: 'Closed chat message',
@@ -603,13 +660,84 @@ describe('WebchatController', () => {
           teaser: '<span>Message teaser</span>',
         })
 
-        expect(mockTeaser.innerHTML).toBe('<span>Message teaser</span>')
+        expect(firstConfiguredTeaser.classList.contains('hidden')).toBe(true)
+        expect(secondConfiguredTeaser.classList.contains('hidden')).toBe(true)
+        expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
+        expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Message teaser</span>')
         expect(mockTeaser.classList.contains('invisible')).toBe(false)
+      })
+
+      it('renders incoming teasers through the inbound teaser target without replacing the teaser layout', () => {
+        controller.openValue = false
+        mockTeaser.classList.add('invisible')
+        const {
+          firstConfiguredTeaser,
+          secondConfiguredTeaser,
+          inboundMessageTeaser,
+          inboundMessageTeaserBody,
+        } = setupInboundMessageTeaserTargets()
+
+        controller.onMessageReceived({
+          body: 'Closed chat message',
+          id: 'msg-inbound-target-teaser',
+          teaser: '<span>Inbound message teaser</span>',
+        })
+
+        expect(mockTeaser.children).toHaveLength(3)
+        expect(mockTeaser.contains(firstConfiguredTeaser)).toBe(true)
+        expect(mockTeaser.contains(secondConfiguredTeaser)).toBe(true)
+        expect(mockTeaser.contains(inboundMessageTeaser)).toBe(true)
+        expect(firstConfiguredTeaser.classList.contains('hidden')).toBe(true)
+        expect(secondConfiguredTeaser.classList.contains('hidden')).toBe(true)
+        expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
+        expect(inboundMessageTeaserBody.className).toBe('hellotext--webchat-teaser-message')
+        expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Inbound message teaser</span>')
+        expect(mockTeaser.classList.contains('invisible')).toBe(false)
+      })
+
+      it('continues handling inbound messages when the inbound teaser slot is missing', () => {
+        controller.openValue = false
+        mockTeaser.classList.add('invisible')
+
+        expect(() => {
+          controller.onMessageReceived({
+            body: 'Closed chat message',
+            id: 'msg-missing-inbound-teaser-targets',
+            teaser: '<span>Unsupported teaser</span>',
+          })
+        }).not.toThrow()
+
+        expect(mockMessagesContainer.children).toHaveLength(1)
+        expect(mockTeaser.innerHTML).toBe('Configured teaser')
+        expect(mockTeaser.classList.contains('invisible')).toBe(true)
+        expect(mockUnreadCounter.style.display).toBe('flex')
+        expect(mockUnreadCounter.innerText).toBe(1)
+      })
+
+      it('continues handling inbound messages when no teaser surface is rendered', () => {
+        controller.openValue = false
+        Object.defineProperty(controller, 'hasTeaserTarget', {
+          get: () => false,
+          configurable: true,
+        })
+
+        expect(() => {
+          controller.onMessageReceived({
+            body: 'Closed chat message',
+            id: 'msg-without-teaser-surface',
+            teaser: '<span>Unsupported teaser</span>',
+          })
+        }).not.toThrow()
+
+        expect(mockMessagesContainer.children).toHaveLength(1)
+        expect(mockUnreadCounter.style.display).toBe('flex')
+        expect(mockUnreadCounter.innerText).toBe(1)
       })
 
       it('keeps incoming message teasers ephemeral without marking the session teaser seen', () => {
         controller.openValue = false
         mockTeaser.classList.add('invisible')
+        const { inboundMessageTeaserBody } = setupInboundMessageTeaserTargets()
 
         controller.onMessageReceived({
           body: 'Closed chat message',
@@ -617,7 +745,7 @@ describe('WebchatController', () => {
           teaser: '<span>Ephemeral teaser</span>',
         })
 
-        expect(mockTeaser.innerHTML).toBe('<span>Ephemeral teaser</span>')
+        expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Ephemeral teaser</span>')
         expect(mockTeaser.classList.contains('invisible')).toBe(false)
         expect(mockSessionStorage.setItem).not.toHaveBeenCalledWith(
           'hellotext:webchat:test-webchat-id:teaser-seen',
@@ -627,6 +755,7 @@ describe('WebchatController', () => {
 
       it('overrides and hides the teaser when an open chat receives a message teaser', () => {
         controller.openValue = true
+        const { inboundMessageTeaser, inboundMessageTeaserBody } = setupInboundMessageTeaserTargets()
 
         controller.onMessageReceived({
           body: 'Open chat message',
@@ -634,7 +763,8 @@ describe('WebchatController', () => {
           teaser: '<span>Open message teaser</span>',
         })
 
-        expect(mockTeaser.innerHTML).toBe('<span>Open message teaser</span>')
+        expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
+        expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Open message teaser</span>')
         expect(mockTeaser.classList.contains('invisible')).toBe(true)
         expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('msg-open-teaser')
       })
@@ -2959,6 +3089,57 @@ describe('WebchatController', () => {
       Object.assign(Hellotext, mockHellotext)
     })
 
+    const setupInboundMessageTeaserTargets = () => {
+      const teaser = document.createElement('section')
+      const configuredTeaser = document.createElement('section')
+      configuredTeaser.className = 'hellotext--webchat-teaser-stack'
+      configuredTeaser.setAttribute('data-hellotext--webchat-target', 'teaserMessage')
+      configuredTeaser.setAttribute('data-teaser-message', 'true')
+
+      const inboundMessageTeaser = document.createElement('section')
+      inboundMessageTeaser.className = 'hellotext--webchat-teaser-stack hidden'
+      inboundMessageTeaser.setAttribute('data-hellotext--webchat-target', 'inboundMessageTeaser')
+
+      const inboundMessageTeaserBody = document.createElement('article')
+      inboundMessageTeaserBody.className = 'hellotext--webchat-teaser-message'
+      inboundMessageTeaserBody.setAttribute('data-hellotext--webchat-target', 'inboundMessageTeaserBody')
+      inboundMessageTeaser.appendChild(inboundMessageTeaserBody)
+      teaser.append(configuredTeaser, inboundMessageTeaser)
+
+      controller.teaserTarget = teaser
+      Object.defineProperty(controller, 'hasTeaserTarget', {
+        get: () => true,
+        configurable: true,
+      })
+      Object.defineProperty(controller, 'teaserMessageTargets', {
+        get: () => [configuredTeaser],
+        configurable: true,
+      })
+      Object.defineProperty(controller, 'inboundMessageTeaserTarget', {
+        get: () => inboundMessageTeaser,
+        configurable: true,
+      })
+      Object.defineProperty(controller, 'hasInboundMessageTeaserTarget', {
+        get: () => true,
+        configurable: true,
+      })
+      Object.defineProperty(controller, 'inboundMessageTeaserBodyTarget', {
+        get: () => inboundMessageTeaserBody,
+        configurable: true,
+      })
+      Object.defineProperty(controller, 'hasInboundMessageTeaserBodyTarget', {
+        get: () => true,
+        configurable: true,
+      })
+
+      return {
+        teaser,
+        configuredTeaser,
+        inboundMessageTeaser,
+        inboundMessageTeaserBody,
+      }
+    }
+
     it('handles carousel messages correctly', () => {
       controller.openValue = true // Set to open to avoid unread counter issues
       const mockMessagesAPI = {
@@ -3060,13 +3241,9 @@ describe('WebchatController', () => {
       mockUnreadCounter.innerText = '0'
       controller.unreadCounterTarget = mockUnreadCounter
 
-      const teaser = document.createElement('section')
+      const { teaser, configuredTeaser, inboundMessageTeaser, inboundMessageTeaserBody } =
+        setupInboundMessageTeaserTargets()
       teaser.classList.add('invisible')
-      controller.teaserTarget = teaser
-      Object.defineProperty(controller, 'hasTeaserTarget', {
-        get: () => true,
-        configurable: true,
-      })
 
       const message = {
         id: 'carousel-teaser-closed',
@@ -3078,7 +3255,9 @@ describe('WebchatController', () => {
       controller.onMessageReceived(message)
 
       expect(mockUnreadCounter.style.display).toBe('flex')
-      expect(teaser.innerHTML).toBe('<span>Carousel teaser</span>')
+      expect(configuredTeaser.classList.contains('hidden')).toBe(true)
+      expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
+      expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Carousel teaser</span>')
       expect(teaser.classList.contains('invisible')).toBe(false)
     })
 
@@ -3089,12 +3268,7 @@ describe('WebchatController', () => {
       }
       controller.messagesAPI = mockMessagesAPI
 
-      const teaser = document.createElement('section')
-      controller.teaserTarget = teaser
-      Object.defineProperty(controller, 'hasTeaserTarget', {
-        get: () => true,
-        configurable: true,
-      })
+      const { teaser, inboundMessageTeaser, inboundMessageTeaserBody } = setupInboundMessageTeaserTargets()
 
       const message = {
         id: 'carousel-teaser-open',
@@ -3105,7 +3279,8 @@ describe('WebchatController', () => {
 
       controller.onMessageReceived(message)
 
-      expect(teaser.innerHTML).toBe('<span>Carousel teaser</span>')
+      expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
+      expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Carousel teaser</span>')
       expect(teaser.classList.contains('invisible')).toBe(true)
       expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('carousel-teaser-open')
     })

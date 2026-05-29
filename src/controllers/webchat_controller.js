@@ -57,6 +57,9 @@ export default class extends Controller {
     'typingIndicator',
     'typingIndicatorTemplate',
     'teaser',
+    'teaserMessage',
+    'inboundMessageTeaser',
+    'inboundMessageTeaserBody',
     'openingSequence',
     'openingSequenceMessage',
   ]
@@ -462,10 +465,20 @@ export default class extends Controller {
   updateMessageTeaser(teaser) {
     this.messageTeaserValue = teaser
 
-    if (this.messageTeaserValue && this.hasTeaserTarget) {
-      this.teaserTarget.innerHTML = this.messageTeaserValue
-      this.teaserTarget.classList.toggle('invisible', this.openValue)
+    if (
+      !this.messageTeaserValue ||
+      !this.hasTeaserTarget ||
+      !this.hasInboundMessageTeaserTarget ||
+      !this.hasInboundMessageTeaserBodyTarget
+    ) {
+      return
     }
+
+    this.teaserMessageTargets.forEach(teaserMessage => teaserMessage.classList.add('hidden'))
+    this.inboundMessageTeaserBodyTarget.innerHTML = this.messageTeaserValue
+    this.inboundMessageTeaserTarget.classList.remove('hidden')
+
+    this.teaserTarget.classList.toggle('invisible', this.openValue)
   }
 
   insertCarouselMessage(message) {
