@@ -8,13 +8,24 @@ import API from '../../src/api'
 describe('Business', () => {
   let business
 
+  const markStylesheetLoaded = linkTag => {
+    Object.defineProperty(linkTag, 'sheet', {
+      value: {},
+      configurable: true
+    })
+    linkTag.dispatchEvent(new Event('load'))
+  }
+
   beforeEach(() => {
     business = new Business('test-business-123')
   })
 
   afterEach(() => {
     jest.clearAllMocks()
-    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove())
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+      link.dispatchEvent(new Event('error'))
+      link.remove()
+    })
   })
 
   describe('constructor', () => {
@@ -85,6 +96,27 @@ describe('Business', () => {
       const linkTag = document.querySelector('link[rel="stylesheet"]')
       expect(linkTag).toBeTruthy()
       expect(linkTag.href).toBe('https://example.com/styles.css')
+      expect(linkTag.getAttribute('data-hellotext-stylesheet')).toBe('true')
+    })
+
+    it('resolves the stylesheet load promise when the stylesheet loads', async () => {
+      document.head.innerHTML = ''
+
+      business.setData(mockData)
+      const linkTag = document.querySelector('link[rel="stylesheet"]')
+      markStylesheetLoaded(linkTag)
+
+      await expect(business.stylesheetLoaded).resolves.toBe(true)
+    })
+
+    it('resolves the stylesheet load promise as false when the stylesheet fails', async () => {
+      document.head.innerHTML = ''
+
+      business.setData(mockData)
+      const linkTag = document.querySelector('link[rel="stylesheet"]')
+      linkTag.dispatchEvent(new Event('error'))
+
+      await expect(business.stylesheetLoaded).resolves.toBe(false)
     })
 
     it('does not add stylesheet when document is undefined', () => {

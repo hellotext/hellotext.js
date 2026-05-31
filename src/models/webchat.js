@@ -1,23 +1,38 @@
 import { Configuration } from '../core'
 
 import API from '../api'
+import { Business } from './business'
 
 class Webchat {
   static async load(id) {
-    return new Webchat({
+    const webchat = new Webchat({
       id,
       html: await API.webchats.get(id),
     })
+
+    webchat.rendered = webchat.render()
+
+    return webchat
   }
 
   constructor(data) {
     this.data = data
-    this.render()
+    this.mounted = false
+    this.rendered = Promise.resolve(false)
   }
 
-  render() {
+  async render() {
     this.applyBehaviourOverride()
+
+    if (!await this.stylesheetLoaded) {
+      console.warn('Hellotext webchat was not mounted because its stylesheet failed to load.')
+      return false
+    }
+
     this.containerToAppendTo.appendChild(this.data.html)
+    this.mounted = true
+
+    return true
   }
 
   applyBehaviourOverride() {
@@ -49,6 +64,10 @@ class Webchat {
 
   get containerToAppendTo() {
     return document.querySelector(Configuration.webchat.container)
+  }
+
+  get stylesheetLoaded() {
+    return Business.waitForStylesheet(Business.latestStylesheet)
   }
 }
 
