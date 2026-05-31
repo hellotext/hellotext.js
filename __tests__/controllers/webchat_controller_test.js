@@ -162,6 +162,29 @@ describe('WebchatController', () => {
         expect(existingMessage.className).toBe('message failed')
       })
 
+      it('writes the failure reason into the message timestamp', () => {
+        const messageId = 'failed-message-with-reason'
+        const existingMessage = document.createElement('div')
+        const timestamp = document.createElement('time')
+
+        existingMessage.id = messageId
+        timestamp.setAttribute('data-message-timestamp', '')
+        timestamp.textContent = 'Just now'
+        existingMessage.appendChild(timestamp)
+        mockMessagesContainer.appendChild(existingMessage)
+
+        controller.onOutboundMessageSent({
+          data: {
+            type: 'message:failed',
+            id: messageId,
+            reason: 'Message cannot be empty.',
+          },
+        })
+
+        expect(existingMessage.classList.contains('failed')).toBe(true)
+        expect(timestamp.textContent).toBe('Message cannot be empty.')
+      })
+
       it('does nothing when message with id is not found', () => {
         const event = {
           data: {
@@ -1128,6 +1151,48 @@ describe('WebchatController', () => {
       controller.onClickOutside({ target: document.createElement('div') })
 
       expect(controller.openValue).toBe(true)
+    })
+  })
+
+  describe('focusCompose', () => {
+    beforeEach(() => {
+      const input = document.createElement('textarea')
+      document.body.appendChild(input)
+
+      controller.inputTarget = input
+
+      Object.defineProperty(controller, 'hasInputTarget', {
+        get: () => true,
+        configurable: true,
+      })
+    })
+
+    it('focuses the compose input from the compose surface', () => {
+      const surface = document.createElement('section')
+      const event = new Event('pointerdown', { cancelable: true })
+
+      Object.defineProperty(event, 'target', { value: surface })
+
+      controller.focusCompose(event)
+
+      expect(document.activeElement).toBe(controller.inputTarget)
+      expect(event.defaultPrevented).toBe(true)
+    })
+
+    it('keeps focus inside the emoji picker instead of moving it to the compose input', () => {
+      const picker = document.createElement('em-emoji-picker')
+      const event = new Event('pointerdown', { cancelable: true })
+
+      picker.setAttribute('tabindex', '0')
+      document.body.appendChild(picker)
+      picker.focus()
+      Object.defineProperty(event, 'target', { value: picker })
+
+      controller.focusCompose(event)
+
+      expect(document.activeElement).toBe(picker)
+      expect(document.activeElement).not.toBe(controller.inputTarget)
+      expect(event.defaultPrevented).toBe(false)
     })
   })
 
@@ -2509,6 +2574,7 @@ describe('WebchatController', () => {
       expect(mockBroadcastChannel.postMessage).toHaveBeenLastCalledWith({
         type: 'message:failed',
         id: addedElement.id,
+        reason: 'Message failed',
       })
       expect(addedElement.classList.contains('failed')).toBe(true)
       expect(mockHellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith(
@@ -2829,6 +2895,7 @@ describe('WebchatController', () => {
         expect(mockBroadcastChannel.postMessage).toHaveBeenCalledWith({
           type: 'message:failed',
           id: expect.any(String),
+          reason: 'Message failed',
         })
       })
 

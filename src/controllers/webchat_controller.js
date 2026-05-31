@@ -239,7 +239,9 @@ export default class extends Controller {
         element.scrollIntoView({ behavior: 'instant' })
       },
       'message:failed': data => {
-        this.messagesContainerTarget.querySelector(`#${data.id}`)?.classList.add('failed')
+        const element = this.messagesContainerTarget.querySelector(`#${data.id}`)
+
+        this.markMessageFailed(element, data.reason)
       },
     }
 
@@ -566,12 +568,7 @@ export default class extends Controller {
       // Clear the optimistic typing indicator on failure
       clearTimeout(this.optimisticTypingTimeout)
 
-      this.broadcastChannel.postMessage({
-        type: 'message:failed',
-        id: element.id,
-      })
-
-      return element.classList.add('failed')
+      return this.markMessageFailedFromResponse(response, element)
     }
 
     const data = await response.json()
@@ -645,12 +642,7 @@ export default class extends Controller {
     if (response.failed) {
       clearTimeout(this.optimisticTypingTimeout)
 
-      this.broadcastChannel.postMessage({
-        type: 'message:failed',
-        id: element.id,
-      })
-
-      return element.classList.add('failed')
+      return this.markMessageFailedFromResponse(response, element)
     }
 
     const data = await response.json()
@@ -768,12 +760,7 @@ export default class extends Controller {
       // Clear the optimistic typing indicator on failure
       clearTimeout(this.optimisticTypingTimeout)
 
-      this.broadcastChannel.postMessage({
-        type: 'message:failed',
-        id: element.id,
-      })
-
-      return element.classList.add('failed')
+      return this.markMessageFailedFromResponse(response, element)
     }
 
     const data = await response.json()
@@ -808,6 +795,113 @@ export default class extends Controller {
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
     return element
+  }
+
+  focusCompose(event) {
+    const { target } = event
+    const ignoredSelector = [
+      'button',
+      'a',
+      'input',
+      'textarea',
+      'select',
+      'label',
+      '[role="button"]',
+      'em-emoji-picker',
+      '[data-hellotext--webchat--emoji-target~="popover"]',
+      '[data-controller~="hellotext--webchat--emoji"]',
+    ].join(', ')
+
+    if (!this.hasInputTarget || target.closest(ignoredSelector)) return
+
+    event.preventDefault()
+    this.inputTarget.focus()
+
+    if (typeof this.inputTarget.selectionStart === 'number') {
+      const position = this.inputTarget.value.length
+      this.inputTarget.setSelectionRange(position, position)
+    }
+  }
+
+  closePopoverFromHeader({ target }) {
+    if (target.closest('.hellotext--webchat-header-channel-button, .hellotext--webchat-close-button')) return
+
+    this.closePopover()
+  }
+
+  async markMessageFailedFromResponse(response, element) {
+    const reason = await this.messageFailureReason(response)
+
+    this.markMessageFailed(element, reason)
+    this.broadcastChannel.postMessage({
+      type: 'message:failed',
+      id: element.id,
+      reason,
+    })
+  }
+
+  markMessageFailed(element, reason) {
+    if (!element) return
+
+    element.classList.add('failed')
+
+    if (!reason) return
+
+    const timestamp = element.querySelector('[data-message-timestamp]')
+
+    if (timestamp) {
+      timestamp.textContent = reason
+    }
+  }
+
+  async messageFailureReason(response) {
+    const nativeResponse = response?.data || response?.response
+    const fallback = nativeResponse?.statusText || 'Message failed'
+
+    try {
+      const jsonResponse = nativeResponse?.clone ? nativeResponse.clone() : nativeResponse
+      const payload = await jsonResponse?.json?.()
+      const reason = this.messageFailureReasonFromPayload(payload)
+
+      if (reason) return reason
+    } catch (_) {
+      // Fall through to text parsing/fallback. Some stores strip content-type or
+      // return non-JSON failures, so the timestamp still needs a useful reason.
+    }
+
+    try {
+      const textResponse = nativeResponse?.clone ? nativeResponse.clone() : nativeResponse
+      const text = await textResponse?.text?.()
+
+      return this.messageFailureReasonFromText(text) || fallback
+    } catch (_) {
+      return fallback
+    }
+  }
+
+  messageFailureReasonFromText(text) {
+    if (typeof text !== 'string') return null
+
+    const value = text.trim()
+    if (!value || value.startsWith('<')) return null
+
+    try {
+      return this.messageFailureReasonFromPayload(JSON.parse(value)) || value
+    } catch (_) {
+      return value
+    }
+  }
+
+  messageFailureReasonFromPayload(payload) {
+    if (!payload) return null
+
+    return [
+      payload.error?.message,
+      payload.message,
+      payload.errors?.message,
+      payload.errors?.[0]?.message,
+      payload.errors?.[0]?.description,
+    ].find(reason => typeof reason === 'string' && reason.trim().length > 0)
   }
 
   messageAttachmentsContainer(element) {
