@@ -335,11 +335,8 @@ export default class extends Controller {
 
   closePopover() {
     this.clearPopoverOpenAnimation()
-    this.popoverTarget.classList.add(...this.fadeOutClasses)
-
-    setTimeout(() => {
-      this.openValue = false
-    }, POPOVER_ANIMATION_DURATION)
+    this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    this.openValue = false
   }
 
   preparePopoverOpenAnimation() {

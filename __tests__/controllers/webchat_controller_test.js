@@ -1269,26 +1269,16 @@ describe('WebchatController', () => {
 
   describe('closePopover', () => {
     beforeEach(() => {
-      jest.useFakeTimers()
       controller.popoverTarget = document.createElement('div')
       controller.fadeOutClasses = ['fade-out']
       controller.openValue = true
     })
 
-    afterEach(() => {
-      jest.useRealTimers()
-    })
-
-    it('minimizes the popover after the short close animation', () => {
+    it('minimizes the popover immediately', () => {
+      controller.popoverTarget.classList.add('fade-out')
       controller.closePopover()
 
-      expect(controller.popoverTarget.classList.contains('fade-out')).toBe(true)
-      expect(controller.openValue).toBe(true)
-
-      jest.advanceTimersByTime(119)
-      expect(controller.openValue).toBe(true)
-
-      jest.advanceTimersByTime(1)
+      expect(controller.popoverTarget.classList.contains('fade-out')).toBe(false)
       expect(controller.openValue).toBe(false)
     })
   })
