@@ -32,6 +32,11 @@ class Configuration {
    */
   static assign(props) {
     if (props) {
+      const shouldInferActionCableUrl = (
+        Object.prototype.hasOwnProperty.call(props, 'apiRoot') &&
+        !Object.prototype.hasOwnProperty.call(props, 'actionCableUrl')
+      )
+
       Object.entries(props).forEach(([key, value]) => {
         if (key === 'forms') {
           this.forms = Forms.assign(value)
@@ -41,6 +46,10 @@ class Configuration {
           this[key] = value
         }
       })
+
+      if (shouldInferActionCableUrl) {
+        this.actionCableUrl = this.actionCableUrlForApiRoot(this.apiRoot)
+      }
     }
 
     return this
@@ -56,6 +65,22 @@ class Configuration {
 
   static endpoint(path) {
     return `${this.apiRoot}/${path}`
+  }
+
+  static actionCableUrlForApiRoot(apiRoot) {
+    try {
+      const url = new URL(apiRoot)
+      const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+
+      url.protocol = protocol
+      url.pathname = '/cable'
+      url.search = ''
+      url.hash = ''
+
+      return url.toString()
+    } catch (_) {
+      return this.actionCableUrl
+    }
   }
 }
 
