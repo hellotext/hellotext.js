@@ -859,7 +859,8 @@ export default class extends Controller {
   closePopoverFromHeader({ target }) {
     if (target.closest('.hellotext--webchat-header-channel-button, .hellotext--webchat-close-button')) return
 
-    this.closePopover()
+    this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    this.openValue = false
   }
 
   async markMessageFailedFromResponse(response, element) {
