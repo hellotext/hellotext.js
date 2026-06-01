@@ -13,6 +13,8 @@ import { useBehaviour } from './webchat/useBehaviour'
 import { useOpeningSequence } from './webchat/useOpeningSequence'
 import { useTeaser } from './webchat/useTeaser'
 
+const POPOVER_ANIMATION_DURATION = 120
+
 export default class extends Controller {
   static values = {
     id: String,
@@ -106,6 +108,7 @@ export default class extends Controller {
 
     this.setupTeaser()
     this.setupOpeningSequence()
+    this.localizeMessageTimestamps()
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onTypingStart(this.onTypingStart)
@@ -229,6 +232,7 @@ export default class extends Controller {
       'message:sent': data => {
         const element = new DOMParser().parseFromString(data.element, 'text/html').body
           .firstElementChild
+        this.localizeMessageTimestamps(element)
 
         // Insert message before typing indicator if one exists
         if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
@@ -274,6 +278,7 @@ export default class extends Controller {
 
     messages.forEach(message => {
       const { body, attachments } = message
+      const createdAt = message.created_at || message.createdAt
 
       const div = document.createElement('div')
       div.innerHTML = body
@@ -305,6 +310,7 @@ export default class extends Controller {
       }
 
       element.setAttribute('data-body', body)
+      this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), createdAt)
       this.messagesContainerTarget.prepend(element)
     })
 
@@ -333,7 +339,7 @@ export default class extends Controller {
 
     setTimeout(() => {
       this.openValue = false
-    }, 250)
+    }, POPOVER_ANIMATION_DURATION)
   }
 
   preparePopoverOpenAnimation() {
@@ -344,7 +350,7 @@ export default class extends Controller {
     this.popoverOpenAnimationTimeout = setTimeout(() => {
       this.popoverTarget.classList.remove('hellotext--webchat-popover-opening')
       this.popoverOpenAnimationTimeout = null
-    }, 250)
+    }, POPOVER_ANIMATION_DURATION)
   }
 
   clearPopoverOpenAnimation() {
@@ -424,6 +430,7 @@ export default class extends Controller {
 
   onMessageReceived(message) {
     const { id, body, attachments, teaser } = message
+    const createdAt = message.created_at || message.createdAt
 
     if (!this.claimMessageId(id)) return
 
@@ -443,6 +450,7 @@ export default class extends Controller {
 
     element.setAttribute('data-id', id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), createdAt)
 
     if (attachments) {
       attachments.forEach(attachmentUrl => {
@@ -512,6 +520,7 @@ export default class extends Controller {
 
     element.setAttribute('data-id', message.id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
+    this.localizeMessageTimestamps(element)
 
     this.clearTypingIndicator()
     this.messagesContainerTarget.appendChild(element)
@@ -597,6 +606,7 @@ export default class extends Controller {
     const data = await response.json()
 
     this.dispatch('set:id', { target: element, detail: data.id })
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
     this.clearRevealedOpeningSequenceMessageIds()
 
     const message = {
@@ -670,6 +680,7 @@ export default class extends Controller {
 
     const data = await response.json()
     element.setAttribute('data-id', data.id)
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
     this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', {
@@ -789,6 +800,7 @@ export default class extends Controller {
     const data = await response.json()
     element.setAttribute('data-id', data.id)
     message.id = data.id
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
     this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
@@ -817,6 +829,7 @@ export default class extends Controller {
     element.setAttribute('data-controller', 'hellotext--message')
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), new Date())
     return element
   }
 
@@ -875,6 +888,34 @@ export default class extends Controller {
     if (timestamp) {
       timestamp.textContent = reason
     }
+  }
+
+  localizeMessageTimestamps(root = this.element) {
+    if (!root) return
+
+    const timestamps = root.matches?.('time[datetime][data-message-timestamp]')
+      ? [root]
+      : Array.from(root.querySelectorAll?.('time[datetime][data-message-timestamp]') || [])
+
+    timestamps.forEach(timestamp => this.localizeMessageTimestamp(timestamp))
+  }
+
+  localizeMessageTimestamp(timestamp, value = timestamp?.getAttribute('datetime')) {
+    if (!timestamp || !value) return
+
+    const date = value instanceof Date ? value : new Date(value)
+
+    if (Number.isNaN(date.getTime())) return
+
+    timestamp.setAttribute('datetime', date.toISOString())
+    timestamp.textContent = this.formatMessageTimestamp(date)
+  }
+
+  formatMessageTimestamp(date) {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(date)
   }
 
   async messageFailureReason(response) {

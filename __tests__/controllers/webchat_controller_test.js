@@ -68,6 +68,30 @@ describe('WebchatController', () => {
     }
   })
 
+  describe('localizeMessageTimestamps', () => {
+    it('formats rendered message timestamps with the browser timezone', () => {
+      const formatter = { format: jest.fn(() => '10:18 PM') }
+      const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => formatter)
+      const timestamp = document.createElement('time')
+
+      timestamp.setAttribute('datetime', '2026-06-01T01:18:36Z')
+      timestamp.setAttribute('data-message-timestamp', '')
+      timestamp.textContent = '08:18 PM'
+      mockMessagesContainer.appendChild(timestamp)
+
+      controller.localizeMessageTimestamps()
+
+      expect(timestamp.getAttribute('datetime')).toBe('2026-06-01T01:18:36.000Z')
+      expect(timestamp.textContent).toBe('10:18 PM')
+      expect(Intl.DateTimeFormat).toHaveBeenCalledWith(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+
+      dateTimeFormatSpy.mockRestore()
+    })
+  })
+
   describe('onOutboundMessageSent', () => {
     describe('when event type is "message:sent"', () => {
       it('parses the HTML element and appends it to messages container', () => {
@@ -333,6 +357,9 @@ describe('WebchatController', () => {
       const attachmentContainer = document.createElement('div')
       attachmentContainer.setAttribute('data-attachment-container', '')
       mockMessageTemplate.appendChild(bodyElement)
+      const timestamp = document.createElement('time')
+      timestamp.setAttribute('data-message-timestamp', '')
+      mockMessageTemplate.appendChild(timestamp)
       mockMessageTemplate.appendChild(attachmentContainer)
 
       // Set up attachment image mock
@@ -384,6 +411,27 @@ describe('WebchatController', () => {
         expect(addedElement.style.display).toBe('flex')
         expect(addedElement.querySelector('[data-body]').innerHTML).toBe('<p>Hello world!</p>')
         expect(addedElement.getAttribute('data-hellotext--webchat-target')).toBe('message')
+      })
+
+      it('localizes incoming message timestamps with the browser timezone', () => {
+        const formatter = { format: jest.fn(() => '10:18 PM') }
+        const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => formatter)
+
+        controller.onMessageReceived({
+          body: '<p>Hello world!</p>',
+          created_at: '2026-06-01T01:18:36Z',
+          id: 'msg-local-timezone',
+        })
+
+        const timestamp = mockMessagesContainer.children[0].querySelector('[data-message-timestamp]')
+        expect(timestamp.getAttribute('datetime')).toBe('2026-06-01T01:18:36.000Z')
+        expect(timestamp.textContent).toBe('10:18 PM')
+        expect(Intl.DateTimeFormat).toHaveBeenCalledWith(undefined, {
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+
+        dateTimeFormatSpy.mockRestore()
       })
 
       it('silently drops a duplicate message that was already claimed in memory', () => {
@@ -1211,11 +1259,37 @@ describe('WebchatController', () => {
       expect(controller.popoverTarget.classList.contains('fade-out')).toBe(false)
       expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(true)
 
-      jest.advanceTimersByTime(249)
+      jest.advanceTimersByTime(119)
       expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(true)
 
       jest.advanceTimersByTime(1)
       expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(false)
+    })
+  })
+
+  describe('closePopover', () => {
+    beforeEach(() => {
+      jest.useFakeTimers()
+      controller.popoverTarget = document.createElement('div')
+      controller.fadeOutClasses = ['fade-out']
+      controller.openValue = true
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it('minimizes the popover after the short close animation', () => {
+      controller.closePopover()
+
+      expect(controller.popoverTarget.classList.contains('fade-out')).toBe(true)
+      expect(controller.openValue).toBe(true)
+
+      jest.advanceTimersByTime(119)
+      expect(controller.openValue).toBe(true)
+
+      jest.advanceTimersByTime(1)
+      expect(controller.openValue).toBe(false)
     })
   })
 
