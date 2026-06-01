@@ -14,8 +14,14 @@ import { useOpeningSequence } from './webchat/useOpeningSequence'
 import { useTeaser } from './webchat/useTeaser'
 
 const POPOVER_ANIMATION_DURATION = 120
+const MESSAGE_TIMESTAMP_FORMAT_OPTIONS = {
+  hour: 'numeric',
+  minute: '2-digit',
+}
 
 export default class extends Controller {
+  static messageTimestampFormatters = {}
+
   static values = {
     id: String,
     conversationId: String,
@@ -925,10 +931,25 @@ export default class extends Controller {
   }
 
   formatMessageTimestamp(date) {
-    return new Intl.DateTimeFormat(undefined, {
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date)
+    return this.constructor.messageTimestampFormatterFor(Locale.toString()).format(date)
+  }
+
+  static messageTimestampFormatterFor(locale) {
+    const key = locale || 'default'
+
+    if (!this.messageTimestampFormatters[key]) {
+      this.messageTimestampFormatters[key] = this.buildMessageTimestampFormatter(locale)
+    }
+
+    return this.messageTimestampFormatters[key]
+  }
+
+  static buildMessageTimestampFormatter(locale) {
+    try {
+      return new Intl.DateTimeFormat(locale || undefined, MESSAGE_TIMESTAMP_FORMAT_OPTIONS)
+    } catch (_) {
+      return new Intl.DateTimeFormat(undefined, MESSAGE_TIMESTAMP_FORMAT_OPTIONS)
+    }
   }
 
   async messageFailureReason(response) {

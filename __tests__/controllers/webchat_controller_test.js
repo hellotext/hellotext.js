@@ -4,6 +4,7 @@
 
 import WebchatController from '../../src/controllers/webchat_controller'
 import Hellotext from '../../src/hellotext'
+import { Locale } from '../../src/core/configuration/locale'
 import { Webchat as WebchatConfiguration, modes } from '../../src/core/configuration/webchat'
 import { usePopover } from '../../src/controllers/mixins/usePopover'
 import { useOpeningSequence } from '../../src/controllers/webchat/useOpeningSequence'
@@ -44,6 +45,7 @@ describe('WebchatController', () => {
     controller.idValue = 'test-webchat-id'
     controller.conversationIdValue = 'test-conversation-id'
     controller.messageIds = new Set()
+    WebchatController.messageTimestampFormatters = {}
 
     mockBroadcastChannel = {
       postMessage: jest.fn(),
@@ -69,9 +71,10 @@ describe('WebchatController', () => {
   })
 
   describe('localizeMessageTimestamps', () => {
-    it('formats rendered message timestamps with the browser timezone', () => {
+    it('formats rendered message timestamps with the configured locale and browser timezone', () => {
       const formatter = { format: jest.fn(() => '10:18 PM') }
       const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => formatter)
+      const localeSpy = jest.spyOn(Locale, 'toString').mockReturnValue('en')
       const timestamp = document.createElement('time')
 
       timestamp.setAttribute('datetime', '2026-06-01T01:18:36Z')
@@ -83,11 +86,33 @@ describe('WebchatController', () => {
 
       expect(timestamp.getAttribute('datetime')).toBe('2026-06-01T01:18:36.000Z')
       expect(timestamp.textContent).toBe('10:18 PM')
-      expect(Intl.DateTimeFormat).toHaveBeenCalledWith(undefined, {
+      expect(Intl.DateTimeFormat).toHaveBeenCalledWith('en', {
         hour: 'numeric',
         minute: '2-digit',
       })
 
+      localeSpy.mockRestore()
+      dateTimeFormatSpy.mockRestore()
+    })
+
+    it('reuses timestamp formatters for the same locale', () => {
+      const formatter = { format: jest.fn(() => '10:18 PM') }
+      const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => formatter)
+      const localeSpy = jest.spyOn(Locale, 'toString').mockReturnValue('en')
+      const datetimes = ['2026-06-01T01:18:36Z', '2026-06-01T01:19:36Z']
+
+      datetimes.forEach(datetime => {
+        const timestamp = document.createElement('time')
+        timestamp.setAttribute('datetime', datetime)
+        timestamp.setAttribute('data-message-timestamp', '')
+        mockMessagesContainer.appendChild(timestamp)
+      })
+
+      controller.localizeMessageTimestamps()
+
+      expect(Intl.DateTimeFormat).toHaveBeenCalledTimes(1)
+
+      localeSpy.mockRestore()
       dateTimeFormatSpy.mockRestore()
     })
   })
@@ -413,9 +438,10 @@ describe('WebchatController', () => {
         expect(addedElement.getAttribute('data-hellotext--webchat-target')).toBe('message')
       })
 
-      it('localizes incoming message timestamps with the browser timezone', () => {
+      it('localizes incoming message timestamps with the configured locale and browser timezone', () => {
         const formatter = { format: jest.fn(() => '10:18 PM') }
         const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => formatter)
+        const localeSpy = jest.spyOn(Locale, 'toString').mockReturnValue('en')
 
         controller.onMessageReceived({
           body: '<p>Hello world!</p>',
@@ -426,11 +452,12 @@ describe('WebchatController', () => {
         const timestamp = mockMessagesContainer.children[0].querySelector('[data-message-timestamp]')
         expect(timestamp.getAttribute('datetime')).toBe('2026-06-01T01:18:36.000Z')
         expect(timestamp.textContent).toBe('10:18 PM')
-        expect(Intl.DateTimeFormat).toHaveBeenCalledWith(undefined, {
+        expect(Intl.DateTimeFormat).toHaveBeenCalledWith('en', {
           hour: 'numeric',
           minute: '2-digit',
         })
 
+        localeSpy.mockRestore()
         dateTimeFormatSpy.mockRestore()
       })
 
