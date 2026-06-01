@@ -85,6 +85,7 @@ export default class extends Controller {
     this.onScroll = this.onScroll.bind(this)
 
     this.onOutboundMessageSent = this.onOutboundMessageSent.bind(this)
+    this.closePopoverOnEscape = this.closePopoverOnEscape.bind(this)
     this.broadcastChannel = new BroadcastChannel(`hellotext--webchat--${this.idValue}`)
 
     super.initialize()
@@ -123,6 +124,7 @@ export default class extends Controller {
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
     this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
+    window.addEventListener('keydown', this.closePopoverOnEscape, true)
     this.scheduleBehaviourOpen()
 
     super.connect()
@@ -136,6 +138,7 @@ export default class extends Controller {
 
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
+    window.removeEventListener('keydown', this.closePopoverOnEscape, true)
 
     // Clean up typing indicator timeouts
     this.clearTypingIndicator()
@@ -863,6 +866,16 @@ export default class extends Controller {
 
     event.preventDefault()
     this.closePopover()
+  }
+
+  closePopoverOnEscape(event) {
+    if (event.key !== 'Escape' || !this.openValue) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.closePopover()
+
+    this.triggerTarget?.focus?.()
   }
 
   async markMessageFailedFromResponse(response, element) {

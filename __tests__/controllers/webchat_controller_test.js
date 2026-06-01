@@ -1283,6 +1283,40 @@ describe('WebchatController', () => {
     })
   })
 
+  describe('closePopoverOnEscape', () => {
+    beforeEach(() => {
+      controller.closePopover = jest.fn()
+      controller.openValue = true
+      controller.triggerTarget = document.createElement('button')
+      document.body.appendChild(controller.triggerTarget)
+    })
+
+    it('closes the popover when Escape is pressed', () => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })
+      const stopPropagation = jest.spyOn(event, 'stopPropagation')
+
+      controller.closePopoverOnEscape(event)
+
+      expect(controller.closePopover).toHaveBeenCalled()
+      expect(event.defaultPrevented).toBe(true)
+      expect(stopPropagation).toHaveBeenCalled()
+      expect(document.activeElement).toBe(controller.triggerTarget)
+    })
+
+    it('ignores other keys', () => {
+      controller.closePopoverOnEscape(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }))
+
+      expect(controller.closePopover).not.toHaveBeenCalled()
+    })
+
+    it('ignores Escape when the popover is already closed', () => {
+      controller.openValue = false
+      controller.closePopoverOnEscape(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }))
+
+      expect(controller.closePopover).not.toHaveBeenCalled()
+    })
+  })
+
   describe('focusCompose', () => {
     beforeEach(() => {
       const input = document.createElement('textarea')
@@ -1510,6 +1544,26 @@ describe('WebchatController', () => {
         popover: mockTeaser,
         strategy: 'absolute',
       })
+    })
+
+    it('listens for Escape in the capture phase so focused compose controls cannot swallow it', () => {
+      const addEventListenerSpy = jest.spyOn(window, 'addEventListener')
+
+      setHasTeaserTarget(false)
+      controller.connect()
+
+      expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', controller.closePopoverOnEscape, true)
+    })
+
+    it('removes the capture-phase Escape listener on disconnect', () => {
+      const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener')
+
+      setHasTeaserTarget(false)
+      controller.floatingUICleanup = jest.fn()
+      controller.connect()
+      controller.disconnect()
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', controller.closePopoverOnEscape, true)
     })
 
     it('does not set up teaser positioning without a teaser target', () => {
