@@ -254,20 +254,47 @@ describe('MessageController', () => {
           id: 'message-456',
           product: undefined,
           buttonId: undefined,
-          body: undefined,
+          body: '',
           cardElement: cardWithoutData
         }
       })
     })
 
-    it('handles null card element', () => {
+    it('falls back to button text when data text is missing', () => {
+      delete mockButton.dataset.text
+      mockButton.textContent = 'Buy this one'
+
+      controller.quickReply({ currentTarget: mockButton })
+
+      expect(controller.dispatch).toHaveBeenCalledWith('quickReply', {
+        detail: {
+          id: 'message-456',
+          product: 'product-456',
+          buttonId: 'btn-789',
+          body: 'Buy this one',
+          cardElement: mockCard
+        }
+      })
+    })
+
+    it('dispatches plain quick replies without a product card', () => {
       mockButton.closest = jest.fn().mockReturnValue(null)
 
       const mockEvent = {
         currentTarget: mockButton
       }
 
-      expect(() => controller.quickReply(mockEvent)).toThrow()
+      controller.quickReply(mockEvent)
+
+      expect(controller.dispatch).toHaveBeenCalledWith('quickReply', {
+        detail: {
+          id: 'message-456',
+          product: undefined,
+          buttonId: 'btn-789',
+          body: 'Buy Now',
+          cardElement: mockButton
+        }
+      })
     })
   })
 

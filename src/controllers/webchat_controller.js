@@ -127,6 +127,7 @@ export default class extends Controller {
 
   disconnect() {
     this.cancelBehaviourOpen()
+    this.clearPopoverOpenAnimation()
     this.teardownTeaser()
     this.teardownOpeningSequence()
 
@@ -327,11 +328,32 @@ export default class extends Controller {
   }
 
   closePopover() {
+    this.clearPopoverOpenAnimation()
     this.popoverTarget.classList.add(...this.fadeOutClasses)
 
     setTimeout(() => {
       this.openValue = false
     }, 250)
+  }
+
+  preparePopoverOpenAnimation() {
+    this.clearPopoverOpenAnimation()
+    this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    this.popoverTarget.classList.add('hellotext--webchat-popover-opening')
+
+    this.popoverOpenAnimationTimeout = setTimeout(() => {
+      this.popoverTarget.classList.remove('hellotext--webchat-popover-opening')
+      this.popoverOpenAnimationTimeout = null
+    }, 250)
+  }
+
+  clearPopoverOpenAnimation() {
+    if (this.popoverOpenAnimationTimeout) {
+      clearTimeout(this.popoverOpenAnimationTimeout)
+      this.popoverOpenAnimationTimeout = null
+    }
+
+    this.popoverTarget?.classList.remove('hellotext--webchat-popover-opening')
   }
 
   onPopoverOpened() {
@@ -371,6 +393,7 @@ export default class extends Controller {
   }
 
   onPopoverClosed() {
+    this.clearPopoverOpenAnimation()
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
   }
@@ -529,16 +552,16 @@ export default class extends Controller {
     const formData = new FormData()
 
     formData.append('message[body]', body)
-    formData.append('message[replied_to]', id)
-    formData.append('message[product]', product)
-    formData.append('message[button]', buttonId)
+    if (id) formData.append('message[replied_to]', id)
+    if (product) formData.append('message[product]', product)
+    if (buttonId) formData.append('message[button]', buttonId)
 
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
     this.appendOpeningSequenceMessageIds(formData)
 
     const element = this.buildMessageElement()
-    const attachment = cardElement.querySelector('img')?.cloneNode(true)
+    const attachment = cardElement?.querySelector('img')?.cloneNode(true)
 
     element.querySelector('[data-body]').innerText = body
 

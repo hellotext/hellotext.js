@@ -1154,6 +1154,71 @@ describe('WebchatController', () => {
     })
   })
 
+  describe('openValueChanged', () => {
+    let actualUsePopover
+
+    beforeEach(() => {
+      actualUsePopover = jest.requireActual('../../src/controllers/mixins/usePopover').usePopover
+      controller.popoverTarget = document.createElement('div')
+      controller.popoverTarget.showPopover = jest.fn()
+      controller.popoverTarget.hidePopover = jest.fn()
+      controller.preparePopoverOpenAnimation = jest.fn()
+      controller.onPopoverOpened = jest.fn()
+      controller.onPopoverClosed = jest.fn()
+      controller.disabledValue = false
+      actualUsePopover(controller)
+    })
+
+    it('prepares the transient open animation only when the popover opens', () => {
+      controller.openValue = true
+
+      controller.openValueChanged()
+
+      expect(controller.preparePopoverOpenAnimation).toHaveBeenCalledTimes(1)
+      expect(controller.popoverTarget.showPopover).toHaveBeenCalledTimes(1)
+      expect(controller.popoverTarget.getAttribute('aria-expanded')).toBe('true')
+      expect(controller.onPopoverOpened).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not prepare the open animation when the popover closes', () => {
+      controller.openValue = false
+
+      controller.openValueChanged()
+
+      expect(controller.preparePopoverOpenAnimation).not.toHaveBeenCalled()
+      expect(controller.popoverTarget.hidePopover).toHaveBeenCalledTimes(1)
+      expect(controller.popoverTarget.hasAttribute('aria-expanded')).toBe(false)
+      expect(controller.onPopoverClosed).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('preparePopoverOpenAnimation', () => {
+    beforeEach(() => {
+      jest.useFakeTimers()
+      controller.popoverTarget = document.createElement('div')
+      controller.fadeOutClasses = ['fade-out']
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it('uses a temporary class for the open animation', () => {
+      controller.popoverTarget.classList.add('fade-out')
+
+      controller.preparePopoverOpenAnimation()
+
+      expect(controller.popoverTarget.classList.contains('fade-out')).toBe(false)
+      expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(true)
+
+      jest.advanceTimersByTime(249)
+      expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(true)
+
+      jest.advanceTimersByTime(1)
+      expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(false)
+    })
+  })
+
   describe('focusCompose', () => {
     beforeEach(() => {
       const input = document.createElement('textarea')
@@ -1419,6 +1484,24 @@ describe('WebchatController', () => {
       expect(mockTeaser.classList.contains('invisible')).toBe(true)
       expect(messages[0].classList.contains('hidden')).toBe(false)
       expect(controller.teaserCycleTimeout).toBe(null)
+    })
+
+    it('scopes the session seen flag to the rendered teaser version', () => {
+      allowPreConversationTeaser()
+      mockTeaser.dataset.teaserVersion = 'new-version'
+      mockSessionStorage.getItem.mockImplementation(key =>
+        key === `hellotext:webchat:${controller.idValue}:teaser-seen:old-version` ? 'true' : null,
+      )
+      setHasTeaserTarget(true)
+      const messages = setTeaserMessages([2])
+
+      controller.connect()
+
+      expect(mockSessionStorage.getItem).toHaveBeenCalledWith(
+        `hellotext:webchat:${controller.idValue}:teaser-seen:new-version`,
+      )
+      expect(mockTeaser.classList.contains('invisible')).toBe(false)
+      expect(messages[0].classList.contains('hidden')).toBe(false)
     })
 
     it('hides the teaser without teaser messages', () => {
@@ -2976,6 +3059,28 @@ describe('WebchatController', () => {
         expect(attachmentContainer.children).toHaveLength(0)
       })
 
+      it('sends plain quick replies without product data', async () => {
+        const plainMessageElement = document.createElement('article')
+
+        await controller.sendQuickReplyMessage({
+          detail: {
+            id: 'msg-123',
+            buttonId: 'btn-789',
+            body: 'Plain quick reply',
+            cardElement: plainMessageElement,
+          },
+        })
+
+        const formData = mockMessagesAPI.create.mock.calls[0][0]
+        expect(formData.get('message[body]')).toBe('Plain quick reply')
+        expect(formData.get('message[replied_to]')).toBe('msg-123')
+        expect(formData.get('message[product]')).toBeNull()
+        expect(formData.get('message[button]')).toBe('btn-789')
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body]').innerText).toBe('Plain quick reply')
+      })
+
       it('handles null attachment gracefully', async () => {
         // Mock querySelector to return null
         const originalQuerySelector = mockCardElement.querySelector
@@ -3023,9 +3128,9 @@ describe('WebchatController', () => {
         await controller.sendQuickReplyMessage({ detail: eventDetail })
 
         const formData = mockMessagesAPI.create.mock.calls[0][0]
-        expect(formData.get('message[replied_to]')).toBe('undefined')
-        expect(formData.get('message[product]')).toBe('undefined')
-        expect(formData.get('message[button]')).toBe('undefined')
+        expect(formData.get('message[replied_to]')).toBeNull()
+        expect(formData.get('message[product]')).toBeNull()
+        expect(formData.get('message[button]')).toBeNull()
       })
 
       it('handles API response without id', async () => {

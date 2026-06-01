@@ -24,14 +24,16 @@ export default class extends Controller {
 
   quickReply({ currentTarget }) {
     const card = currentTarget.closest('[data-hellotext--message-target="carouselCard"]')
+    const messageElement = currentTarget.closest('[data-controller~="hellotext--message"]')
+    const body = currentTarget.dataset.text || currentTarget.textContent.trim()
 
     this.dispatch('quickReply', {
       detail: {
         id: this.idValue,
-        product: card.dataset.id,
+        product: card?.dataset.id,
         buttonId: currentTarget.dataset.id,
-        body: currentTarget.dataset.text,
-        cardElement: card,
+        body,
+        cardElement: card || messageElement || currentTarget,
       },
     })
   }

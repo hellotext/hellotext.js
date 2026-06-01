@@ -35,6 +35,7 @@ export const usePopover = controller => {
       if (this.disabledValue) return
 
       if (this.openValue) {
+        this.preparePopoverOpenAnimation?.()
         this.popoverTarget.showPopover()
         this.popoverTarget.setAttribute('aria-expanded', 'true')
 

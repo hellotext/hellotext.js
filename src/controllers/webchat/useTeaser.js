@@ -141,7 +141,10 @@ export const useTeaser = controller => {
     },
 
     teaserSeenKey() {
-      return `hellotext:webchat:${this.idValue || this.element.id}:teaser-seen`
+      const teaserVersion = this.hasTeaserTarget ? this.teaserTarget.dataset.teaserVersion : ''
+      const versionSegment = teaserVersion ? `:${teaserVersion}` : ''
+
+      return `hellotext:webchat:${this.idValue || this.element.id}:teaser-seen${versionSegment}`
     },
 
     teaserSeenForSession() {
