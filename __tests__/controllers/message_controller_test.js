@@ -387,8 +387,8 @@ describe('MessageController', () => {
 
   describe('moveToLeft', () => {
     beforeEach(() => {
-      // Mock getScrollAmount
-      controller.getScrollAmount = jest.fn().mockReturnValue(296)
+      mockCarouselContainer.scrollLeft = 350
+      controller.getPreviousPageScrollLeft = jest.fn().mockReturnValue(54)
     })
 
     it('scrolls left by calculated amount when carousel container exists', () => {
@@ -407,24 +407,23 @@ describe('MessageController', () => {
       Object.defineProperty(tempController, 'hasCarouselContainerTarget', {
         get: () => false
       })
-      tempController.getScrollAmount = jest.fn().mockReturnValue(296)
+      tempController.getPreviousPageScrollLeft = jest.fn().mockReturnValue(54)
 
       tempController.moveToLeft()
 
       expect(mockCarouselContainer.scrollBy).not.toHaveBeenCalled()
     })
 
-    it('calls getScrollAmount to calculate scroll distance', () => {
+    it('calls getPreviousPageScrollLeft to calculate scroll distance', () => {
       controller.moveToLeft()
 
-      expect(controller.getScrollAmount).toHaveBeenCalledTimes(1)
+      expect(controller.getPreviousPageScrollLeft).toHaveBeenCalledTimes(1)
     })
   })
 
   describe('moveToRight', () => {
     beforeEach(() => {
-      // Mock getScrollAmount
-      controller.getScrollAmount = jest.fn().mockReturnValue(296)
+      controller.getNextPageScrollLeft = jest.fn().mockReturnValue(296)
     })
 
     it('scrolls right by calculated amount when carousel container exists', () => {
@@ -443,17 +442,17 @@ describe('MessageController', () => {
       Object.defineProperty(tempController, 'hasCarouselContainerTarget', {
         get: () => false
       })
-      tempController.getScrollAmount = jest.fn().mockReturnValue(296)
+      tempController.getNextPageScrollLeft = jest.fn().mockReturnValue(296)
 
       tempController.moveToRight()
 
       expect(mockCarouselContainer.scrollBy).not.toHaveBeenCalled()
     })
 
-    it('calls getScrollAmount to calculate scroll distance', () => {
+    it('calls getNextPageScrollLeft to calculate scroll distance', () => {
       controller.moveToRight()
 
-      expect(controller.getScrollAmount).toHaveBeenCalledTimes(1)
+      expect(controller.getNextPageScrollLeft).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -512,6 +511,60 @@ describe('MessageController', () => {
       const result = controller.getScrollAmount()
 
       expect(result).toBe(336) // 320 + 16 gap
+    })
+  })
+
+  describe('getPageScrollAmount', () => {
+    it('uses the visible carousel area minus the gap', () => {
+      const result = controller.getPageScrollAmount()
+
+      expect(result).toBe(284)
+    })
+  })
+
+  describe('page scroll alignment', () => {
+    beforeEach(() => {
+      Object.defineProperty(mockCarouselContainer, 'clientWidth', {
+        value: 600,
+        writable: true,
+        configurable: true
+      })
+      Object.defineProperty(mockCarouselContainer, 'scrollWidth', {
+        value: 1244,
+        writable: true,
+        configurable: true
+      })
+      controller.pageStartOffsetValue = 56
+
+      mockCarouselContainer.innerHTML = ''
+
+      Array.from({ length: 4 }).forEach((_, index) => {
+        const card = document.createElement('article')
+        card.className = 'message__carousel_card'
+        Object.defineProperty(card, 'offsetWidth', {
+          value: 236,
+          writable: true,
+          configurable: true
+        })
+        Object.defineProperty(card, 'offsetLeft', {
+          value: index * 252,
+          writable: true,
+          configurable: true
+        })
+        mockCarouselContainer.appendChild(card)
+      })
+    })
+
+    it('aligns the next page to the first clipped card with a left offset', () => {
+      mockCarouselContainer.scrollLeft = 0
+
+      expect(controller.getNextPageScrollLeft()).toBe(448)
+    })
+
+    it('aligns the previous page back to the previous offset page', () => {
+      mockCarouselContainer.scrollLeft = 448
+
+      expect(controller.getPreviousPageScrollLeft()).toBe(0)
     })
   })
 
@@ -623,7 +676,7 @@ describe('MessageController', () => {
 
     describe('edge case handling', () => {
       it('handles rounding errors at end position', () => {
-        mockCarouselContainer.scrollLeft = 698 // 2 pixels before end, within tolerance
+        mockCarouselContainer.scrollLeft = 696 // 4 pixels before end, just outside the fade-hide threshold
         Object.defineProperty(mockCarouselContainer, 'scrollWidth', {
           value: 1000,
           writable: true,
@@ -638,7 +691,7 @@ describe('MessageController', () => {
 
         controller.updateFades()
 
-        // maxScroll = 1000 - 300 = 700, scrollLeft (698) < maxScroll - 1 (699), so right fade should be visible
+        // maxScroll = 1000 - 300 = 700, scrollLeft (696) keeps enough fade opacity to remain visible
         expect(mockRightFade.classList.contains('hidden')).toBe(false)
       })
 
@@ -687,7 +740,7 @@ describe('MessageController', () => {
   describe('integration tests', () => {
     it('updates fades correctly after moving left', () => {
       mockCarouselContainer.scrollLeft = 350
-      controller.getScrollAmount = jest.fn().mockReturnValue(296)
+      controller.getPreviousPageScrollLeft = jest.fn().mockReturnValue(54)
 
       const updateFadesSpy = jest.spyOn(controller, 'updateFades')
 
@@ -701,7 +754,7 @@ describe('MessageController', () => {
 
     it('updates fades correctly after moving right', () => {
       mockCarouselContainer.scrollLeft = 50
-      controller.getScrollAmount = jest.fn().mockReturnValue(296)
+      controller.getNextPageScrollLeft = jest.fn().mockReturnValue(346)
 
       const updateFadesSpy = jest.spyOn(controller, 'updateFades')
 
