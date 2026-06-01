@@ -316,7 +316,7 @@ describe('MessageController', () => {
       })
     })
 
-    it('dispatches the cart.added event with the tracking payload', () => {
+    it('dispatches the cart.added event for the clicked product', () => {
       const mockEvent = {
         currentTarget: mockButton
       }
@@ -329,6 +329,40 @@ describe('MessageController', () => {
             {
               product: 'product-456',
               quantity: 1
+            }
+          ]
+        }
+      })
+    })
+
+    it('dispatches reference and source metadata without adding them to the tracking payload', () => {
+      mockCard.dataset.reference = 'message-item-reference'
+      mockCard.dataset.source = 'webchat-carousel'
+
+      const mockEvent = {
+        currentTarget: mockButton
+      }
+
+      controller.addToCart(mockEvent)
+
+      expect(Hellotext.track).toHaveBeenCalledWith('cart.added', {
+        object_parameters: {
+          items: [
+            {
+              product: 'product-456',
+              quantity: 1
+            }
+          ]
+        }
+      })
+      expect(Hellotext.eventEmitter.dispatch).toHaveBeenCalledWith('cart.added', {
+        object_parameters: {
+          items: [
+            {
+              product: 'product-456',
+              quantity: 1,
+              reference: 'message-item-reference',
+              source: 'webchat-carousel'
             }
           ]
         }
