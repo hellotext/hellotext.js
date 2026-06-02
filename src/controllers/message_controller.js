@@ -43,19 +43,22 @@ export default class extends Controller {
   addToCart({ currentTarget }) {
     const card = currentTarget.closest('[data-hellotext--message-target="carouselCard"]')
 
-    const payload = {
+    const { id, reference, source } = card.dataset
+    const item = { product: id, quantity: 1 }
+
+    Hellotext.track('cart.added', { object_parameters: { items: [item] } })
+
+    Hellotext.eventEmitter.dispatch('cart.added', {
       object_parameters: {
         items: [
           {
-            product: card.dataset.id,
-            quantity: 1,
+            ...item,
+            ...(reference && { reference }),
+            ...(source && { source }),
           },
         ],
       },
-    }
-
-    Hellotext.track('cart.added', payload)
-    Hellotext.eventEmitter.dispatch('cart.added', payload)
+    })
   }
 
   moveToLeft() {
