@@ -1389,6 +1389,8 @@ describe('WebchatController', () => {
 
   describe('focusCompose', () => {
     beforeEach(() => {
+      document.body.innerHTML = ''
+
       const input = document.createElement('textarea')
       document.body.appendChild(input)
 
@@ -1412,6 +1414,22 @@ describe('WebchatController', () => {
       expect(event.defaultPrevented).toBe(true)
     })
 
+    it('does not focus the compose input when automatic compose focus is disabled', () => {
+      const surface = document.createElement('section')
+      const event = new Event('pointerdown', { cancelable: true })
+
+      Object.defineProperty(controller, 'shouldAutofocusCompose', {
+        get: () => false,
+        configurable: true,
+      })
+      Object.defineProperty(event, 'target', { value: surface })
+
+      controller.focusCompose(event)
+
+      expect(document.activeElement).not.toBe(controller.inputTarget)
+      expect(event.defaultPrevented).toBe(false)
+    })
+
     it('keeps focus inside the emoji picker instead of moving it to the compose input', () => {
       const picker = document.createElement('em-emoji-picker')
       const event = new Event('pointerdown', { cancelable: true })
@@ -1426,6 +1444,75 @@ describe('WebchatController', () => {
       expect(document.activeElement).toBe(picker)
       expect(document.activeElement).not.toBe(controller.inputTarget)
       expect(event.defaultPrevented).toBe(false)
+    })
+  })
+
+  describe('shouldAutofocusCompose', () => {
+    let originalMatchMedia
+    let originalNavigatorDescriptors
+
+    const setNavigatorProperty = (property, value) => {
+      Object.defineProperty(window.navigator, property, {
+        value,
+        configurable: true,
+      })
+    }
+
+    beforeEach(() => {
+      originalMatchMedia = window.matchMedia
+      originalNavigatorDescriptors = ['userAgent', 'platform', 'maxTouchPoints', 'userAgentData'].reduce(
+        (descriptors, property) => ({
+          ...descriptors,
+          [property]: Object.getOwnPropertyDescriptor(window.navigator, property),
+        }),
+        {},
+      )
+      controller.fullScreenThresholdValue = 1024
+      window.matchMedia = jest.fn(() => ({ matches: false }))
+    })
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia
+
+      Object.entries(originalNavigatorDescriptors).forEach(([property, descriptor]) => {
+        if (descriptor) {
+          Object.defineProperty(window.navigator, property, descriptor)
+        } else {
+          delete window.navigator[property]
+        }
+      })
+    })
+
+    it('does not autofocus on Android devices', () => {
+      setNavigatorProperty(
+        'userAgent',
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36',
+      )
+
+      expect(controller.shouldAutofocusCompose).toBe(false)
+    })
+
+    it('does not autofocus on iPadOS devices using desktop-style user agents', () => {
+      setNavigatorProperty(
+        'userAgent',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 Safari/605.1.15',
+      )
+      setNavigatorProperty('platform', 'MacIntel')
+      setNavigatorProperty('maxTouchPoints', 5)
+
+      expect(controller.shouldAutofocusCompose).toBe(false)
+    })
+
+    it('does not autofocus on touch-only pointer devices', () => {
+      window.matchMedia = jest.fn(query => ({
+        matches: ['(pointer: coarse)', '(hover: none)'].includes(query),
+      }))
+
+      expect(controller.shouldAutofocusCompose).toBe(false)
+    })
+
+    it('allows autofocus on desktop devices', () => {
+      expect(controller.shouldAutofocusCompose).toBe(true)
     })
   })
 
