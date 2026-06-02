@@ -27,6 +27,31 @@ describe('Configuration', () => {
     })
   })
 
+  describe('.actionCableUrl', () => {
+    const defaultApiRoot = Configuration.apiRoot
+    const defaultActionCableUrl = Configuration.actionCableUrl
+
+    afterEach(() => {
+      Configuration.apiRoot = defaultApiRoot
+      Configuration.actionCableUrl = defaultActionCableUrl
+    })
+
+    it('is inferred from apiRoot when actionCableUrl is not provided', () => {
+      Configuration.assign({ apiRoot: 'http://api.example.test/v1' })
+
+      expect(Configuration.actionCableUrl).toEqual('ws://api.example.test/cable')
+    })
+
+    it('preserves an explicit actionCableUrl', () => {
+      Configuration.assign({
+        apiRoot: 'http://api.example.test/v1',
+        actionCableUrl: 'ws://cable.example.test/cable',
+      })
+
+      expect(Configuration.actionCableUrl).toEqual('ws://cable.example.test/cable')
+    })
+  })
+
   describe('.webchat', () => {
     it('can be modified', () => {
       Configuration.assign({ webchat: { id: '123' } })

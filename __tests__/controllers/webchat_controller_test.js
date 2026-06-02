@@ -4,6 +4,7 @@
 
 import WebchatController from '../../src/controllers/webchat_controller'
 import Hellotext from '../../src/hellotext'
+import { Locale } from '../../src/core/configuration/locale'
 import { Webchat as WebchatConfiguration, modes } from '../../src/core/configuration/webchat'
 import { usePopover } from '../../src/controllers/mixins/usePopover'
 import { useOpeningSequence } from '../../src/controllers/webchat/useOpeningSequence'
@@ -44,6 +45,7 @@ describe('WebchatController', () => {
     controller.idValue = 'test-webchat-id'
     controller.conversationIdValue = 'test-conversation-id'
     controller.messageIds = new Set()
+    WebchatController.messageTimestampFormatters = {}
 
     mockBroadcastChannel = {
       postMessage: jest.fn(),
@@ -66,6 +68,53 @@ describe('WebchatController', () => {
     if (consoleLogSpy) {
       consoleLogSpy.mockRestore()
     }
+  })
+
+  describe('localizeMessageTimestamps', () => {
+    it('formats rendered message timestamps with the configured locale and browser timezone', () => {
+      const formatter = { format: jest.fn(() => '10:18 PM') }
+      const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => formatter)
+      const localeSpy = jest.spyOn(Locale, 'toString').mockReturnValue('en')
+      const timestamp = document.createElement('time')
+
+      timestamp.setAttribute('datetime', '2026-06-01T01:18:36Z')
+      timestamp.setAttribute('data-message-timestamp', '')
+      timestamp.textContent = '08:18 PM'
+      mockMessagesContainer.appendChild(timestamp)
+
+      controller.localizeMessageTimestamps()
+
+      expect(timestamp.getAttribute('datetime')).toBe('2026-06-01T01:18:36.000Z')
+      expect(timestamp.textContent).toBe('10:18 PM')
+      expect(Intl.DateTimeFormat).toHaveBeenCalledWith('en', {
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+
+      localeSpy.mockRestore()
+      dateTimeFormatSpy.mockRestore()
+    })
+
+    it('reuses timestamp formatters for the same locale', () => {
+      const formatter = { format: jest.fn(() => '10:18 PM') }
+      const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => formatter)
+      const localeSpy = jest.spyOn(Locale, 'toString').mockReturnValue('en')
+      const datetimes = ['2026-06-01T01:18:36Z', '2026-06-01T01:19:36Z']
+
+      datetimes.forEach(datetime => {
+        const timestamp = document.createElement('time')
+        timestamp.setAttribute('datetime', datetime)
+        timestamp.setAttribute('data-message-timestamp', '')
+        mockMessagesContainer.appendChild(timestamp)
+      })
+
+      controller.localizeMessageTimestamps()
+
+      expect(Intl.DateTimeFormat).toHaveBeenCalledTimes(1)
+
+      localeSpy.mockRestore()
+      dateTimeFormatSpy.mockRestore()
+    })
   })
 
   describe('onOutboundMessageSent', () => {
@@ -160,6 +209,29 @@ describe('WebchatController', () => {
 
         expect(existingMessage.classList.contains('failed')).toBe(true)
         expect(existingMessage.className).toBe('message failed')
+      })
+
+      it('writes the failure reason into the message timestamp', () => {
+        const messageId = 'failed-message-with-reason'
+        const existingMessage = document.createElement('div')
+        const timestamp = document.createElement('time')
+
+        existingMessage.id = messageId
+        timestamp.setAttribute('data-message-timestamp', '')
+        timestamp.textContent = 'Just now'
+        existingMessage.appendChild(timestamp)
+        mockMessagesContainer.appendChild(existingMessage)
+
+        controller.onOutboundMessageSent({
+          data: {
+            type: 'message:failed',
+            id: messageId,
+            reason: 'Message cannot be empty.',
+          },
+        })
+
+        expect(existingMessage.classList.contains('failed')).toBe(true)
+        expect(timestamp.textContent).toBe('Message cannot be empty.')
       })
 
       it('does nothing when message with id is not found', () => {
@@ -310,6 +382,9 @@ describe('WebchatController', () => {
       const attachmentContainer = document.createElement('div')
       attachmentContainer.setAttribute('data-attachment-container', '')
       mockMessageTemplate.appendChild(bodyElement)
+      const timestamp = document.createElement('time')
+      timestamp.setAttribute('data-message-timestamp', '')
+      mockMessageTemplate.appendChild(timestamp)
       mockMessageTemplate.appendChild(attachmentContainer)
 
       // Set up attachment image mock
@@ -361,6 +436,29 @@ describe('WebchatController', () => {
         expect(addedElement.style.display).toBe('flex')
         expect(addedElement.querySelector('[data-body]').innerHTML).toBe('<p>Hello world!</p>')
         expect(addedElement.getAttribute('data-hellotext--webchat-target')).toBe('message')
+      })
+
+      it('localizes incoming message timestamps with the configured locale and browser timezone', () => {
+        const formatter = { format: jest.fn(() => '10:18 PM') }
+        const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => formatter)
+        const localeSpy = jest.spyOn(Locale, 'toString').mockReturnValue('en')
+
+        controller.onMessageReceived({
+          body: '<p>Hello world!</p>',
+          created_at: '2026-06-01T01:18:36Z',
+          id: 'msg-local-timezone',
+        })
+
+        const timestamp = mockMessagesContainer.children[0].querySelector('[data-message-timestamp]')
+        expect(timestamp.getAttribute('datetime')).toBe('2026-06-01T01:18:36.000Z')
+        expect(timestamp.textContent).toBe('10:18 PM')
+        expect(Intl.DateTimeFormat).toHaveBeenCalledWith('en', {
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+
+        localeSpy.mockRestore()
+        dateTimeFormatSpy.mockRestore()
       })
 
       it('silently drops a duplicate message that was already claimed in memory', () => {
@@ -1131,6 +1229,163 @@ describe('WebchatController', () => {
     })
   })
 
+  describe('openValueChanged', () => {
+    let actualUsePopover
+
+    beforeEach(() => {
+      actualUsePopover = jest.requireActual('../../src/controllers/mixins/usePopover').usePopover
+      controller.popoverTarget = document.createElement('div')
+      controller.popoverTarget.showPopover = jest.fn()
+      controller.popoverTarget.hidePopover = jest.fn()
+      controller.preparePopoverOpenAnimation = jest.fn()
+      controller.onPopoverOpened = jest.fn()
+      controller.onPopoverClosed = jest.fn()
+      controller.disabledValue = false
+      actualUsePopover(controller)
+    })
+
+    it('prepares the transient open animation only when the popover opens', () => {
+      controller.openValue = true
+
+      controller.openValueChanged()
+
+      expect(controller.preparePopoverOpenAnimation).toHaveBeenCalledTimes(1)
+      expect(controller.popoverTarget.showPopover).toHaveBeenCalledTimes(1)
+      expect(controller.popoverTarget.getAttribute('aria-expanded')).toBe('true')
+      expect(controller.onPopoverOpened).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not prepare the open animation when the popover closes', () => {
+      controller.openValue = false
+
+      controller.openValueChanged()
+
+      expect(controller.preparePopoverOpenAnimation).not.toHaveBeenCalled()
+      expect(controller.popoverTarget.hidePopover).toHaveBeenCalledTimes(1)
+      expect(controller.popoverTarget.hasAttribute('aria-expanded')).toBe(false)
+      expect(controller.onPopoverClosed).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('preparePopoverOpenAnimation', () => {
+    beforeEach(() => {
+      jest.useFakeTimers()
+      controller.popoverTarget = document.createElement('div')
+      controller.fadeOutClasses = ['fade-out']
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it('uses a temporary class for the open animation', () => {
+      controller.popoverTarget.classList.add('fade-out')
+
+      controller.preparePopoverOpenAnimation()
+
+      expect(controller.popoverTarget.classList.contains('fade-out')).toBe(false)
+      expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(true)
+
+      jest.advanceTimersByTime(119)
+      expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(true)
+
+      jest.advanceTimersByTime(1)
+      expect(controller.popoverTarget.classList.contains('hellotext--webchat-popover-opening')).toBe(false)
+    })
+  })
+
+  describe('closePopover', () => {
+    beforeEach(() => {
+      controller.popoverTarget = document.createElement('div')
+      controller.fadeOutClasses = ['fade-out']
+      controller.openValue = true
+    })
+
+    it('minimizes the popover immediately', () => {
+      controller.popoverTarget.classList.add('fade-out')
+      controller.closePopover()
+
+      expect(controller.popoverTarget.classList.contains('fade-out')).toBe(false)
+      expect(controller.openValue).toBe(false)
+    })
+  })
+
+  describe('closePopoverOnEscape', () => {
+    beforeEach(() => {
+      controller.closePopover = jest.fn()
+      controller.openValue = true
+      controller.triggerTarget = document.createElement('button')
+      document.body.appendChild(controller.triggerTarget)
+    })
+
+    it('closes the popover when Escape is pressed', () => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })
+      const stopPropagation = jest.spyOn(event, 'stopPropagation')
+
+      controller.closePopoverOnEscape(event)
+
+      expect(controller.closePopover).toHaveBeenCalled()
+      expect(event.defaultPrevented).toBe(true)
+      expect(stopPropagation).toHaveBeenCalled()
+      expect(document.activeElement).toBe(controller.triggerTarget)
+    })
+
+    it('ignores other keys', () => {
+      controller.closePopoverOnEscape(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }))
+
+      expect(controller.closePopover).not.toHaveBeenCalled()
+    })
+
+    it('ignores Escape when the popover is already closed', () => {
+      controller.openValue = false
+      controller.closePopoverOnEscape(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }))
+
+      expect(controller.closePopover).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('focusCompose', () => {
+    beforeEach(() => {
+      const input = document.createElement('textarea')
+      document.body.appendChild(input)
+
+      controller.inputTarget = input
+
+      Object.defineProperty(controller, 'hasInputTarget', {
+        get: () => true,
+        configurable: true,
+      })
+    })
+
+    it('focuses the compose input from the compose surface', () => {
+      const surface = document.createElement('section')
+      const event = new Event('pointerdown', { cancelable: true })
+
+      Object.defineProperty(event, 'target', { value: surface })
+
+      controller.focusCompose(event)
+
+      expect(document.activeElement).toBe(controller.inputTarget)
+      expect(event.defaultPrevented).toBe(true)
+    })
+
+    it('keeps focus inside the emoji picker instead of moving it to the compose input', () => {
+      const picker = document.createElement('em-emoji-picker')
+      const event = new Event('pointerdown', { cancelable: true })
+
+      picker.setAttribute('tabindex', '0')
+      document.body.appendChild(picker)
+      picker.focus()
+      Object.defineProperty(event, 'target', { value: picker })
+
+      controller.focusCompose(event)
+
+      expect(document.activeElement).toBe(picker)
+      expect(document.activeElement).not.toBe(controller.inputTarget)
+      expect(event.defaultPrevented).toBe(false)
+    })
+  })
+
   describe('onScroll', () => {
     let mockMessagesAPI
     let mockMessageTemplate
@@ -1318,6 +1573,26 @@ describe('WebchatController', () => {
       })
     })
 
+    it('listens for Escape in the capture phase so focused compose controls cannot swallow it', () => {
+      const addEventListenerSpy = jest.spyOn(window, 'addEventListener')
+
+      setHasTeaserTarget(false)
+      controller.connect()
+
+      expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', controller.closePopoverOnEscape, true)
+    })
+
+    it('removes the capture-phase Escape listener on disconnect', () => {
+      const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener')
+
+      setHasTeaserTarget(false)
+      controller.floatingUICleanup = jest.fn()
+      controller.connect()
+      controller.disconnect()
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', controller.closePopoverOnEscape, true)
+    })
+
     it('does not set up teaser positioning without a teaser target', () => {
       setHasTeaserTarget(false)
 
@@ -1354,6 +1629,24 @@ describe('WebchatController', () => {
       expect(mockTeaser.classList.contains('invisible')).toBe(true)
       expect(messages[0].classList.contains('hidden')).toBe(false)
       expect(controller.teaserCycleTimeout).toBe(null)
+    })
+
+    it('scopes the session seen flag to the rendered teaser version', () => {
+      allowPreConversationTeaser()
+      mockTeaser.dataset.teaserVersion = 'new-version'
+      mockSessionStorage.getItem.mockImplementation(key =>
+        key === `hellotext:webchat:${controller.idValue}:teaser-seen:old-version` ? 'true' : null,
+      )
+      setHasTeaserTarget(true)
+      const messages = setTeaserMessages([2])
+
+      controller.connect()
+
+      expect(mockSessionStorage.getItem).toHaveBeenCalledWith(
+        `hellotext:webchat:${controller.idValue}:teaser-seen:new-version`,
+      )
+      expect(mockTeaser.classList.contains('invisible')).toBe(false)
+      expect(messages[0].classList.contains('hidden')).toBe(false)
     })
 
     it('hides the teaser without teaser messages', () => {
@@ -2509,6 +2802,7 @@ describe('WebchatController', () => {
       expect(mockBroadcastChannel.postMessage).toHaveBeenLastCalledWith({
         type: 'message:failed',
         id: addedElement.id,
+        reason: 'Message failed',
       })
       expect(addedElement.classList.contains('failed')).toBe(true)
       expect(mockHellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith(
@@ -2829,6 +3123,7 @@ describe('WebchatController', () => {
         expect(mockBroadcastChannel.postMessage).toHaveBeenCalledWith({
           type: 'message:failed',
           id: expect.any(String),
+          reason: 'Message failed',
         })
       })
 
@@ -2909,6 +3204,28 @@ describe('WebchatController', () => {
         expect(attachmentContainer.children).toHaveLength(0)
       })
 
+      it('sends plain quick replies without product data', async () => {
+        const plainMessageElement = document.createElement('article')
+
+        await controller.sendQuickReplyMessage({
+          detail: {
+            id: 'msg-123',
+            buttonId: 'btn-789',
+            body: 'Plain quick reply',
+            cardElement: plainMessageElement,
+          },
+        })
+
+        const formData = mockMessagesAPI.create.mock.calls[0][0]
+        expect(formData.get('message[body]')).toBe('Plain quick reply')
+        expect(formData.get('message[replied_to]')).toBe('msg-123')
+        expect(formData.get('message[product]')).toBeNull()
+        expect(formData.get('message[button]')).toBe('btn-789')
+
+        const addedElement = mockMessagesContainer.children[0]
+        expect(addedElement.querySelector('[data-body]').innerText).toBe('Plain quick reply')
+      })
+
       it('handles null attachment gracefully', async () => {
         // Mock querySelector to return null
         const originalQuerySelector = mockCardElement.querySelector
@@ -2956,9 +3273,9 @@ describe('WebchatController', () => {
         await controller.sendQuickReplyMessage({ detail: eventDetail })
 
         const formData = mockMessagesAPI.create.mock.calls[0][0]
-        expect(formData.get('message[replied_to]')).toBe('undefined')
-        expect(formData.get('message[product]')).toBe('undefined')
-        expect(formData.get('message[button]')).toBe('undefined')
+        expect(formData.get('message[replied_to]')).toBeNull()
+        expect(formData.get('message[product]')).toBeNull()
+        expect(formData.get('message[button]')).toBeNull()
       })
 
       it('handles API response without id', async () => {

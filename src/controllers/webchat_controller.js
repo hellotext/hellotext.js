@@ -13,7 +13,15 @@ import { useBehaviour } from './webchat/useBehaviour'
 import { useOpeningSequence } from './webchat/useOpeningSequence'
 import { useTeaser } from './webchat/useTeaser'
 
+const POPOVER_ANIMATION_DURATION = 120
+const MESSAGE_TIMESTAMP_FORMAT_OPTIONS = {
+  hour: 'numeric',
+  minute: '2-digit',
+}
+
 export default class extends Controller {
+  static messageTimestampFormatters = {}
+
   static values = {
     id: String,
     conversationId: String,
@@ -83,6 +91,7 @@ export default class extends Controller {
     this.onScroll = this.onScroll.bind(this)
 
     this.onOutboundMessageSent = this.onOutboundMessageSent.bind(this)
+    this.closePopoverOnEscape = this.closePopoverOnEscape.bind(this)
     this.broadcastChannel = new BroadcastChannel(`hellotext--webchat--${this.idValue}`)
 
     super.initialize()
@@ -106,6 +115,7 @@ export default class extends Controller {
 
     this.setupTeaser()
     this.setupOpeningSequence()
+    this.localizeMessageTimestamps()
 
     this.webChatChannel.onMessage(this.onMessageReceived)
     this.webChatChannel.onTypingStart(this.onTypingStart)
@@ -120,6 +130,7 @@ export default class extends Controller {
 
     Hellotext.eventEmitter.dispatch('webchat:mounted')
     this.broadcastChannel.addEventListener('message', this.onOutboundMessageSent)
+    window.addEventListener('keydown', this.closePopoverOnEscape, true)
     this.scheduleBehaviourOpen()
 
     super.connect()
@@ -127,11 +138,13 @@ export default class extends Controller {
 
   disconnect() {
     this.cancelBehaviourOpen()
+    this.clearPopoverOpenAnimation()
     this.teardownTeaser()
     this.teardownOpeningSequence()
 
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
+    window.removeEventListener('keydown', this.closePopoverOnEscape, true)
 
     // Clean up typing indicator timeouts
     this.clearTypingIndicator()
@@ -228,6 +241,7 @@ export default class extends Controller {
       'message:sent': data => {
         const element = new DOMParser().parseFromString(data.element, 'text/html').body
           .firstElementChild
+        this.localizeMessageTimestamps(element)
 
         // Insert message before typing indicator if one exists
         if (this.typingIndicatorVisible && this.hasTypingIndicatorTarget) {
@@ -239,7 +253,9 @@ export default class extends Controller {
         element.scrollIntoView({ behavior: 'instant' })
       },
       'message:failed': data => {
-        this.messagesContainerTarget.querySelector(`#${data.id}`)?.classList.add('failed')
+        const element = this.messagesContainerTarget.querySelector(`#${data.id}`)
+
+        this.markMessageFailed(element, data.reason)
       },
     }
 
@@ -271,6 +287,7 @@ export default class extends Controller {
 
     messages.forEach(message => {
       const { body, attachments } = message
+      const createdAt = message.created_at || message.createdAt
 
       const div = document.createElement('div')
       div.innerHTML = body
@@ -302,6 +319,7 @@ export default class extends Controller {
       }
 
       element.setAttribute('data-body', body)
+      this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), createdAt)
       this.messagesContainerTarget.prepend(element)
     })
 
@@ -325,11 +343,29 @@ export default class extends Controller {
   }
 
   closePopover() {
-    this.popoverTarget.classList.add(...this.fadeOutClasses)
+    this.clearPopoverOpenAnimation()
+    this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    this.openValue = false
+  }
 
-    setTimeout(() => {
-      this.openValue = false
-    }, 250)
+  preparePopoverOpenAnimation() {
+    this.clearPopoverOpenAnimation()
+    this.popoverTarget.classList.remove(...this.fadeOutClasses)
+    this.popoverTarget.classList.add('hellotext--webchat-popover-opening')
+
+    this.popoverOpenAnimationTimeout = setTimeout(() => {
+      this.popoverTarget.classList.remove('hellotext--webchat-popover-opening')
+      this.popoverOpenAnimationTimeout = null
+    }, POPOVER_ANIMATION_DURATION)
+  }
+
+  clearPopoverOpenAnimation() {
+    if (this.popoverOpenAnimationTimeout) {
+      clearTimeout(this.popoverOpenAnimationTimeout)
+      this.popoverOpenAnimationTimeout = null
+    }
+
+    this.popoverTarget?.classList.remove('hellotext--webchat-popover-opening')
   }
 
   onPopoverOpened() {
@@ -369,6 +405,7 @@ export default class extends Controller {
   }
 
   onPopoverClosed() {
+    this.clearPopoverOpenAnimation()
     Hellotext.eventEmitter.dispatch('webchat:closed')
     localStorage.setItem(`hellotext--webchat--${this.idValue}`, 'closed')
   }
@@ -399,6 +436,7 @@ export default class extends Controller {
 
   onMessageReceived(message) {
     const { id, body, attachments, teaser } = message
+    const createdAt = message.created_at || message.createdAt
 
     if (!this.claimMessageId(id)) return
 
@@ -418,6 +456,7 @@ export default class extends Controller {
 
     element.setAttribute('data-id', id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), createdAt)
 
     if (attachments) {
       attachments.forEach(attachmentUrl => {
@@ -487,6 +526,7 @@ export default class extends Controller {
 
     element.setAttribute('data-id', message.id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
+    this.localizeMessageTimestamps(element)
 
     this.clearTypingIndicator()
     this.messagesContainerTarget.appendChild(element)
@@ -527,16 +567,16 @@ export default class extends Controller {
     const formData = new FormData()
 
     formData.append('message[body]', body)
-    formData.append('message[replied_to]', id)
-    formData.append('message[product]', product)
-    formData.append('message[button]', buttonId)
+    if (id) formData.append('message[replied_to]', id)
+    if (product) formData.append('message[product]', product)
+    if (buttonId) formData.append('message[button]', buttonId)
 
     formData.append('session', Hellotext.session)
     formData.append('locale', Locale.toString())
     this.appendOpeningSequenceMessageIds(formData)
 
     const element = this.buildMessageElement()
-    const attachment = cardElement.querySelector('img')?.cloneNode(true)
+    const attachment = cardElement?.querySelector('img')?.cloneNode(true)
 
     element.querySelector('[data-body]').innerText = body
 
@@ -566,17 +606,13 @@ export default class extends Controller {
       // Clear the optimistic typing indicator on failure
       clearTimeout(this.optimisticTypingTimeout)
 
-      this.broadcastChannel.postMessage({
-        type: 'message:failed',
-        id: element.id,
-      })
-
-      return element.classList.add('failed')
+      return this.markMessageFailedFromResponse(response, element)
     }
 
     const data = await response.json()
 
     this.dispatch('set:id', { target: element, detail: data.id })
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
     this.clearRevealedOpeningSequenceMessageIds()
 
     const message = {
@@ -645,16 +681,12 @@ export default class extends Controller {
     if (response.failed) {
       clearTimeout(this.optimisticTypingTimeout)
 
-      this.broadcastChannel.postMessage({
-        type: 'message:failed',
-        id: element.id,
-      })
-
-      return element.classList.add('failed')
+      return this.markMessageFailedFromResponse(response, element)
     }
 
     const data = await response.json()
     element.setAttribute('data-id', data.id)
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
     this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', {
@@ -768,17 +800,13 @@ export default class extends Controller {
       // Clear the optimistic typing indicator on failure
       clearTimeout(this.optimisticTypingTimeout)
 
-      this.broadcastChannel.postMessage({
-        type: 'message:failed',
-        id: element.id,
-      })
-
-      return element.classList.add('failed')
+      return this.markMessageFailedFromResponse(response, element)
     }
 
     const data = await response.json()
     element.setAttribute('data-id', data.id)
     message.id = data.id
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
     this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
@@ -807,7 +835,171 @@ export default class extends Controller {
     element.setAttribute('data-controller', 'hellotext--message')
     element.setAttribute('data-hellotext--webchat-target', 'message')
 
+    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), new Date())
     return element
+  }
+
+  focusCompose(event) {
+    const { target } = event
+    const ignoredSelector = [
+      'button',
+      'a',
+      'input',
+      'textarea',
+      'select',
+      'label',
+      '[role="button"]',
+      'em-emoji-picker',
+      '[data-hellotext--webchat--emoji-target~="popover"]',
+      '[data-controller~="hellotext--webchat--emoji"]',
+    ].join(', ')
+
+    if (!this.hasInputTarget || target.closest(ignoredSelector)) return
+
+    event.preventDefault()
+    this.inputTarget.focus()
+
+    if (typeof this.inputTarget.selectionStart === 'number') {
+      const position = this.inputTarget.value.length
+      this.inputTarget.setSelectionRange(position, position)
+    }
+  }
+
+  closePopoverFromHeader(event) {
+    const { target } = event
+
+    if (target.closest('.hellotext--webchat-header-channel-button, .hellotext--webchat-close-button')) return
+
+    event.preventDefault()
+    this.closePopover()
+  }
+
+  closePopoverOnEscape(event) {
+    if (event.key !== 'Escape' || !this.openValue) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.closePopover()
+
+    this.triggerTarget?.focus?.()
+  }
+
+  async markMessageFailedFromResponse(response, element) {
+    const reason = await this.messageFailureReason(response)
+
+    this.markMessageFailed(element, reason)
+    this.broadcastChannel.postMessage({
+      type: 'message:failed',
+      id: element.id,
+      reason,
+    })
+  }
+
+  markMessageFailed(element, reason) {
+    if (!element) return
+
+    element.classList.add('failed')
+
+    if (!reason) return
+
+    const timestamp = element.querySelector('[data-message-timestamp]')
+
+    if (timestamp) {
+      timestamp.textContent = reason
+    }
+  }
+
+  localizeMessageTimestamps(root = this.element) {
+    if (!root) return
+
+    const timestamps = root.matches?.('time[datetime][data-message-timestamp]')
+      ? [root]
+      : Array.from(root.querySelectorAll?.('time[datetime][data-message-timestamp]') || [])
+
+    timestamps.forEach(timestamp => this.localizeMessageTimestamp(timestamp))
+  }
+
+  localizeMessageTimestamp(timestamp, value = timestamp?.getAttribute('datetime')) {
+    if (!timestamp || !value) return
+
+    const date = value instanceof Date ? value : new Date(value)
+
+    if (Number.isNaN(date.getTime())) return
+
+    timestamp.setAttribute('datetime', date.toISOString())
+    timestamp.textContent = this.formatMessageTimestamp(date)
+  }
+
+  formatMessageTimestamp(date) {
+    return this.constructor.messageTimestampFormatterFor(Locale.toString()).format(date)
+  }
+
+  static messageTimestampFormatterFor(locale) {
+    const key = locale || 'default'
+
+    if (!this.messageTimestampFormatters[key]) {
+      this.messageTimestampFormatters[key] = this.buildMessageTimestampFormatter(locale)
+    }
+
+    return this.messageTimestampFormatters[key]
+  }
+
+  static buildMessageTimestampFormatter(locale) {
+    try {
+      return new Intl.DateTimeFormat(locale || undefined, MESSAGE_TIMESTAMP_FORMAT_OPTIONS)
+    } catch (_) {
+      return new Intl.DateTimeFormat(undefined, MESSAGE_TIMESTAMP_FORMAT_OPTIONS)
+    }
+  }
+
+  async messageFailureReason(response) {
+    const nativeResponse = response?.data || response?.response
+    const fallback = nativeResponse?.statusText || 'Message failed'
+
+    try {
+      const jsonResponse = nativeResponse?.clone ? nativeResponse.clone() : nativeResponse
+      const payload = await jsonResponse?.json?.()
+      const reason = this.messageFailureReasonFromPayload(payload)
+
+      if (reason) return reason
+    } catch (_) {
+      // Fall through to text parsing/fallback. Some stores strip content-type or
+      // return non-JSON failures, so the timestamp still needs a useful reason.
+    }
+
+    try {
+      const textResponse = nativeResponse?.clone ? nativeResponse.clone() : nativeResponse
+      const text = await textResponse?.text?.()
+
+      return this.messageFailureReasonFromText(text) || fallback
+    } catch (_) {
+      return fallback
+    }
+  }
+
+  messageFailureReasonFromText(text) {
+    if (typeof text !== 'string') return null
+
+    const value = text.trim()
+    if (!value || value.startsWith('<')) return null
+
+    try {
+      return this.messageFailureReasonFromPayload(JSON.parse(value)) || value
+    } catch (_) {
+      return value
+    }
+  }
+
+  messageFailureReasonFromPayload(payload) {
+    if (!payload) return null
+
+    return [
+      payload.error?.message,
+      payload.message,
+      payload.errors?.message,
+      payload.errors?.[0]?.message,
+      payload.errors?.[0]?.description,
+    ].find(reason => typeof reason === 'string' && reason.trim().length > 0)
   }
 
   messageAttachmentsContainer(element) {
