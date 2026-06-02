@@ -25,6 +25,13 @@ class WebchatMessagesAPI {
     })
   }
 
+  catchUp(afterId) {
+    return this.index({
+      after_id: afterId,
+      session: Hellotext.session,
+    })
+  }
+
   async create(formData) {
     const response = await fetch(this.url, {
       method: 'POST',

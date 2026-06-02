@@ -18,7 +18,9 @@ const MESSAGE_TIMESTAMP_FORMAT_OPTIONS = {
   hour: 'numeric',
   minute: '2-digit',
 }
+
 const MOBILE_USER_AGENT_PATTERN = /Android|iPhone|iPad|iPod/i
+const SCROLL_ISOLATION_EVENT_OPTIONS = { capture: true, passive: true }
 
 export default class extends Controller {
   static messageTimestampFormatters = {}
@@ -84,16 +86,22 @@ export default class extends Controller {
 
     this.files = []
     this.messageIds = new Set()
+    this.catchUpAfterMessageId = null
+    this.fetchingCatchUpMessages = false
 
     this.onMessageReceived = this.onMessageReceived.bind(this)
     this.onMessageReaction = this.onMessageReaction.bind(this)
     this.onTypingStart = this.onTypingStart.bind(this)
+    this.captureCatchUpCursor = this.captureCatchUpCursor.bind(this)
+    this.catchUpMessages = this.catchUpMessages.bind(this)
 
     this.onScroll = this.onScroll.bind(this)
 
     this.onOutboundMessageSent = this.onOutboundMessageSent.bind(this)
     this.closePopoverOnEscape = this.closePopoverOnEscape.bind(this)
     this.broadcastChannel = new BroadcastChannel(`hellotext--webchat--${this.idValue}`)
+    this.webChatChannel.onDisconnect(this.captureCatchUpCursor)
+    this.webChatChannel.onReconnect(this.catchUpMessages)
 
     super.initialize()
   }
@@ -123,7 +131,18 @@ export default class extends Controller {
 
     this.webChatChannel.onReaction(this.onMessageReaction)
 
+    this.setupMessagesContainerScrollIsolation()
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
+    this.messagesContainerTarget.addEventListener(
+      'wheel',
+      this.stopHostScrollPropagation,
+      SCROLL_ISOLATION_EVENT_OPTIONS,
+    )
+    this.messagesContainerTarget.addEventListener(
+      'touchmove',
+      this.stopHostScrollPropagation,
+      SCROLL_ISOLATION_EVENT_OPTIONS,
+    )
 
     if (this.shouldOpenOnMount) {
       this.openValue = true
@@ -145,6 +164,16 @@ export default class extends Controller {
 
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
+    this.messagesContainerTarget.removeEventListener(
+      'wheel',
+      this.stopHostScrollPropagation,
+      SCROLL_ISOLATION_EVENT_OPTIONS,
+    )
+    this.messagesContainerTarget.removeEventListener(
+      'touchmove',
+      this.stopHostScrollPropagation,
+      SCROLL_ISOLATION_EVENT_OPTIONS,
+    )
     window.removeEventListener('keydown', this.closePopoverOnEscape, true)
 
     // Clean up typing indicator timeouts
@@ -154,6 +183,20 @@ export default class extends Controller {
     this.floatingUICleanup()
 
     super.disconnect()
+  }
+
+  setupMessagesContainerScrollIsolation() {
+    this.messagesContainerTarget.style.overscrollBehavior = 'contain'
+    this.messagesContainerTarget.style.webkitOverflowScrolling = 'touch'
+    this.messagesContainerTarget.style.touchAction = 'pan-y'
+
+    this.messagesContainerTarget.setAttribute('data-lenis-prevent', '')
+    this.messagesContainerTarget.setAttribute('data-lenis-prevent-wheel', '')
+    this.messagesContainerTarget.setAttribute('data-lenis-prevent-touch', '')
+  }
+
+  stopHostScrollPropagation(event) {
+    event.stopPropagation()
   }
 
   onTypingStart() {
@@ -295,7 +338,14 @@ export default class extends Controller {
 
       const element = this.messageTemplateTarget.cloneNode(true)
 
+      element.classList.add('hellotext--webchat-message')
       element.setAttribute('data-hellotext--webchat-target', 'message')
+      element.setAttribute('data-id', message.id)
+
+      if (createdAt) {
+        element.setAttribute('data-created-at', createdAt)
+      }
+
       element.style.removeProperty('display')
 
       element.querySelector('[data-body]').innerHTML = div.innerHTML
@@ -435,7 +485,7 @@ export default class extends Controller {
     }
   }
 
-  onMessageReceived(message) {
+  onMessageReceived(message, options = {}) {
     const { id, body, attachments, teaser } = message
     const createdAt = message.created_at || message.createdAt
 
@@ -444,19 +494,21 @@ export default class extends Controller {
     this.hideTeaser?.()
 
     if (message.carousel) {
-      return this.insertCarouselMessage(message)
+      return this.insertCarouselMessage(message, options)
     }
 
     const div = document.createElement('div')
     div.innerHTML = body
 
     const element = this.messageTemplateTarget.cloneNode(true)
+    element.classList.add('hellotext--webchat-message')
     element.style.display = 'flex'
 
     element.querySelector('[data-body]').innerHTML = div.innerHTML
 
     element.setAttribute('data-id', id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
+    this.setMessageCreatedAt(element, createdAt)
     this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), createdAt)
 
     if (attachments) {
@@ -470,14 +522,16 @@ export default class extends Controller {
     }
 
     this.clearTypingIndicator()
-    this.messagesContainerTarget.appendChild(element)
+    this.insertMessageElement(element)
 
     Hellotext.eventEmitter.dispatch('webchat:message:received', {
       ...message,
       body: element.querySelector('[data-body]').innerText,
     })
 
-    element.scrollIntoView({ behavior: 'smooth' })
+    if (options.scroll !== false) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
 
     this.updateMessageTeaser(teaser)
 
@@ -502,6 +556,70 @@ export default class extends Controller {
     return !messageTargets.some(element => element.dataset.id === id)
   }
 
+  captureCatchUpCursor() {
+    this.catchUpAfterMessageId = this.lastRenderedMessageId
+  }
+
+  async catchUpMessages() {
+    const afterId = this.catchUpAfterMessageId
+
+    if (!afterId || this.fetchingCatchUpMessages) return
+
+    this.fetchingCatchUpMessages = true
+
+    try {
+      const response = await this.messagesAPI.catchUp(afterId)
+      const { messages = [] } = await response.json()
+
+      messages.forEach(message => this.onMessageReceived(message, { scroll: false }))
+      this.catchUpAfterMessageId = this.lastRenderedMessageId
+    } finally {
+      this.fetchingCatchUpMessages = false
+    }
+  }
+
+  get lastRenderedMessageId() {
+    const messages = this.persistedMessageElements
+
+    return messages[messages.length - 1]?.dataset.id || null
+  }
+
+  get persistedMessageElements() {
+    return Array.from(
+      this.messagesContainerTarget.querySelectorAll('.hellotext--webchat-message[data-id]'),
+    )
+  }
+
+  setMessageCreatedAt(element, createdAt) {
+    if (createdAt) {
+      element.setAttribute('data-created-at', createdAt)
+    }
+  }
+
+  insertMessageElement(element) {
+    const nextElement = this.nextMessageElementFor(element)
+
+    if (nextElement) {
+      this.messagesContainerTarget.insertBefore(element, nextElement)
+    } else {
+      this.messagesContainerTarget.appendChild(element)
+    }
+  }
+
+  nextMessageElementFor(element) {
+    const createdAt = Date.parse(element.dataset.createdAt)
+
+    if (Number.isNaN(createdAt)) return null
+
+    return this.persistedMessageElements.find(messageElement => {
+      if (messageElement === element) return false
+
+      const messageCreatedAt = Date.parse(messageElement.dataset.createdAt)
+
+      return !Number.isNaN(messageCreatedAt) && messageCreatedAt > createdAt
+    })
+  }
+
   updateMessageTeaser(teaser) {
     this.messageTeaserValue = teaser
 
@@ -521,18 +639,23 @@ export default class extends Controller {
     this.teaserTarget.classList.toggle('invisible', this.openValue)
   }
 
-  insertCarouselMessage(message) {
+  insertCarouselMessage(message, options = {}) {
     const html = message.html
+    const createdAt = message.created_at || message.createdAt
     const element = new DOMParser().parseFromString(html, 'text/html').body.firstElementChild
 
+    element.classList.add('hellotext--webchat-message')
     element.setAttribute('data-id', message.id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
+    this.setMessageCreatedAt(element, createdAt)
     this.localizeMessageTimestamps(element)
 
     this.clearTypingIndicator()
-    this.messagesContainerTarget.appendChild(element)
+    this.insertMessageElement(element)
 
-    element.scrollIntoView({ behavior: 'smooth' })
+    if (options.scroll !== false) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
 
     Hellotext.eventEmitter.dispatch('webchat:message:received', {
       ...message,
@@ -613,7 +736,10 @@ export default class extends Controller {
     const data = await response.json()
 
     this.dispatch('set:id', { target: element, detail: data.id })
-    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
+    this.localizeMessageTimestamp(
+      element.querySelector('[data-message-timestamp]'),
+      data.created_at || data.createdAt,
+    )
     this.clearRevealedOpeningSequenceMessageIds()
 
     const message = {
@@ -687,7 +813,10 @@ export default class extends Controller {
 
     const data = await response.json()
     element.setAttribute('data-id', data.id)
-    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
+    this.localizeMessageTimestamp(
+      element.querySelector('[data-message-timestamp]'),
+      data.created_at || data.createdAt,
+    )
     this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', {
@@ -807,7 +936,10 @@ export default class extends Controller {
     const data = await response.json()
     element.setAttribute('data-id', data.id)
     message.id = data.id
-    this.localizeMessageTimestamp(element.querySelector('[data-message-timestamp]'), data.created_at || data.createdAt)
+    this.localizeMessageTimestamp(
+      element.querySelector('[data-message-timestamp]'),
+      data.created_at || data.createdAt,
+    )
     this.clearRevealedOpeningSequenceMessageIds()
 
     Hellotext.eventEmitter.dispatch('webchat:message:sent', message)
@@ -865,7 +997,10 @@ export default class extends Controller {
   closePopoverFromHeader(event) {
     const { target } = event
 
-    if (target.closest('.hellotext--webchat-header-channel-button, .hellotext--webchat-close-button')) return
+    if (
+      target.closest('.hellotext--webchat-header-channel-button, .hellotext--webchat-close-button')
+    )
+      return
 
     event.preventDefault()
     this.closePopover()
@@ -1166,7 +1301,9 @@ export default class extends Controller {
   get hasTouchOnlyPointer() {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
 
-    return window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(hover: none)').matches
+    return (
+      window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(hover: none)').matches
+    )
   }
 
   get onMobile() {
