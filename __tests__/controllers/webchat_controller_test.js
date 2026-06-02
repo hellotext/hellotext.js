@@ -1582,6 +1582,39 @@ describe('WebchatController', () => {
       expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', controller.closePopoverOnEscape, true)
     })
 
+    it('isolates message scrolling from host smooth scroll handlers', () => {
+      const addEventListenerSpy = jest.spyOn(mockMessagesContainer, 'addEventListener')
+
+      setHasTeaserTarget(false)
+      controller.connect()
+
+      expect(mockMessagesContainer.style.overscrollBehavior).toBe('contain')
+      expect(mockMessagesContainer.style.webkitOverflowScrolling).toBe('touch')
+      expect(mockMessagesContainer.style.touchAction).toBe('pan-y')
+      expect(mockMessagesContainer.hasAttribute('data-lenis-prevent')).toBe(true)
+      expect(mockMessagesContainer.hasAttribute('data-lenis-prevent-wheel')).toBe(true)
+      expect(mockMessagesContainer.hasAttribute('data-lenis-prevent-touch')).toBe(true)
+      expect(addEventListenerSpy).toHaveBeenCalledWith(
+        'wheel',
+        controller.stopHostScrollPropagation,
+        expect.objectContaining({ capture: true, passive: true }),
+      )
+      expect(addEventListenerSpy).toHaveBeenCalledWith(
+        'touchmove',
+        controller.stopHostScrollPropagation,
+        expect.objectContaining({ capture: true, passive: true }),
+      )
+    })
+
+    it('stops host scroll events from bubbling out of the message scroller', () => {
+      const event = new WheelEvent('wheel')
+      const stopPropagation = jest.spyOn(event, 'stopPropagation')
+
+      controller.stopHostScrollPropagation(event)
+
+      expect(stopPropagation).toHaveBeenCalled()
+    })
+
     it('removes the capture-phase Escape listener on disconnect', () => {
       const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener')
 
@@ -1591,6 +1624,26 @@ describe('WebchatController', () => {
       controller.disconnect()
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', controller.closePopoverOnEscape, true)
+    })
+
+    it('removes message scroll isolation listeners on disconnect', () => {
+      const removeEventListenerSpy = jest.spyOn(mockMessagesContainer, 'removeEventListener')
+
+      setHasTeaserTarget(false)
+      controller.floatingUICleanup = jest.fn()
+      controller.connect()
+      controller.disconnect()
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'wheel',
+        controller.stopHostScrollPropagation,
+        expect.objectContaining({ capture: true, passive: true }),
+      )
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'touchmove',
+        controller.stopHostScrollPropagation,
+        expect.objectContaining({ capture: true, passive: true }),
+      )
     })
 
     it('does not set up teaser positioning without a teaser target', () => {
