@@ -18,6 +18,7 @@ const MESSAGE_TIMESTAMP_FORMAT_OPTIONS = {
   hour: 'numeric',
   minute: '2-digit',
 }
+const SCROLL_ISOLATION_EVENT_OPTIONS = { capture: true, passive: true }
 
 export default class extends Controller {
   static messageTimestampFormatters = {}
@@ -122,7 +123,18 @@ export default class extends Controller {
 
     this.webChatChannel.onReaction(this.onMessageReaction)
 
+    this.setupMessagesContainerScrollIsolation()
     this.messagesContainerTarget.addEventListener('scroll', this.onScroll)
+    this.messagesContainerTarget.addEventListener(
+      'wheel',
+      this.stopHostScrollPropagation,
+      SCROLL_ISOLATION_EVENT_OPTIONS,
+    )
+    this.messagesContainerTarget.addEventListener(
+      'touchmove',
+      this.stopHostScrollPropagation,
+      SCROLL_ISOLATION_EVENT_OPTIONS,
+    )
 
     if (this.shouldOpenOnMount) {
       this.openValue = true
@@ -144,6 +156,16 @@ export default class extends Controller {
 
     this.broadcastChannel.removeEventListener('message', this.onOutboundMessageSent)
     this.messagesContainerTarget.removeEventListener('scroll', this.onScroll)
+    this.messagesContainerTarget.removeEventListener(
+      'wheel',
+      this.stopHostScrollPropagation,
+      SCROLL_ISOLATION_EVENT_OPTIONS,
+    )
+    this.messagesContainerTarget.removeEventListener(
+      'touchmove',
+      this.stopHostScrollPropagation,
+      SCROLL_ISOLATION_EVENT_OPTIONS,
+    )
     window.removeEventListener('keydown', this.closePopoverOnEscape, true)
 
     // Clean up typing indicator timeouts
@@ -153,6 +175,20 @@ export default class extends Controller {
     this.floatingUICleanup()
 
     super.disconnect()
+  }
+
+  setupMessagesContainerScrollIsolation() {
+    this.messagesContainerTarget.style.overscrollBehavior = 'contain'
+    this.messagesContainerTarget.style.webkitOverflowScrolling = 'touch'
+    this.messagesContainerTarget.style.touchAction = 'pan-y'
+
+    this.messagesContainerTarget.setAttribute('data-lenis-prevent', '')
+    this.messagesContainerTarget.setAttribute('data-lenis-prevent-wheel', '')
+    this.messagesContainerTarget.setAttribute('data-lenis-prevent-touch', '')
+  }
+
+  stopHostScrollPropagation(event) {
+    event.stopPropagation()
   }
 
   onTypingStart() {
