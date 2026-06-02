@@ -18,6 +18,7 @@ const MESSAGE_TIMESTAMP_FORMAT_OPTIONS = {
   hour: 'numeric',
   minute: '2-digit',
 }
+const MOBILE_USER_AGENT_PATTERN = /Android|iPhone|iPad|iPod/i
 
 export default class extends Controller {
   static messageTimestampFormatters = {}
@@ -373,7 +374,7 @@ export default class extends Controller {
     this.dismissTeaserForSession?.()
 
     if (!this.onMobile) {
-      this.inputTarget.focus()
+      this.focusComposeInput()
     }
 
     if (!this.scrolled) {
@@ -783,7 +784,7 @@ export default class extends Controller {
     this.attachmentContainerTarget.style.display = 'none'
     this.errorMessageContainerTarget.style.display = 'none'
 
-    this.inputTarget.focus()
+    this.focusComposeInput()
 
     // Set up optimistic typing indicator BEFORE making the API call
     // This prevents race conditions with server responses
@@ -856,13 +857,9 @@ export default class extends Controller {
 
     if (!this.hasInputTarget || target.closest(ignoredSelector)) return
 
-    event.preventDefault()
-    this.inputTarget.focus()
+    if (!this.focusComposeInput({ moveCursorToEnd: true })) return
 
-    if (typeof this.inputTarget.selectionStart === 'number') {
-      const position = this.inputTarget.value.length
-      this.inputTarget.setSelectionRange(position, position)
-    }
+    event.preventDefault()
   }
 
   closePopoverFromHeader(event) {
@@ -1049,7 +1046,7 @@ export default class extends Controller {
     this.errorMessageContainerTarget.innerText = ''
 
     newFiles.forEach(file => this.createAttachmentElement(file))
-    this.inputTarget.focus()
+    this.focusComposeInput()
   }
 
   createAttachmentElement(file) {
@@ -1091,7 +1088,7 @@ export default class extends Controller {
     this.attachmentInputTarget.value = ''
 
     attachment.remove()
-    this.inputTarget.focus()
+    this.focusComposeInput()
   }
 
   attachmentTargetDisconnected() {
@@ -1119,7 +1116,22 @@ export default class extends Controller {
     this.inputTarget.value = value.slice(0, start) + emoji + value.slice(end)
 
     this.inputTarget.selectionStart = this.inputTarget.selectionEnd = start + emoji.length
+    this.focusComposeInput()
+  }
+
+  focusComposeInput({ moveCursorToEnd = false } = {}) {
+    if (!this.shouldAutofocusCompose) return false
+    if (this.hasInputTarget === false) return false
+    if (this.hasInputTarget === undefined && !this.inputTarget) return false
+
     this.inputTarget.focus()
+
+    if (moveCursorToEnd && typeof this.inputTarget.selectionStart === 'number') {
+      const position = this.inputTarget.value.length
+      this.inputTarget.setSelectionRange(position, position)
+    }
+
+    return true
   }
 
   byteToMegabyte(bytes) {
@@ -1136,7 +1148,30 @@ export default class extends Controller {
     )
   }
 
+  get shouldAutofocusCompose() {
+    return !this.usesVirtualKeyboard
+  }
+
+  get usesVirtualKeyboard() {
+    if (typeof navigator === 'undefined') return false
+
+    const userAgent = navigator.userAgent || ''
+    const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+    const isMobileUserAgent = MOBILE_USER_AGENT_PATTERN.test(userAgent)
+    const isUserAgentDataMobile = navigator.userAgentData?.mobile === true
+
+    return isMobileUserAgent || isIPadOS || isUserAgentDataMobile || this.hasTouchOnlyPointer
+  }
+
+  get hasTouchOnlyPointer() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+
+    return window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(hover: none)').matches
+  }
+
   get onMobile() {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+
     return window.matchMedia(`(max-width: ${this.fullScreenThresholdValue}px)`).matches
   }
 }
