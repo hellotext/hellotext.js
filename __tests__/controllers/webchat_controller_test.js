@@ -404,6 +404,7 @@ describe('WebchatController', () => {
       // Mock messagesAPI
       mockMessagesAPI = {
         markAsSeen: jest.fn(),
+        catchUp: jest.fn(),
       }
       controller.messagesAPI = mockMessagesAPI
 
@@ -524,6 +525,48 @@ describe('WebchatController', () => {
         expect(addedElement.querySelector('[data-body]').innerHTML).toBe(
           '<strong>Bold text</strong> and <em>italic text</em>',
         )
+      })
+
+      it('inserts catch-up messages before newer messages that arrived after reconnect', async () => {
+        const loadedMessage = document.createElement('article')
+        loadedMessage.className = 'hellotext--webchat-message'
+        loadedMessage.dataset.id = 'loaded-message'
+        loadedMessage.dataset.createdAt = '2026-06-01T01:00:00Z'
+        mockMessagesContainer.appendChild(loadedMessage)
+
+        controller.captureCatchUpCursor()
+        controller.onMessageReceived({
+          body: '<p>Newer realtime</p>',
+          created_at: '2026-06-01T01:00:02Z',
+          id: 'newer-realtime',
+        })
+
+        mockMessagesAPI.catchUp.mockResolvedValue({
+          json: jest.fn().mockResolvedValue({
+            messages: [
+              {
+                body: '<p>Missed message</p>',
+                created_at: '2026-06-01T01:00:01Z',
+                id: 'missed-message',
+              },
+              {
+                body: '<p>Newer realtime duplicate</p>',
+                created_at: '2026-06-01T01:00:02Z',
+                id: 'newer-realtime',
+              },
+            ],
+          }),
+        })
+
+        await controller.catchUpMessages()
+
+        const messageIds = Array.from(
+          mockMessagesContainer.querySelectorAll('.hellotext--webchat-message[data-id]'),
+        ).map(element => element.dataset.id)
+
+        expect(mockMessagesAPI.catchUp).toHaveBeenCalledWith('loaded-message')
+        expect(messageIds).toEqual(['loaded-message', 'missed-message', 'newer-realtime'])
+        expect(mockHellotext.eventEmitter.dispatch).toHaveBeenCalledTimes(2)
       })
     })
 

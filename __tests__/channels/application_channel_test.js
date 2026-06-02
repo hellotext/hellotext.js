@@ -1,5 +1,19 @@
 import ApplicationChannel from '../../src/channels/application_channel'
 
+const WEB_SOCKET_STATES = {
+  CONNECTING: 0,
+  OPEN: 1,
+  CLOSING: 2,
+  CLOSED: 3
+}
+
+const mockGlobalWebSocket = implementation => {
+  global.WebSocket = jest.fn(implementation)
+  Object.assign(global.WebSocket, WEB_SOCKET_STATES)
+
+  return global.WebSocket
+}
+
 jest.mock('../../src/core', () => ({
   Configuration: {
     actionCableUrl: 'wss://test.hellotext.com/cable'
@@ -13,8 +27,25 @@ describe('ApplicationChannel', () => {
   let mockAddEventListener
   let mockRemoveEventListener
 
+  const eventCallbacksFor = (socket, eventName) => (
+    socket.addEventListener.mock.calls
+      .filter(call => call[0] === eventName)
+      .map(call => call[1])
+  )
+  const lastEventCallbackFor = (socket, eventName) => eventCallbacksFor(socket, eventName).at(-1)
+
   beforeEach(() => {
+    mockGlobalWebSocket(() => mockWebSocket)
+
     ApplicationChannel.webSocket = null
+    ApplicationChannel.channels = new Set()
+    ApplicationChannel.messageHandlers = new Set()
+    ApplicationChannel.disconnectHandlers = new Set()
+    ApplicationChannel.subscriptionConfirmHandlers = new Set()
+    ApplicationChannel.reconnectTimeout = null
+    ApplicationChannel.reconnectAttempts = 0
+    ApplicationChannel.reconnectJitter = 0
+    ApplicationChannel.needsResubscribe = false
 
     mockSend = jest.fn()
     mockAddEventListener = jest.fn()
@@ -28,11 +59,12 @@ describe('ApplicationChannel', () => {
       close: jest.fn()
     }
 
-    global.WebSocket = jest.fn(() => mockWebSocket)
     applicationChannel = new ApplicationChannel()
   })
 
   afterEach(() => {
+    ApplicationChannel.clearReconnectTimeout()
+    jest.useRealTimers()
     jest.clearAllMocks()
   })
 
@@ -113,7 +145,7 @@ describe('ApplicationChannel', () => {
         close: jest.fn()
       }
 
-      global.WebSocket = jest.fn(() => connectingWebSocket)
+      mockGlobalWebSocket(() => connectingWebSocket)
 
       const channel = new ApplicationChannel()
 
@@ -127,11 +159,7 @@ describe('ApplicationChannel', () => {
 
       expect(connectingWebSocket.addEventListener).toHaveBeenCalledWith('open', expect.any(Function))
 
-      const openCallback = connectingWebSocket.addEventListener.mock.calls.find(
-        call => call[0] === 'open'
-      )[1]
-
-      openCallback()
+      eventCallbacksFor(connectingWebSocket, 'open').forEach(callback => callback())
 
       expect(connectingWebSocket.send).toHaveBeenCalledWith(JSON.stringify({
         command: 'subscribe',
@@ -151,7 +179,7 @@ describe('ApplicationChannel', () => {
         close: jest.fn()
       }
 
-      global.WebSocket = jest.fn(() => closedWebSocket)
+      mockGlobalWebSocket(() => closedWebSocket)
 
       const channel = new ApplicationChannel()
 
@@ -176,7 +204,7 @@ describe('ApplicationChannel', () => {
         close: jest.fn()
       }
 
-      global.WebSocket = jest.fn(() => closingWebSocket)
+      mockGlobalWebSocket(() => closingWebSocket)
 
       const channel = new ApplicationChannel()
 
@@ -238,9 +266,7 @@ describe('ApplicationChannel', () => {
     it('calls callback with parsed message data', () => {
       applicationChannel.onMessage(mockCallback)
 
-      const messageCallback = mockAddEventListener.mock.calls.find(
-        call => call[0] === 'message'
-      )[1]
+      const messageCallback = lastEventCallbackFor(mockWebSocket, 'message')
 
       const mockEvent = {
         data: JSON.stringify({
@@ -257,9 +283,7 @@ describe('ApplicationChannel', () => {
     it('filters out ignored events', () => {
       applicationChannel.onMessage(mockCallback)
 
-      const messageCallback = mockAddEventListener.mock.calls.find(
-        call => call[0] === 'message'
-      )[1]
+      const messageCallback = lastEventCallbackFor(mockWebSocket, 'message')
 
       const ignoredEvents = ['ping', 'confirm_subscription', 'welcome']
 
@@ -280,9 +304,7 @@ describe('ApplicationChannel', () => {
     it('handles non-ignored events correctly', () => {
       applicationChannel.onMessage(mockCallback)
 
-      const messageCallback = mockAddEventListener.mock.calls.find(
-        call => call[0] === 'message'
-      )[1]
+      const messageCallback = lastEventCallbackFor(mockWebSocket, 'message')
 
       const validEvents = ['message', 'conversation.assigned', 'agent_is_online']
 
@@ -306,9 +328,7 @@ describe('ApplicationChannel', () => {
     it('handles malformed JSON gracefully', () => {
       applicationChannel.onMessage(mockCallback)
 
-      const messageCallback = mockAddEventListener.mock.calls.find(
-        call => call[0] === 'message'
-      )[1]
+      const messageCallback = lastEventCallbackFor(mockWebSocket, 'message')
 
       const mockEvent = {
         data: 'invalid json {'
@@ -320,9 +340,7 @@ describe('ApplicationChannel', () => {
     it('handles missing message property', () => {
       applicationChannel.onMessage(mockCallback)
 
-      const messageCallback = mockAddEventListener.mock.calls.find(
-        call => call[0] === 'message'
-      )[1]
+      const messageCallback = lastEventCallbackFor(mockWebSocket, 'message')
 
       const mockEvent = {
         data: JSON.stringify({
@@ -339,9 +357,7 @@ describe('ApplicationChannel', () => {
     it('handles null message data', () => {
       applicationChannel.onMessage(mockCallback)
 
-      const messageCallback = mockAddEventListener.mock.calls.find(
-        call => call[0] === 'message'
-      )[1]
+      const messageCallback = lastEventCallbackFor(mockWebSocket, 'message')
 
       const mockEvent = {
         data: JSON.stringify({
@@ -373,6 +389,38 @@ describe('ApplicationChannel', () => {
   })
 
   describe('WebSocket state handling', () => {
+    it('replaces a closed shared WebSocket before sending', () => {
+      const closedWebSocket = {
+        readyState: WebSocket.CLOSED,
+        send: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        close: jest.fn()
+      }
+      const replacementWebSocket = {
+        readyState: WebSocket.OPEN,
+        send: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        close: jest.fn()
+      }
+
+      ApplicationChannel.webSocket = closedWebSocket
+      mockGlobalWebSocket(() => replacementWebSocket)
+
+      const channel = new ApplicationChannel()
+      const payload = { command: 'test', identifier: {} }
+
+      channel.send(payload)
+
+      expect(WebSocket).toHaveBeenCalledWith('wss://test.hellotext.com/cable')
+      expect(replacementWebSocket.send).toHaveBeenCalledWith(JSON.stringify({
+        command: 'test',
+        identifier: JSON.stringify({}),
+        data: JSON.stringify({})
+      }))
+    })
+
     it('handles WebSocket readyState changes', () => {
       const payload = { command: 'test', identifier: {} }
 
@@ -391,12 +439,150 @@ describe('ApplicationChannel', () => {
         close: jest.fn()
       }
 
-      global.WebSocket = jest.fn(() => connectingWebSocket)
+      mockGlobalWebSocket(() => connectingWebSocket)
 
       const channel2 = new ApplicationChannel()
       channel2.send(payload)
       expect(connectingWebSocket.send).not.toHaveBeenCalled()
       expect(connectingWebSocket.addEventListener).toHaveBeenCalledWith('open', expect.any(Function))
+    })
+  })
+
+  describe('reconnect handling', () => {
+    it('debounces reconnect attempts after a socket disconnects', () => {
+      jest.useFakeTimers()
+
+      const firstWebSocket = {
+        readyState: WebSocket.OPEN,
+        send: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        close: jest.fn()
+      }
+      const secondWebSocket = {
+        readyState: WebSocket.CONNECTING,
+        send: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        close: jest.fn()
+      }
+
+      mockGlobalWebSocket()
+        .mockReturnValueOnce(firstWebSocket)
+        .mockReturnValueOnce(secondWebSocket)
+
+      const channel = new ApplicationChannel()
+      expect(channel.webSocket).toBe(firstWebSocket)
+
+      eventCallbacksFor(firstWebSocket, 'close').forEach(callback => callback())
+      eventCallbacksFor(firstWebSocket, 'error').forEach(callback => callback())
+
+      expect(WebSocket).toHaveBeenCalledTimes(1)
+
+      jest.advanceTimersByTime(ApplicationChannel.reconnectBaseDelay)
+
+      expect(WebSocket).toHaveBeenCalledTimes(2)
+      expect(ApplicationChannel.webSocket).toBe(secondWebSocket)
+    })
+
+    it('replays message handlers and active subscriptions on reconnect', () => {
+      jest.useFakeTimers()
+
+      const firstWebSocket = {
+        readyState: WebSocket.OPEN,
+        send: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        close: jest.fn()
+      }
+      const secondWebSocket = {
+        readyState: WebSocket.CONNECTING,
+        send: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        close: jest.fn()
+      }
+
+      mockGlobalWebSocket()
+        .mockReturnValueOnce(firstWebSocket)
+        .mockReturnValueOnce(secondWebSocket)
+
+      class TestChannel extends ApplicationChannel {
+        constructor() {
+          super()
+          this.subscribe = jest.fn(() => {
+            this.send({ command: 'subscribe', identifier: { channel: 'TestChannel' } })
+          })
+        }
+      }
+
+      const channel = new TestChannel()
+      const callback = jest.fn()
+
+      channel.onMessage(callback)
+      eventCallbacksFor(firstWebSocket, 'close').forEach(closeCallback => closeCallback())
+      jest.advanceTimersByTime(ApplicationChannel.reconnectBaseDelay)
+
+      const secondMessageCallback = lastEventCallbackFor(secondWebSocket, 'message')
+      secondMessageCallback({
+        data: JSON.stringify({
+          type: 'message',
+          message: { id: 'reconnected-message' }
+        })
+      })
+
+      secondWebSocket.readyState = WebSocket.OPEN
+      eventCallbacksFor(secondWebSocket, 'open').forEach(openCallback => openCallback())
+
+      expect(callback).toHaveBeenCalledWith({ id: 'reconnected-message' })
+      expect(channel.subscribe).toHaveBeenCalledTimes(1)
+      expect(secondWebSocket.send).toHaveBeenCalledWith(JSON.stringify({
+        command: 'subscribe',
+        identifier: JSON.stringify({ channel: 'TestChannel' }),
+        data: JSON.stringify({})
+      }))
+    })
+
+    it('notifies disconnect handlers before scheduling reconnect', () => {
+      jest.useFakeTimers()
+
+      const disconnectCallback = jest.fn()
+      applicationChannel.onDisconnect(disconnectCallback)
+
+      expect(applicationChannel.webSocket).toBe(mockWebSocket)
+
+      eventCallbacksFor(mockWebSocket, 'close').forEach(callback => callback())
+
+      expect(disconnectCallback).toHaveBeenCalledTimes(1)
+    })
+
+    it('notifies subscription confirmation handlers for ActionCable confirmations', () => {
+      const confirmationCallback = jest.fn()
+      applicationChannel.onSubscriptionConfirmed(confirmationCallback)
+
+      expect(applicationChannel.webSocket).toBe(mockWebSocket)
+
+      eventCallbacksFor(mockWebSocket, 'message')[0]({
+        data: JSON.stringify({
+          type: 'confirm_subscription',
+          identifier: JSON.stringify({ channel: 'TestChannel' })
+        })
+      })
+
+      expect(confirmationCallback).toHaveBeenCalledWith(JSON.stringify({ channel: 'TestChannel' }))
+    })
+
+    it('ignores malformed control messages', () => {
+      const confirmationCallback = jest.fn()
+      applicationChannel.onSubscriptionConfirmed(confirmationCallback)
+
+      expect(applicationChannel.webSocket).toBe(mockWebSocket)
+
+      expect(() => eventCallbacksFor(mockWebSocket, 'message')[0]({
+        data: '{"invalid": json}'
+      })).not.toThrow()
+
+      expect(confirmationCallback).not.toHaveBeenCalled()
     })
   })
 
@@ -415,9 +601,7 @@ describe('ApplicationChannel', () => {
       const mockCallback = jest.fn()
       applicationChannel.onMessage(mockCallback)
 
-      const messageCallback = mockAddEventListener.mock.calls.find(
-        call => call[0] === 'message'
-      )[1]
+      const messageCallback = lastEventCallbackFor(mockWebSocket, 'message')
 
       const mockEvent = {
         data: '{"invalid": json}'

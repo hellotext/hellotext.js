@@ -5,6 +5,9 @@ jest.mock('../../src/channels/application_channel', () => {
   return jest.fn().mockImplementation(function() {
     this.send = jest.fn()
     this.onMessage = jest.fn()
+    this.onSubscriptionConfirmed = jest.fn(callback => {
+      this.subscriptionConfirmedCallback = callback
+    })
     return this
   })
 })
@@ -79,6 +82,73 @@ describe('WebchatChannel', () => {
           conversation: 'test-conversation'
         }
       })
+    })
+  })
+
+  describe('resubscribe method', () => {
+    it('sends subscribe command when the channel is still active', () => {
+      mockSend.mockClear()
+
+      webchatChannel.resubscribe()
+
+      expect(mockSend).toHaveBeenCalledWith({
+        command: 'subscribe',
+        identifier: {
+          channel: 'WebchatChannel',
+          id: 'test-id',
+          session: 'test-session',
+          conversation: 'test-conversation'
+        }
+      })
+    })
+
+    it('does not send subscribe command while the channel is unsubscribed', () => {
+      webchatChannel.unsubscribe()
+      mockSend.mockClear()
+
+      webchatChannel.resubscribe()
+
+      expect(mockSend).not.toHaveBeenCalled()
+    })
+
+    it('calls reconnect callbacks after the resubscription is confirmed', () => {
+      const callback = jest.fn()
+      webchatChannel.onReconnect(callback)
+
+      webchatChannel.resubscribe()
+      webchatChannel.subscriptionConfirmedCallback(JSON.stringify({
+        channel: 'WebchatChannel',
+        id: 'test-id',
+        session: 'test-session',
+        conversation: 'test-conversation'
+      }))
+
+      expect(callback).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not call reconnect callbacks for another subscription confirmation', () => {
+      const callback = jest.fn()
+      webchatChannel.onReconnect(callback)
+
+      webchatChannel.resubscribe()
+      webchatChannel.subscriptionConfirmedCallback(JSON.stringify({
+        channel: 'WebchatChannel',
+        id: 'other-id',
+        session: 'test-session',
+        conversation: 'test-conversation'
+      }))
+
+      expect(callback).not.toHaveBeenCalled()
+    })
+
+    it('does not call reconnect callbacks for malformed subscription confirmations', () => {
+      const callback = jest.fn()
+      webchatChannel.onReconnect(callback)
+
+      webchatChannel.resubscribe()
+
+      expect(() => webchatChannel.subscriptionConfirmedCallback('invalid json {')).not.toThrow()
+      expect(callback).not.toHaveBeenCalled()
     })
   })
 
