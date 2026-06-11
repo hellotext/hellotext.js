@@ -32,6 +32,14 @@ async function createConsumer(name, tarball) {
 
 function browserStub() {
   return `
+const defineGlobal = (name, value) => {
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    writable: true,
+    value,
+  })
+}
+
 const createElementStub = () => ({
   style: {},
   classList: { add() {}, remove() {} },
@@ -74,10 +82,10 @@ globalThis.document = {
   createTextNode(text) { return { textContent: text } },
 }
 globalThis.window.document = globalThis.document
-globalThis.navigator = { userAgent: 'node' }
-globalThis.localStorage = { getItem() { return null }, setItem() {}, removeItem() {} }
-globalThis.sessionStorage = { getItem() { return null }, setItem() {}, removeItem() {} }
-globalThis.MutationObserver = class { observe() {} disconnect() {} }
+defineGlobal('navigator', { userAgent: 'node' })
+defineGlobal('localStorage', { getItem() { return null }, setItem() {}, removeItem() {} })
+defineGlobal('sessionStorage', { getItem() { return null }, setItem() {}, removeItem() {} })
+defineGlobal('MutationObserver', class { observe() {} disconnect() {} })
 `
 }
 
