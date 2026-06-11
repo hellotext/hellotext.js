@@ -103,7 +103,7 @@ if (globalThis.window.Hellotext !== mod.default) throw new Error('root ESM did n
       `${browserStub()}
 const mod = require('@hellotext/hellotext')
 if (typeof mod.default?.initialize !== 'function') throw new Error('missing root CJS export')
-if (global.window.Hellotext !== mod.default) throw new Error('root CJS did not attach Hellotext to window')
+if (globalThis.window.Hellotext !== mod.default) throw new Error('root CJS did not attach Hellotext to window')
 `,
     )
 
