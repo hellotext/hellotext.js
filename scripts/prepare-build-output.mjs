@@ -50,7 +50,7 @@ async function resolveSpecifier(fromFile, specifier) {
     return `${specifier}/index${extension}`
   } catch {}
 
-  return specifier
+  throw new Error(`Unable to resolve ${specifier} from ${path.relative(root, fromFile)}`)
 }
 
 async function rewriteFile(file) {
@@ -66,6 +66,12 @@ async function rewriteFile(file) {
     source = await replaceAsync(
       source,
       /(import\s+['"])(\.\.?\/[^'"]+)(['"])/g,
+      async (_match, prefix, specifier, suffix) => `${prefix}${await resolveSpecifier(file, specifier)}${suffix}`,
+    )
+
+    source = await replaceAsync(
+      source,
+      /(import\(['"])(\.\.?\/[^'"]+)(['"]\))/g,
       async (_match, prefix, specifier, suffix) => `${prefix}${await resolveSpecifier(file, specifier)}${suffix}`,
     )
   } else {

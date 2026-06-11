@@ -171,10 +171,13 @@ This runs:
 
 - Unit tests.
 - Clean build.
+- Type declaration checks.
 - Packed-package smoke tests.
 
 The smoke test creates the npm tarball, installs it into temporary consumer projects, and verifies:
 
+- `import '@hellotext/hellotext'` in a browser-like environment
+- `require('@hellotext/hellotext')` in a browser-like environment
 - `import '@hellotext/hellotext/vanilla'`
 - `require('@hellotext/hellotext/vanilla')`
 - `require('@hellotext/hellotext/package.json')`
@@ -192,4 +195,3 @@ The following were intentionally left for future changes:
 - Revisit whether `src` should remain in the published package.
 - Align Babel targets with the Node 20 support floor.
 - Modernize ESM output for smaller bundles.
-- Add stricter TypeScript declaration tests if TypeScript becomes part of CI.

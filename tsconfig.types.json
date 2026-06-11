@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowArbitraryExtensions": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "files": [
+    "test-d/root-import.test-d.ts",
+    "test-d/vanilla-import.test-d.ts",
+    "test-d/css-import.test-d.ts"
+  ]
+}
