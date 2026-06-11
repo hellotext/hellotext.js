@@ -2,7 +2,7 @@ module.exports = {
   mode: 'production',
   entry: ['@hotwired/stimulus', './src/index.bundle.js'],
   output: {
-    filename: 'hellotext.js',
+    filename: 'hellotext.umd.js',
     chunkFilename: '[name].js',
     library: 'Hellotext',
     libraryTarget: 'umd',
