@@ -13,6 +13,11 @@ export default class extends Controller {
 
   connect() {
     this.updateFades()
+    this.observeContainerSize()
+  }
+
+  disconnect() {
+    this.resizeObserver?.disconnect()
   }
 
   setId({ detail: id }) {
@@ -193,6 +198,13 @@ export default class extends Controller {
 
   getPageStartOffset() {
     return Number.isFinite(this.pageStartOffsetValue) ? this.pageStartOffsetValue : 0
+  }
+
+  observeContainerSize() {
+    if (!this.hasCarouselContainerTarget || !window.ResizeObserver) return
+
+    this.resizeObserver = new ResizeObserver(() => this.updateFades())
+    this.resizeObserver.observe(this.carouselContainerTarget)
   }
 
   updateFades() {

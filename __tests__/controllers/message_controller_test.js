@@ -12,8 +12,11 @@ describe('MessageController', () => {
   let mockLeftFade
   let mockRightFade
   let mockCarouselCard
+  let originalResizeObserver
 
   beforeEach(() => {
+    originalResizeObserver = window.ResizeObserver
+
     // Set up carousel container mock
     mockCarouselContainer = document.createElement('div')
     mockCarouselContainer.setAttribute('data-hellotext--message-target', 'carouselContainer')
@@ -79,6 +82,7 @@ describe('MessageController', () => {
   })
 
   afterEach(() => {
+    window.ResizeObserver = originalResizeObserver
     jest.clearAllMocks()
   })
 
@@ -89,6 +93,45 @@ describe('MessageController', () => {
       controller.connect()
 
       expect(updateFadesSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('observes carousel container size so fades update after layout changes', () => {
+      const observe = jest.fn()
+      const disconnect = jest.fn()
+      let resizeCallback
+
+      window.ResizeObserver = jest.fn(callback => {
+        resizeCallback = callback
+
+        return { observe, disconnect }
+      })
+      const updateFadesSpy = jest.spyOn(controller, 'updateFades')
+
+      controller.connect()
+      resizeCallback()
+
+      expect(window.ResizeObserver).toHaveBeenCalledTimes(1)
+      expect(observe).toHaveBeenCalledWith(mockCarouselContainer)
+      expect(updateFadesSpy).toHaveBeenCalledTimes(2)
+    })
+
+    it('skips size observation when ResizeObserver is unavailable', () => {
+      window.ResizeObserver = undefined
+
+      controller.connect()
+
+      expect(controller.resizeObserver).toBeUndefined()
+    })
+  })
+
+  describe('disconnect', () => {
+    it('disconnects the carousel resize observer', () => {
+      const disconnect = jest.fn()
+      controller.resizeObserver = { disconnect }
+
+      controller.disconnect()
+
+      expect(disconnect).toHaveBeenCalledTimes(1)
     })
   })
 
