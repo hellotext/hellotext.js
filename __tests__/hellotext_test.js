@@ -312,6 +312,28 @@ describe("when the class is initialized successfully", () => {
 
         expect(requestBody.user).toHaveProperty('custom_field', 'value')
       });
+
+      it("sends small track requests with keepalive", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("page.viewed")
+
+        expect(global.fetch.mock.calls[0][1]).toHaveProperty('keepalive', true)
+      });
+
+      it("does not set keepalive for oversized track requests", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("page.viewed", { payload: "x".repeat(60000) })
+
+        expect(global.fetch.mock.calls[0][1]).not.toHaveProperty('keepalive')
+      });
     });
   });
 

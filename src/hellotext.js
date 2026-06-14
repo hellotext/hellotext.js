@@ -1,6 +1,6 @@
 import { Configuration, Event } from './core'
 
-import API, { Response } from './api'
+import API, { Response, keepaliveFor } from './api'
 import { Business, Fingerprint, FormCollection, Page, Query, Session, User, Webchat } from './models'
 
 import { NotInitializedError } from './errors'
@@ -108,6 +108,11 @@ class Hellotext {
     return await API.events.create({
       headers,
       body,
+      // Track is the SDK's unload-sensitive analytics path. Keepalive belongs
+      // here rather than on identify/forms/webchat calls because event tracking
+      // is allowed to be fire-and-navigate, while those other calls have
+      // stronger request/response or interaction contracts.
+      keepalive: keepaliveFor(body),
     })
   }
 
