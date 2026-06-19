@@ -7,8 +7,9 @@ class AcksAPI {
     return Configuration.endpoint('public/acks')
   }
 
-  static async send() {
+  static async send(params = {}) {
     const payload = {
+      ...params,
       session: Hellotext.session,
       at: new Date().toISOString(),
     }

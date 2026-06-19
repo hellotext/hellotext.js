@@ -1,7 +1,16 @@
 import { Configuration, Event } from './core'
 
 import API, { Response, keepaliveFor } from './api'
-import { Business, Fingerprint, FormCollection, Page, Query, Session, User, Webchat } from './models'
+import {
+  Business,
+  Fingerprint,
+  FormCollection,
+  Page,
+  Query,
+  Session,
+  User,
+  Webchat,
+} from './models'
 
 import { NotInitializedError } from './errors'
 
@@ -18,25 +27,28 @@ class Hellotext {
    */
   static async initialize(business, config = {}) {
     this.business = new Business(business)
+    this.page = new Page()
 
     Configuration.assign(config)
-    Session.initialize()
+    Session.initialize(this.page)
 
-    this.page = new Page()
     this.forms = new FormCollection()
 
     this.query = new Query()
 
     const businessData = await this.business.hydrate()
-    const webchatConfig = config.webchat === false ?
-      false :
-      this.mergeWebchatConfig((businessData && businessData.webchat) || {}, config.webchat || {})
+    const webchatConfig =
+      config.webchat === false
+        ? false
+        : this.mergeWebchatConfig(
+            (businessData && businessData.webchat) || {},
+            config.webchat || {},
+          )
 
-    const hasExplicitBehaviourOverride = (
+    const hasExplicitBehaviourOverride =
       config.webchat &&
       config.webchat !== false &&
       Object.prototype.hasOwnProperty.call(config.webchat, 'behaviour')
-    )
     Configuration.webchat.behaviourOverride = hasExplicitBehaviourOverride
 
     if (webchatConfig && webchatConfig.id) {
@@ -147,11 +159,7 @@ class Hellotext {
     })
 
     if (response.succeeded) {
-      User.remember(
-        externalId,
-        options.source,
-        fingerprint,
-      )
+      User.remember(externalId, options.source, fingerprint)
     }
 
     return response
