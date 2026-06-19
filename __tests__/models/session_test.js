@@ -402,6 +402,74 @@ describe('Session', () => {
       expect(API.acks.send).toHaveBeenCalledTimes(1)
     })
 
+    it('sends the initialized page UTM params with the first ack', () => {
+      const page = {
+        get utmParams() {
+          return {
+            source: 'google',
+            medium: 'cpc',
+            campaign: 'summer-sale',
+            term: 'sandals',
+            content: 'hero-button',
+          }
+        },
+      }
+
+      Configuration.session = 'new-session'
+      Session.initialize(page)
+
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
+      expect(API.acks.send).toHaveBeenCalledWith({
+        utm_params: {
+          source: 'google',
+          medium: 'cpc',
+          campaign: 'summer-sale',
+          term: 'sandals',
+          content: 'hero-button',
+        },
+      })
+    })
+
+    it('sends an empty UTM payload when the initialized page has no UTM params', () => {
+      Configuration.session = 'new-session'
+      Session.initialize({})
+
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
+      expect(API.acks.send).toHaveBeenCalledWith({
+        utm_params: {},
+      })
+    })
+
+    it('uses the latest initialized page context when a changed session is re-acked', () => {
+      Configuration.session = 'first-session'
+      Session.initialize({
+        utmParams: {
+          source: 'google',
+          medium: 'cpc',
+        },
+      })
+
+      API.acks.send.mockClear()
+
+      Configuration.session = 'second-session'
+      Session.initialize({
+        utmParams: {
+          source: 'facebook',
+          medium: 'social',
+          campaign: 'retargeting',
+        },
+      })
+
+      expect(API.acks.send).toHaveBeenCalledTimes(1)
+      expect(API.acks.send).toHaveBeenCalledWith({
+        utm_params: {
+          source: 'facebook',
+          medium: 'social',
+          campaign: 'retargeting',
+        },
+      })
+    })
+
     it('sets hello_session_ack_at cookie after sending an ack', () => {
       Session.session = 'new-session'
 
@@ -413,6 +481,21 @@ describe('Session', () => {
       Cookies.set('hello_session_ack_at', new Date().toISOString())
 
       Session.session = 'existing-session'
+
+      expect(API.acks.send).not.toHaveBeenCalled()
+    })
+
+    it('does not send initialized page UTM params when the existing session is already acked', () => {
+      Cookies.set('hello_session', 'existing-session')
+      Cookies.set('hello_session_ack_at', new Date().toISOString())
+
+      Configuration.session = 'existing-session'
+      Session.initialize({
+        utmParams: {
+          source: 'google',
+          medium: 'cpc',
+        },
+      })
 
       expect(API.acks.send).not.toHaveBeenCalled()
     })

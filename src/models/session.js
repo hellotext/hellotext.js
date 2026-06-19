@@ -1,14 +1,22 @@
 import { Configuration } from '../core'
 import { Cookies } from './cookies'
+import { Page } from './page'
 import { Query } from './query'
 import API from '../api'
 
 class Session {
   static #session
   static #query
+  static #page
 
   static get session() {
     return this.#session
+  }
+
+  static get ackPayload() {
+    return {
+      utm_params: this.#page?.utmParams || {},
+    }
   }
 
   static set session(value) {
@@ -22,14 +30,15 @@ class Session {
     }
 
     if (!Cookies.get('hello_session_ack_at')) {
-      API.acks.send()
+      API.acks.send(this.ackPayload)
       Cookies.set('hello_session_ack_at', new Date().toISOString())
     }
 
     return this.#session
   }
 
-  static initialize() {
+  static initialize(page = new Page()) {
+    this.#page = page
     this.#query = new Query()
 
     this.session = this.#query.session || Configuration.session || Cookies.get('hello_session')
