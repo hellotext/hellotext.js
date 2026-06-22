@@ -117,8 +117,8 @@ if (globalThis.window.Hellotext !== mod.default) throw new Error('root CJS did n
 
     await run('node', ['root-import.mjs'], { cwd: nodeConsumer })
     await run('node', ['root-require.cjs'], { cwd: nodeConsumer })
-    await run('node', ['--input-type=module', '-e', "import('@hellotext/hellotext/vanilla').then((m) => { if (!m.default) throw new Error('missing default export') })"], { cwd: nodeConsumer })
-    await run('node', ['-e', "const mod = require('@hellotext/hellotext/vanilla'); if (!(mod.default || mod)) throw new Error('missing vanilla export')"], { cwd: nodeConsumer })
+    await run('node', ['--input-type=module', '-e', "import('@hellotext/hellotext/vanilla').then((m) => { if (typeof m.default?.initialize !== 'function') throw new Error('missing vanilla ESM default export') })"], { cwd: nodeConsumer })
+    await run('node', ['-e', "const mod = require('@hellotext/hellotext/vanilla'); if (typeof mod.default?.initialize !== 'function') throw new Error('missing vanilla CJS default export')"], { cwd: nodeConsumer })
     await run('node', ['-e', "const packageJson = require('@hellotext/hellotext/package.json'); if (packageJson.name !== '@hellotext/hellotext') throw new Error('bad package export')"], { cwd: nodeConsumer })
 
     const browserConsumer = await createConsumer('hellotext-browser-smoke', tarball)
