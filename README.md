@@ -24,18 +24,29 @@ yarn add @hellotext/hellotext
 
 ### Configure
 
-Import the library into your app.
+Import the browser/bundler entry into your app.
 
 ```javascript
 import Hellotext from '@hellotext/hellotext'
 ```
 
-If you're running in a non-browser environment, such as Node.js, you can import the vanilla implementation which only includes
-Hellotext.js class without initializing other libraries that rely on the browser environment.
+The root entry is the browser pixel entry. It starts the Stimulus controllers used by Hellotext Forms and Webchat and assigns `window.Hellotext` for browser integrations.
+
+If you're running in a non-browser environment, such as Node.js, you can import the vanilla implementation which only includes the Hellotext.js class without initializing other libraries that rely on the browser environment.
 
 ```javascript
 import Hellotext from '@hellotext/hellotext/vanilla'
 ```
+
+Use the vanilla entry for Node.js, SSR, tests, and other environments where `window` or `document` may not exist.
+
+Supported public entrypoints are:
+
+- `@hellotext/hellotext`
+- `@hellotext/hellotext/vanilla`
+- `@hellotext/hellotext/styles/index.css`
+
+Internal `src` and `lib` paths are not public API and may change between releases.
 
 Initialize the library passing the public `HELLOTEXT_BUSINESS_ID` identifier that represents the business.
 
@@ -74,12 +85,14 @@ import '@hellotext/hellotext/styles/index.css'
 
 ## For Script Tag Users
 
-The UMD bundle (`dist/hellotext.js`) includes the CSS automatically:
+The UMD bundle (`dist/hellotext.js`) is the stable script-tag/CDN/GTM artifact and includes the CSS automatically:
 
 ```html
 <script src="https://unpkg.com/@hellotext/hellotext"></script>
 <!-- CSS is included in the bundle -->
 ```
+
+The package also ships `dist/hellotext.umd.js` as the explicit UMD artifact name. In this release, `dist/hellotext.js` is kept as the compatibility alias and remains the path used by package metadata.
 
 ## Events
 
@@ -117,9 +130,9 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 
 #### Configuration Options
 
-| Property            | Description                                                                                                                                                                                     | Type    | Default                                   |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------- |
-| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null                                      |
-| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true                                      |
-| forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object  | { autoMount: true, successMessage: true } |
-| webchat             | An object that overrides the dashboard webchat configuration, or `false` to disable automatic webchat mounting. See [Webchat](/docs/webchat.md).                                                   | Object \| false | Dashboard webchat when configured        |
+| Property            | Description                                                                                                                                                                                     | Type            | Default                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------- |
+| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String          | null                                      |
+| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean         | true                                      |
+| forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object          | { autoMount: true, successMessage: true } |
+| webchat             | An object that overrides the dashboard webchat configuration, or `false` to disable automatic webchat mounting. See [Webchat](/docs/webchat.md).                                                | Object \| false | Dashboard webchat when configured         |

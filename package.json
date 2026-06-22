@@ -3,10 +3,10 @@
   "version": "2.4.53",
   "description": "Hellotext JavaScript Client",
   "source": "src/index.js",
-  "main": "lib/index.cjs",
-  "module": "lib/index.js",
-  "browser": "dist/hellotext.js",
-  "unpkg": "dist/hellotext.js",
+  "main": "./lib/cjs/index.cjs",
+  "module": "./lib/esm/index.js",
+  "browser": "./dist/hellotext.js",
+  "unpkg": "./dist/hellotext.js",
   "types": "index.d.ts",
   "author": "Hellotext",
   "license": "MIT",
@@ -21,14 +21,15 @@
   "exports": {
     ".": {
       "types": "./index.d.ts",
-      "import": "./lib/index.js",
-      "require": "./lib/index.cjs",
+      "browser": "./dist/hellotext.js",
+      "import": "./lib/esm/index.js",
+      "require": "./lib/cjs/index.cjs",
       "default": "./dist/hellotext.js"
     },
     "./vanilla": {
       "types": "./index.d.ts",
-      "import": "./lib/vanilla.js",
-      "require": "./lib/vanilla.cjs"
+      "import": "./lib/esm/vanilla.js",
+      "require": "./lib/cjs/vanilla.cjs"
     },
     "./styles/*": "./styles/*",
     "./styles/index.css": "./styles/index.css",
@@ -36,8 +37,10 @@
   },
   "sideEffects": [
     "*.css",
-    "./lib/index.js",
-    "./lib/index.cjs"
+    "./styles/index.css",
+    "./lib/esm/index.js",
+    "./lib/cjs/index.cjs",
+    "./dist/hellotext.js"
   ],
   "engines": {
     "node": ">=20.0.0"
@@ -55,6 +58,7 @@
     "jest-environment-jsdom": "^29.3.1",
     "prettier": "2.8.2",
     "style-loader": "^3.3.1",
+    "typescript": "^5.9.3",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1",
     "whatwg-fetch": "^3.6.20"
@@ -81,11 +85,14 @@
   "scripts": {
     "test": "NODE_ENV=test jest",
     "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:bundle",
-    "build:esm": "babel src -d lib --ignore src/index.bundle.js",
-    "build:cjs": "BABEL_ENV=cjs babel src -d lib --out-file-extension .cjs --ignore src/index.bundle.js",
-    "build:bundle": "webpack",
+    "build:esm": "babel src -d lib/esm --ignore src/index.bundle.js && node scripts/prepare-build-output.mjs esm",
+    "build:cjs": "BABEL_ENV=cjs babel src -d lib/cjs --out-file-extension .cjs --ignore src/index.bundle.js && node scripts/prepare-build-output.mjs cjs",
+    "build:bundle": "webpack && node scripts/alias-umd-bundle.mjs",
     "clean": "rm -rf lib dist",
-    "prepublishOnly": "npm test && npm run build"
+    "release:check": "npm test && npm run build && npm run typecheck && npm run smoke:package",
+    "smoke:package": "node scripts/smoke-package.mjs",
+    "typecheck": "tsc -p tsconfig.types.json",
+    "prepublishOnly": "npm run release:check"
   },
   "bugs": {
     "url": "https://github.com/hellotext/hellotext.js/issues"
