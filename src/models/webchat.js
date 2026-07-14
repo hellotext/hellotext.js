@@ -30,6 +30,7 @@ class Webchat {
     }
 
     this.containerToAppendTo.appendChild(this.data.html)
+    this.markCoexistingWidgets()
     this.mounted = true
 
     return true
@@ -68,6 +69,16 @@ class Webchat {
 
   get stylesheetLoaded() {
     return Business.waitForStylesheet(Business.latestStylesheet)
+  }
+
+  markCoexistingWidgets() {
+    const webchat = this.data.html
+    const whatsapp = document.querySelector('.hellotext--whatsapp-widget')
+
+    if (!webchat || !whatsapp) return
+
+    webchat.classList.add('hellotext--with-whatsapp-widget')
+    whatsapp.classList.add('hellotext--with-webchat')
   }
 }
 

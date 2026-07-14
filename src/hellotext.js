@@ -10,6 +10,7 @@ import {
   Session,
   User,
   Webchat,
+  WhatsAppWidget,
 } from './models'
 
 import { NotInitializedError } from './errors'
@@ -19,6 +20,7 @@ class Hellotext {
   static forms
   static business
   static webchat
+  static whatsapp
 
   /**
    * initialize the module.
@@ -44,6 +46,13 @@ class Hellotext {
             (businessData && businessData.webchat) || {},
             config.webchat || {},
           )
+    const whatsappConfig =
+      config.whatsappWidget === false
+        ? false
+        : this.mergeWhatsAppConfig(
+            (businessData && businessData.whatsapp) || {},
+            config.whatsappWidget || {},
+          )
 
     const hasExplicitBehaviourOverride =
       config.webchat &&
@@ -56,12 +65,21 @@ class Hellotext {
       this.webchat = await Webchat.load(webchatConfig.id)
     }
 
+    if (whatsappConfig && whatsappConfig.id) {
+      Configuration.whatsapp.assign(whatsappConfig)
+      this.whatsapp = await WhatsAppWidget.load(whatsappConfig.id)
+    }
+
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()
     }
   }
 
   static mergeWebchatConfig(dashboardConfig, localConfig) {
+    return this.deepMergePlainObjects(dashboardConfig, localConfig)
+  }
+
+  static mergeWhatsAppConfig(dashboardConfig, localConfig) {
     return this.deepMergePlainObjects(dashboardConfig, localConfig)
   }
 
