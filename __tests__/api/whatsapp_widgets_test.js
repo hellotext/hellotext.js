@@ -15,6 +15,7 @@ describe('WhatsAppWidgetsAPI', () => {
         iconUrl: 'https://example.com/whatsapp.png'
       }
     }
+
     Configuration.whatsapp.number = '+15551234567'
     Configuration.whatsapp.body = 'Hello from install'
     Hellotext.business = {
@@ -23,6 +24,7 @@ describe('WhatsAppWidgetsAPI', () => {
       setData: jest.fn(),
       setLocale: jest.fn()
     }
+
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({
@@ -45,7 +47,7 @@ describe('WhatsAppWidgetsAPI', () => {
     return WhatsAppWidgetsAPI.get('widget-id').then(element => {
       const url = new URL(global.fetch.mock.calls[0][0])
 
-      expect(url.pathname).toBe('/v1/widgets/whatsapp/widget-id')
+      expect(url.pathname).toBe('/v1/public/widgets/whatsapp/widget-id')
       expect(url.searchParams.get('placement')).toBe('top-left')
       expect(url.searchParams.get('whatsapp[appearance][launcher][icon_url]')).toBe('https://example.com/whatsapp.png')
       expect(url.searchParams.get('whatsapp[number]')).toBe('+15551234567')

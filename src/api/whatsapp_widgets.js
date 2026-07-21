@@ -3,7 +3,7 @@ import Hellotext from '../hellotext'
 
 class WhatsAppWidgetsAPI {
   static get endpoint() {
-    return Configuration.endpoint('widgets/whatsapp')
+    return Configuration.endpoint('public/widgets/whatsapp')
   }
 
   static async get(id) {
@@ -32,7 +32,12 @@ class WhatsAppWidgetsAPI {
   static appendWhatsAppOverrides(url) {
     const { appearance, body, number } = Configuration.whatsapp
 
-    this.appendIfSupplied(url, 'whatsapp[appearance][launcher][icon_url]', appearance.launcher?.iconUrl)
+    this.appendIfSupplied(
+      url,
+      'whatsapp[appearance][launcher][icon_url]',
+      appearance.launcher?.iconUrl,
+    )
+
     this.appendIfSupplied(url, 'whatsapp[number]', number)
     this.appendIfSupplied(url, 'whatsapp[body]', body)
   }
@@ -47,7 +52,7 @@ class WhatsAppWidgetsAPI {
     try {
       return await fetch(url, {
         method: 'GET',
-        headers: Hellotext.headers
+        headers: Hellotext.headers,
       })
     } catch (_) {
       return { ok: false }
