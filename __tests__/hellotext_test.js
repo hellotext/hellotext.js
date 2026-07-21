@@ -1,7 +1,7 @@
 import Hellotext from "../src/hellotext";
 import API from "../src/api";
 import { Configuration } from "../src/core";
-import { Session, Webchat } from "../src/models";
+import { Session, Webchat, WhatsAppWidget } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -48,17 +48,26 @@ describe("when trying to call methods before initializing the class", () => {
 
 describe("when initializing business metadata", () => {
   let loadWebchat
+  let loadWhatsAppWidget
 
   beforeEach(() => {
     loadWebchat = jest.spyOn(Webchat, 'load').mockResolvedValue({})
+    loadWhatsAppWidget = jest.spyOn(WhatsAppWidget, 'load').mockResolvedValue({})
   })
 
   afterEach(() => {
     loadWebchat.mockRestore()
+    loadWhatsAppWidget.mockRestore()
     Configuration.webchat.behaviour = null
     Configuration.webchat.behaviourOverride = false
     Configuration.webchat.appearance = {}
     Configuration.webchat.whatsapp = {}
+    Configuration.whatsapp.id = undefined
+    Configuration.whatsapp.container = 'body'
+    Configuration.whatsapp.placement = 'bottom-right'
+    Configuration.whatsapp.appearance = {}
+    Configuration.whatsapp.number = null
+    Configuration.whatsapp.body = null
   })
 
   it("fetches public business data by default and stores it", async () => {
@@ -202,6 +211,83 @@ describe("when initializing business metadata", () => {
     await Hellotext.initialize("xy76ks", { webchat: false })
 
     expect(loadWebchat).not.toHaveBeenCalled()
+  })
+
+  it("loads the dashboard WhatsApp widget when no explicit WhatsApp config is passed", async () => {
+    mockBusinessFetch(defaultBusiness({ whatsapp: { id: "dashboard-whatsapp-widget" } }))
+
+    await Hellotext.initialize("xy76ks")
+
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+  })
+
+  it("loads dashboard webchat and WhatsApp widget together", async () => {
+    mockBusinessFetch(defaultBusiness({
+      webchat: { id: "dashboard-webchat" },
+      whatsapp: { id: "dashboard-whatsapp-widget" },
+    }))
+
+    await Hellotext.initialize("xy76ks")
+
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+  })
+
+  it("deep merges explicit local WhatsApp widget options with dashboard defaults", async () => {
+    mockBusinessFetch(defaultBusiness({
+      whatsapp: {
+        id: "dashboard-whatsapp-widget",
+        placement: "bottom-left",
+        appearance: {
+          launcher: {
+            iconUrl: "https://example.com/dashboard-whatsapp.png",
+          },
+        },
+      },
+    }))
+
+    await Hellotext.initialize("xy76ks", {
+      whatsappWidget: {
+        container: "#whatsapp-container",
+        appearance: {
+          launcher: {
+            iconUrl: "https://example.com/local-whatsapp.png",
+          },
+        },
+      },
+    })
+
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+    expect(Configuration.whatsapp.container).toEqual("#whatsapp-container")
+    expect(Configuration.whatsapp.placement).toEqual("bottom-left")
+    expect(Configuration.whatsapp.appearance).toEqual({
+      launcher: {
+        iconUrl: "https://example.com/local-whatsapp.png",
+      },
+    })
+  })
+
+  it("accepts whatsappWidget as the public WhatsApp widget config name", async () => {
+    mockBusinessFetch(defaultBusiness({ whatsapp: { id: "dashboard-whatsapp-widget" } }))
+
+    await Hellotext.initialize("xy76ks", {
+      whatsappWidget: {
+        number: "+15551234567",
+        body: "Hello from install",
+      },
+    })
+
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+    expect(Configuration.whatsapp.number).toEqual("+15551234567")
+    expect(Configuration.whatsapp.body).toEqual("Hello from install")
+  })
+
+  it("skips WhatsApp widget loading when whatsappWidget is false", async () => {
+    mockBusinessFetch(defaultBusiness({ whatsapp: { id: "dashboard-whatsapp-widget" } }))
+
+    await Hellotext.initialize("xy76ks", { whatsappWidget: false })
+
+    expect(loadWhatsAppWidget).not.toHaveBeenCalled()
   })
 
   it("does not break initialization when business fetch rejects", async () => {

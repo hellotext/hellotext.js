@@ -3,6 +3,7 @@ import EventsAPI from './events'
 import FormsAPI from './forms'
 import IdentificationsAPI from './identifications'
 import WebchatsAPI from './webchats'
+import WhatsAppWidgetsAPI from './whatsapp_widgets'
 import AcksAPI from './acks'
 
 // Browsers keep `fetch(..., { keepalive: true })` requests alive during page
@@ -43,6 +44,10 @@ export default class API {
 
   static get webchats() {
     return WebchatsAPI
+  }
+
+  static get whatsappWidgets() {
+    return WhatsAppWidgetsAPI
   }
 
   static get identifications() {
