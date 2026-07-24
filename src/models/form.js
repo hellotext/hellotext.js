@@ -2,6 +2,7 @@ import Hellotext from '../hellotext'
 
 import { InputBuilder } from '../builders/input_builder'
 import { LogoBuilder } from '../builders/logo_builder'
+import { setSanitizedRichText } from '../core/sanitize_html'
 
 class Form {
   constructor(data, element = null) {
@@ -44,7 +45,7 @@ class Form {
 
   buildHeader(header) {
     const headerElement = this.#findOrCreateComponent('[data-form-header]', 'header')
-    headerElement.innerHTML = header.content
+    setSanitizedRichText(headerElement, header.content)
 
     if (this.element.querySelector('[data-form-header]')) {
       this.element.querySelector('[data-form-header]').replaceWith(headerElement)
@@ -86,7 +87,7 @@ class Form {
 
   buildFooter(footer) {
     const element = this.#findOrCreateComponent('[data-form-footer]', 'footer')
-    element.innerHTML = footer.content
+    setSanitizedRichText(element, footer.content)
 
     if (this.element.querySelector('[data-form-footer]')) {
       this.element.querySelector('[data-form-footer]').replaceWith(element)
