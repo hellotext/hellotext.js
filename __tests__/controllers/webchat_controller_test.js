@@ -3,6 +3,7 @@
  */
 
 import WebchatController from '../../src/controllers/webchat_controller'
+import webchatCarousel from '../../test/fixtures/webchat_carousel'
 import Hellotext from '../../src/hellotext'
 import { Locale } from '../../src/core/configuration/locale'
 import { Webchat as WebchatConfiguration, modes } from '../../src/core/configuration/webchat'
@@ -527,6 +528,25 @@ describe('WebchatController', () => {
         )
       })
 
+      it('sanitizes executable content in message body', () => {
+        controller.onMessageReceived({
+          body: `
+            <p><strong>Safe content</strong></p>
+            <a href="javascript:alert(1)">Unsafe link</a>
+            <img src="invalid" onerror="alert(1)">
+            <script>alert(1)</script>
+          `,
+          id: 'msg-unsafe-html',
+        })
+
+        const body = mockMessagesContainer.children[0].querySelector('[data-body]')
+
+        expect(body.querySelector('strong').textContent).toBe('Safe content')
+        expect(body.querySelector('a').hasAttribute('href')).toBe(false)
+        expect(body.querySelector('img').hasAttribute('onerror')).toBe(false)
+        expect(body.querySelector('script')).toBeNull()
+      })
+
       it('inserts catch-up messages before newer messages that arrived after reconnect', async () => {
         const loadedMessage = document.createElement('article')
         loadedMessage.className = 'hellotext--webchat-message'
@@ -798,13 +818,13 @@ describe('WebchatController', () => {
         controller.onMessageReceived({
           body: 'Closed chat message',
           id: 'msg-closed-teaser',
-          teaser: '<span>Message teaser</span>',
+          teaser: 'Message teaser',
         })
 
         expect(firstConfiguredTeaser.classList.contains('hidden')).toBe(true)
         expect(secondConfiguredTeaser.classList.contains('hidden')).toBe(true)
         expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
-        expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Message teaser</span>')
+        expect(inboundMessageTeaserBody.textContent).toBe('Message teaser')
         expect(mockTeaser.classList.contains('invisible')).toBe(false)
       })
 
@@ -821,7 +841,7 @@ describe('WebchatController', () => {
         controller.onMessageReceived({
           body: 'Closed chat message',
           id: 'msg-inbound-target-teaser',
-          teaser: '<span>Inbound message teaser</span>',
+          teaser: 'Inbound message teaser',
         })
 
         expect(mockTeaser.children).toHaveLength(3)
@@ -832,7 +852,7 @@ describe('WebchatController', () => {
         expect(secondConfiguredTeaser.classList.contains('hidden')).toBe(true)
         expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
         expect(inboundMessageTeaserBody.className).toBe('hellotext--webchat-teaser-message')
-        expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Inbound message teaser</span>')
+        expect(inboundMessageTeaserBody.textContent).toBe('Inbound message teaser')
         expect(mockTeaser.classList.contains('invisible')).toBe(false)
       })
 
@@ -844,7 +864,7 @@ describe('WebchatController', () => {
           controller.onMessageReceived({
             body: 'Closed chat message',
             id: 'msg-missing-inbound-teaser-targets',
-            teaser: '<span>Unsupported teaser</span>',
+            teaser: 'Unsupported teaser',
           })
         }).not.toThrow()
 
@@ -866,7 +886,7 @@ describe('WebchatController', () => {
           controller.onMessageReceived({
             body: 'Closed chat message',
             id: 'msg-without-teaser-surface',
-            teaser: '<span>Unsupported teaser</span>',
+            teaser: 'Unsupported teaser',
           })
         }).not.toThrow()
 
@@ -883,10 +903,10 @@ describe('WebchatController', () => {
         controller.onMessageReceived({
           body: 'Closed chat message',
           id: 'msg-ephemeral-teaser',
-          teaser: '<span>Ephemeral teaser</span>',
+          teaser: 'Ephemeral teaser',
         })
 
-        expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Ephemeral teaser</span>')
+        expect(inboundMessageTeaserBody.textContent).toBe('Ephemeral teaser')
         expect(mockTeaser.classList.contains('invisible')).toBe(false)
         expect(mockSessionStorage.setItem).not.toHaveBeenCalledWith(
           'hellotext:webchat:test-webchat-id:teaser-seen',
@@ -901,11 +921,11 @@ describe('WebchatController', () => {
         controller.onMessageReceived({
           body: 'Open chat message',
           id: 'msg-open-teaser',
-          teaser: '<span>Open message teaser</span>',
+          teaser: 'Open message teaser',
         })
 
         expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
-        expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Open message teaser</span>')
+        expect(inboundMessageTeaserBody.textContent).toBe('Open message teaser')
         expect(mockTeaser.classList.contains('invisible')).toBe(true)
         expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('msg-open-teaser')
       })
@@ -921,6 +941,22 @@ describe('WebchatController', () => {
 
         expect(mockTeaser.innerHTML).toBe('Configured teaser')
         expect(mockTeaser.classList.contains('invisible')).toBe(true)
+      })
+
+      it('renders message teaser markup as text', () => {
+        controller.openValue = false
+        const { inboundMessageTeaserBody } = setupInboundMessageTeaserTargets()
+
+        controller.onMessageReceived({
+          body: 'Closed chat message',
+          id: 'msg-unsafe-teaser',
+          teaser: '<img src="invalid" onerror="alert(1)">',
+        })
+
+        expect(inboundMessageTeaserBody.textContent).toBe(
+          '<img src="invalid" onerror="alert(1)">',
+        )
+        expect(inboundMessageTeaserBody.querySelector('img')).toBeNull()
       })
     })
 
@@ -1111,7 +1147,7 @@ describe('WebchatController', () => {
         expect(() => controller.onMessageReceived(message)).not.toThrow()
 
         const addedElement = mockMessagesContainer.children[0]
-        expect(addedElement.querySelector('[data-body]').innerHTML).toBe('undefined')
+        expect(addedElement.querySelector('[data-body]').innerHTML).toBe('')
       })
 
       it('handles null/undefined message', () => {
@@ -1578,6 +1614,28 @@ describe('WebchatController', () => {
       })
       expect(attachmentContainer.children).toHaveLength(1)
       expect(attachmentContainer.children[0].src).toBe('https://example.com/older.jpg')
+    })
+
+    it('sanitizes executable content in paginated message bodies', async () => {
+      mockMessagesAPI.index.mockResolvedValue({
+        json: jest.fn().mockResolvedValue({
+          next: null,
+          messages: [
+            {
+              body: '<p><strong>Older message</strong><img src="invalid" onerror="alert(1)"><script>alert(1)</script></p>',
+              state: 'sent',
+            },
+          ],
+        }),
+      })
+
+      await controller.onScroll()
+
+      const body = mockMessagesContainer.children[0].querySelector('[data-body]')
+
+      expect(body.querySelector('strong').textContent).toBe('Older message')
+      expect(body.querySelector('img').hasAttribute('onerror')).toBe(false)
+      expect(body.querySelector('script')).toBeNull()
     })
   })
 
@@ -3662,6 +3720,81 @@ describe('WebchatController', () => {
       })
     })
 
+    it('preserves the Rails-rendered carousel contract', () => {
+      controller.openValue = true
+      controller.messagesAPI = {
+        markAsSeen: jest.fn(),
+      }
+
+      controller.onMessageReceived({
+        id: 'carousel-contract',
+        html: webchatCarousel,
+        carousel: {},
+      })
+
+      const carousel = mockMessagesContainer.children[0]
+      const carouselContainer = carousel.querySelector(
+        '[data-hellotext--message-target="carouselContainer"]',
+      )
+      const productCard = carousel.querySelector('.message__carousel_card')
+      const productLink = carousel.querySelector('.message__carousel_card--image-wrapper')
+      const addToCartButton = carousel.querySelector('[data-id="button-123"]')
+
+      expect(carousel.dataset.controller).toBe('hellotext--message')
+      expect(carousel.querySelector('[data-body] strong').textContent).toBe(
+        'Product recommendations',
+      )
+      expect(carouselContainer.dataset.action).toBe('scroll->hellotext--message#onScroll')
+      expect(productCard.dataset.id).toBe('product-123')
+      expect(productCard.dataset.reference).toBe('sku-123')
+      expect(productCard.dataset.source).toBe('shopify')
+      expect(productLink.getAttribute('href')).toBe(
+        'https://example.com/products/product-123',
+      )
+      expect(productLink.getAttribute('target')).toBe('_blank')
+      expect(productLink.getAttribute('rel')).toBe('noopener noreferrer')
+      expect(addToCartButton.dataset.action).toBe(
+        'click->hellotext--message#addToCart',
+      )
+      expect(carousel.querySelectorAll('hellotext-icon')).toHaveLength(3)
+      expect(carousel.querySelectorAll('hellotext-icon svg')).toHaveLength(3)
+      expect(carousel.querySelectorAll('hellotext-icon path')).toHaveLength(3)
+      expect(
+        carousel.querySelector('[data-hellotext--message-target="leftFade"]').dataset.action,
+      ).toBe('click->hellotext--message#moveToLeft')
+      expect(
+        carousel.querySelector('[data-hellotext--message-target="rightFade"]').dataset.action,
+      ).toBe('click->hellotext--message#moveToRight')
+    })
+
+    it('sanitizes carousel HTML while preserving its controller attributes', () => {
+      controller.openValue = true
+      controller.messagesAPI = {
+        markAsSeen: jest.fn(),
+      }
+
+      controller.onMessageReceived({
+        id: 'carousel-unsafe-html',
+        html: `
+          <article data-controller="hellotext--message">
+            <button data-action="click->hellotext--message#quickReply">Reply</button>
+            <img src="invalid" onerror="alert(1)">
+            <script>alert(1)</script>
+          </article>
+        `,
+        carousel: {},
+      })
+
+      const carousel = mockMessagesContainer.children[0]
+
+      expect(carousel.dataset.controller).toBe('hellotext--message')
+      expect(carousel.querySelector('button').dataset.action).toBe(
+        'click->hellotext--message#quickReply',
+      )
+      expect(carousel.querySelector('img').hasAttribute('onerror')).toBe(false)
+      expect(carousel.querySelector('script')).toBeNull()
+    })
+
     it('silently drops a duplicate carousel message that was already claimed in memory', () => {
       controller.openValue = true
       const mockMessagesAPI = {
@@ -3749,7 +3882,7 @@ describe('WebchatController', () => {
         id: 'carousel-teaser-closed',
         html: '<div>Carousel</div>',
         carousel: {},
-        teaser: '<span>Carousel teaser</span>',
+        teaser: 'Carousel teaser',
       }
 
       controller.onMessageReceived(message)
@@ -3757,7 +3890,7 @@ describe('WebchatController', () => {
       expect(mockUnreadCounter.style.display).toBe('flex')
       expect(configuredTeaser.classList.contains('hidden')).toBe(true)
       expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
-      expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Carousel teaser</span>')
+      expect(inboundMessageTeaserBody.textContent).toBe('Carousel teaser')
       expect(teaser.classList.contains('invisible')).toBe(false)
     })
 
@@ -3774,13 +3907,13 @@ describe('WebchatController', () => {
         id: 'carousel-teaser-open',
         html: '<div>Carousel</div>',
         carousel: {},
-        teaser: '<span>Carousel teaser</span>',
+        teaser: 'Carousel teaser',
       }
 
       controller.onMessageReceived(message)
 
       expect(inboundMessageTeaser.classList.contains('hidden')).toBe(false)
-      expect(inboundMessageTeaserBody.innerHTML).toBe('<span>Carousel teaser</span>')
+      expect(inboundMessageTeaserBody.textContent).toBe('Carousel teaser')
       expect(teaser.classList.contains('invisible')).toBe(true)
       expect(mockMessagesAPI.markAsSeen).toHaveBeenCalledWith('carousel-teaser-open')
     })

@@ -7,6 +7,10 @@ import Hellotext from '../hellotext'
 
 import { Locale } from '../core'
 import { Webchat as WebchatConfiguration, modes } from '../core/configuration/webchat'
+import {
+  sanitizedWebchatComponentFragment,
+  setSanitizedRichText,
+} from '../core/sanitize_html'
 
 import { usePopover } from './mixins/usePopover'
 import { useBehaviour } from './webchat/useBehaviour'
@@ -333,9 +337,6 @@ export default class extends Controller {
       const { body, attachments } = message
       const createdAt = message.created_at || message.createdAt
 
-      const div = document.createElement('div')
-      div.innerHTML = body
-
       const element = this.messageTemplateTarget.cloneNode(true)
 
       element.classList.add('hellotext--webchat-message')
@@ -348,7 +349,7 @@ export default class extends Controller {
 
       element.style.removeProperty('display')
 
-      element.querySelector('[data-body]').innerHTML = div.innerHTML
+      setSanitizedRichText(element.querySelector('[data-body]'), body)
 
       if (message.state === 'received') {
         element.classList.add('received')
@@ -497,14 +498,11 @@ export default class extends Controller {
       return this.insertCarouselMessage(message, options)
     }
 
-    const div = document.createElement('div')
-    div.innerHTML = body
-
     const element = this.messageTemplateTarget.cloneNode(true)
     element.classList.add('hellotext--webchat-message')
     element.style.display = 'flex'
 
-    element.querySelector('[data-body]').innerHTML = div.innerHTML
+    setSanitizedRichText(element.querySelector('[data-body]'), body)
 
     element.setAttribute('data-id', id)
     element.setAttribute('data-hellotext--webchat-target', 'message')
@@ -633,7 +631,7 @@ export default class extends Controller {
     }
 
     this.teaserMessageTargets.forEach(teaserMessage => teaserMessage.classList.add('hidden'))
-    this.inboundMessageTeaserBodyTarget.innerHTML = this.messageTeaserValue
+    this.inboundMessageTeaserBodyTarget.textContent = this.messageTeaserValue
     this.inboundMessageTeaserTarget.classList.remove('hidden')
 
     this.teaserTarget.classList.toggle('invisible', this.openValue)
@@ -642,7 +640,7 @@ export default class extends Controller {
   insertCarouselMessage(message, options = {}) {
     const html = message.html
     const createdAt = message.created_at || message.createdAt
-    const element = new DOMParser().parseFromString(html, 'text/html').body.firstElementChild
+    const element = sanitizedWebchatComponentFragment(html).firstElementChild
 
     element.classList.add('hellotext--webchat-message')
     element.setAttribute('data-id', message.id)

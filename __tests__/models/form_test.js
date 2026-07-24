@@ -47,6 +47,36 @@ describe('mount', () => {
     expect(document.body.querySelector('form')).not.toBeNull()
   })
 
+  it('sanitizes rich text in the header and footer', () => {
+    const richTextForm = new Form({
+      id: 2,
+      steps: [
+        {
+          header: {
+            content:
+              '<p><strong>Header</strong><img src="invalid" onerror="alert(1)"><script>alert(1)</script></p>',
+          },
+          inputs: [],
+          button: { content: 'Button' },
+          footer: {
+            content: '<p><em>Footer</em><a href="javascript:alert(1)">Unsafe link</a></p>',
+          },
+        },
+      ],
+    })
+
+    richTextForm.mount()
+
+    const header = document.querySelector('[data-form-header]')
+    const footer = document.querySelector('[data-form-footer]')
+
+    expect(header.querySelector('strong').textContent).toBe('Header')
+    expect(header.querySelector('img').hasAttribute('onerror')).toBe(false)
+    expect(header.querySelector('script')).toBeNull()
+    expect(footer.querySelector('em').textContent).toBe('Footer')
+    expect(footer.querySelector('a').hasAttribute('href')).toBe(false)
+  })
+
   describe('when form has been completed', () => {
     beforeEach(() => {
       localStorage.setItem('hello-form-1', 'true')
