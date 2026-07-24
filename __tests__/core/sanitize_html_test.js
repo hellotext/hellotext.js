@@ -15,6 +15,7 @@ describe('sanitizedRichTextFragment', () => {
       <a href="https://example.com" target="_blank">Safe link</a>
       <a href="javascript:alert(1)">Unsafe link</a>
       <figure><img src="https://example.com/image.jpg" onerror="alert(1)"><figcaption>Image</figcaption></figure>
+      <button data-controller="hellotext--message" data-action="click->hellotext--message#addToCart">Unsafe action</button>
       <script>alert(1)</script>
     `)
 
@@ -27,6 +28,8 @@ describe('sanitizedRichTextFragment', () => {
     expect(fragment.querySelectorAll('a')[1].hasAttribute('href')).toBe(false)
     expect(fragment.querySelector('figure figcaption').textContent).toBe('Image')
     expect(fragment.querySelector('img').hasAttribute('onerror')).toBe(false)
+    expect(fragment.querySelector('button').hasAttribute('data-controller')).toBe(false)
+    expect(fragment.querySelector('button').hasAttribute('data-action')).toBe(false)
     expect(fragment.querySelector('script')).toBeNull()
   })
 })

@@ -2,6 +2,7 @@ import DOMPurify from 'dompurify'
 
 const RICH_TEXT_SANITIZER_OPTIONS = {
   ADD_ATTR: ['target'],
+  ALLOW_DATA_ATTR: false,
   RETURN_DOM_FRAGMENT: true,
   USE_PROFILES: { html: true },
 }
