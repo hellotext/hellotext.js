@@ -94,7 +94,7 @@
     "@emoji-mart/data": "^1.2.1",
     "@floating-ui/dom": "^1.7.3",
     "@hotwired/stimulus": "^3.0.0",
-    "dompurify": "^3.4.12",
+    "dompurify": "^3.4.13",
     "emoji-mart": "^5.6.0"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
