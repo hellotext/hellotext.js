@@ -3,6 +3,7 @@ export default `
     class="hellotext--webchat-message"
     data-controller="hellotext--message"
     data-hellotext--message-id-value="message-123"
+    data-hellotext--message-kind-value="bundle_suggestion"
     data-hellotext--webchat-target="message"
     data-id="message-123"
   >

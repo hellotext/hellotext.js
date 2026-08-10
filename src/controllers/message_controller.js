@@ -6,6 +6,7 @@ export default class extends Controller {
   static values = {
     fadeDistance: { type: Number, default: 64 },
     id: String,
+    kind: String,
     pageStartOffset: { type: Number, default: 0 },
   }
 
@@ -51,7 +52,14 @@ export default class extends Controller {
     const { id, reference, source } = card.dataset
     const item = { product: id, quantity: 1 }
 
-    Hellotext.track('cart.added', { object_parameters: { items: [item] } })
+    Hellotext.track('cart.added', {
+      object_parameters: { items: [item] },
+      source: {
+        kind: this.kindValue,
+        message_id: this.idValue,
+        button_id: currentTarget.dataset.id,
+      },
+    })
 
     Hellotext.eventEmitter.dispatch('cart.added', {
       object_parameters: {
