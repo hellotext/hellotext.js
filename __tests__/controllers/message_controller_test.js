@@ -68,6 +68,7 @@ describe('MessageController', () => {
     controller.rightFadeTarget = mockRightFade
     controller.carouselCardTarget = mockCarouselCard
     controller.idValue = 'message-456'
+    controller.kindValue = 'bundle_suggestion'
 
     // Mock hasCarouselContainerTarget
     Object.defineProperty(controller, 'hasCarouselContainerTarget', {
@@ -368,6 +369,8 @@ describe('MessageController', () => {
     })
 
     it('tracks the cart.added event for the clicked product', () => {
+      controller.kindValue = 'message-kind'
+
       const mockEvent = {
         currentTarget: mockButton
       }
@@ -382,6 +385,11 @@ describe('MessageController', () => {
               quantity: 1
             }
           ]
+        },
+        source: {
+          kind: 'message-kind',
+          message_id: 'message-456',
+          button_id: 'btn-789'
         }
       })
     })
@@ -423,6 +431,11 @@ describe('MessageController', () => {
               quantity: 1
             }
           ]
+        },
+        source: {
+          kind: 'bundle_suggestion',
+          message_id: 'message-456',
+          button_id: 'btn-789'
         }
       })
       expect(Hellotext.eventEmitter.dispatch).toHaveBeenCalledWith('cart.added', {
