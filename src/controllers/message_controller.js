@@ -8,6 +8,7 @@ export default class extends Controller {
     id: String,
     kind: String,
     pageStartOffset: { type: Number, default: 0 },
+    utm: Object,
   }
 
   static targets = ['carouselContainer', 'leftFade', 'rightFade', 'carouselCard']
@@ -51,6 +52,8 @@ export default class extends Controller {
 
     const { id, reference, source } = card.dataset
     const item = { product: id, quantity: 1 }
+
+    if (this.hasUtmValue) Hellotext.page.utm.save(this.utmValue)
 
     Hellotext.track('cart.added', {
       object_parameters: { items: [item] },
