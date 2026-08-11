@@ -394,6 +394,25 @@ describe('MessageController', () => {
       })
     })
 
+    it('saves the message UTM before tracking the cart addition', () => {
+      const originalPage = Hellotext.page
+      const save = jest.fn()
+      Hellotext.page = { utm: { save } }
+      controller.hasUtmValue = true
+      controller.utmValue = {
+        source: 'hellotext',
+        medium: 'webchat',
+        campaign: 'webchat_widget'
+      }
+
+      controller.addToCart({ currentTarget: mockButton })
+
+      expect(save).toHaveBeenCalledWith(controller.utmValue)
+      expect(save.mock.invocationCallOrder[0]).toBeLessThan(trackSpy.mock.invocationCallOrder[0])
+
+      Hellotext.page = originalPage
+    })
+
     it('dispatches the cart.added event for the clicked product', () => {
       const mockEvent = {
         currentTarget: mockButton

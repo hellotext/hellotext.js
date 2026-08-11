@@ -12,13 +12,17 @@ class UTM {
       content: urlSearchParams.get('utm_content'),
     }
 
-    if (utmsFromUrl.source && utmsFromUrl.medium) {
-      const cleanUtms = Object.fromEntries(
-        Object.entries(utmsFromUrl).filter(([_, value]) => value),
-      )
+    this.save(utmsFromUrl)
+  }
 
-      Cookies.set('hello_utm', JSON.stringify(cleanUtms))
-    }
+  save(utmParams) {
+    if (!utmParams.source || !utmParams.medium) return
+
+    const cleanUtms = Object.fromEntries(
+      Object.entries(utmParams).filter(([_, value]) => value),
+    )
+
+    Cookies.set('hello_utm', JSON.stringify(cleanUtms))
   }
 
   get current() {

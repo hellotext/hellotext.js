@@ -227,6 +227,27 @@ describe('UTM', () => {
     })
   })
 
+  describe('save', () => {
+    it('stores supplied UTM parameters in cookies', () => {
+      const utm = new UTM()
+
+      utm.save({
+        source: 'hellotext',
+        medium: 'webchat',
+        campaign: 'webchat_widget'
+      })
+
+      expect(mockCookiesSet).toHaveBeenCalledWith(
+        'hello_utm',
+        JSON.stringify({
+          source: 'hellotext',
+          medium: 'webchat',
+          campaign: 'webchat_widget'
+        })
+      )
+    })
+  })
+
   describe('initialize static method', () => {
     it('creates UTM instance and processes URL parameters', () => {
       window.location.search = '?utm_source=instagram&utm_medium=social&utm_campaign=influencer'
