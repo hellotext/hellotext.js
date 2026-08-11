@@ -3,12 +3,14 @@ import Hellotext from './hellotext'
 
 import FormController from './controllers/form_controller'
 import MessageController from './controllers/message_controller'
+import PopupController from './controllers/popup_controller'
 import WebChatEmojiController from './controllers/webchat/emoji_picker_controller'
 import WebchatController from './controllers/webchat_controller'
 
 const application = Application.start()
 
 application.register('hellotext--form', FormController)
+application.register('hellotext--popup', PopupController)
 application.register('hellotext--webchat', WebchatController)
 application.register('hellotext--webchat--emoji', WebChatEmojiController)
 application.register('hellotext--message', MessageController)

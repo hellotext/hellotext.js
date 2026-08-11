@@ -6,6 +6,7 @@ import {
   Fingerprint,
   FormCollection,
   Page,
+  Popup,
   Query,
   Session,
   User,
@@ -19,6 +20,7 @@ class Hellotext {
   static eventEmitter = new Event()
   static forms
   static business
+  static popup
   static webchat
   static whatsapp
 
@@ -39,6 +41,13 @@ class Hellotext {
     this.query = new Query()
 
     const businessData = await this.business.hydrate()
+    const popupConfig =
+      config.popup === false
+        ? false
+        : this.mergePopupConfig(
+            (businessData && businessData.popup) || {},
+            config.popup || {},
+          )
     const webchatConfig =
       config.webchat === false
         ? false
@@ -70,6 +79,11 @@ class Hellotext {
       this.whatsapp = await WhatsAppWidget.load(whatsappConfig.id)
     }
 
+    if (popupConfig && popupConfig.id) {
+      Configuration.popup.assign(popupConfig)
+      this.popup = await Popup.load(popupConfig.id)
+    }
+
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()
     }
@@ -80,6 +94,10 @@ class Hellotext {
   }
 
   static mergeWhatsAppConfig(dashboardConfig, localConfig) {
+    return this.deepMergePlainObjects(dashboardConfig, localConfig)
+  }
+
+  static mergePopupConfig(dashboardConfig, localConfig) {
     return this.deepMergePlainObjects(dashboardConfig, localConfig)
   }
 
