@@ -1,5 +1,6 @@
 import { Forms } from './configuration/forms'
 import { Locale } from './configuration/locale'
+import { Popup } from './configuration/popup'
 import { Webchat } from './configuration/webchat'
 import { WhatsApp } from './configuration/whatsapp'
 
@@ -10,6 +11,7 @@ import { WhatsApp } from './configuration/whatsapp'
  * @property {Boolean} [autoGenerateSession=true] - whether to auto generate session or not
  * @property {String} [session] - session id
  * @property {Forms} [forms] - form configuration
+ * @property {Popup} [popup] - popup configuration
  * @property {Webchat} [webchat] - webchat configuration
  * @property {WhatsApp} [whatsappWidget] - WhatsApp widget configuration
  * @property {Locale} [locale] - locale configuration
@@ -22,6 +24,7 @@ class Configuration {
   static session = null
 
   static forms = Forms
+  static popup = Popup
   static webchat = Webchat
   static whatsapp = WhatsApp
 
@@ -43,6 +46,8 @@ class Configuration {
       Object.entries(props).forEach(([key, value]) => {
         if (key === 'forms') {
           this.forms = Forms.assign(value)
+        } else if (key === 'popup') {
+          this.popup = Popup.assign(value)
         } else if (key === 'webchat') {
           this.webchat = Webchat.assign(value)
         } else if (key === 'whatsappWidget') {

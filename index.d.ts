@@ -5,6 +5,7 @@ export interface HellotextConfig {
     autoMount?: boolean
     successMessage?: boolean | string
   }
+  popup?: false | HellotextPopupConfig
   webchat?: false | HellotextWebchatConfig
   whatsappWidget?: false | HellotextWhatsAppWidgetConfig
   session?: string
@@ -67,6 +68,12 @@ export interface HellotextWhatsAppWidgetConfig {
   appearance?: HellotextWhatsAppWidgetAppearance
 }
 
+export interface HellotextPopupConfig {
+  id?: string
+  container?: string
+  device?: 'auto' | 'mobile' | 'desktop'
+}
+
 export interface HellotextBusinessCountry {
   code?: string
   prefix?: string
@@ -81,6 +88,7 @@ export interface HellotextBusinessData {
   style_url?: string
   webchat?: HellotextWebchatConfig | null
   whatsapp?: HellotextWhatsAppWidgetConfig | null
+  popup?: HellotextPopupConfig | null
   whitelist?: string | string[] | null
   subscription?: string | null
   [key: string]: any
@@ -140,6 +148,7 @@ declare class Hellotext {
   static get isInitialized(): boolean
   static forms: any
   static business: HellotextBusiness
+  static popup: any
   static webchat: any
   static whatsapp: any
 }
