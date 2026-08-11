@@ -7,6 +7,7 @@ This library allows you the following,
 - Track events happening on your site to [Hellotext](https://www.hellotext.com) in real-time.
 - Use Hellotext Forms to dynamically collect data from your customers based on your specific business requirements.
 - Use Hellotext Webchat to interact with your customers in real-time.
+- Use Hellotext Popups to collect customer information from dashboard-built popups.
 
 ## Installation
 
@@ -122,5 +123,20 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 | session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null                                      |
 | autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true                                      |
 | forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object  | { autoMount: true, successMessage: true } |
+| popup               | An object that mounts a dashboard popup by id, or `false` to disable popup mounting.                                                                                                             | Object \| false | null                                      |
 | webchat             | An object that overrides the dashboard webchat configuration, or `false` to disable automatic webchat mounting. See [Webchat](/docs/webchat.md).                                                   | Object \| false | Dashboard webchat when configured        |
 | whatsappWidget      | An object that overrides the dashboard WhatsApp widget configuration, or `false` to disable automatic WhatsApp widget mounting.                                                                  | Object \| false | Dashboard WhatsApp widget when configured |
+
+#### Popup
+
+```javascript
+Hellotext.initialize('HELLOTEXT_BUSINESS_ID', {
+  popup: {
+    id: 'POPUP_ID',
+  },
+})
+```
+
+When the popup is installed automatically from the dashboard, `Hellotext.initialize('HELLOTEXT_BUSINESS_ID')` mounts the configured popup without passing `popup.id` manually.
+
+The popup is rendered from the dashboard configuration, including steps, layout, bubble, colors, rules, coupon, and journey metadata.

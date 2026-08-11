@@ -2,6 +2,7 @@ import BusinessesAPI from './businesses'
 import EventsAPI from './events'
 import FormsAPI from './forms'
 import IdentificationsAPI from './identifications'
+import PopupsAPI from './popups'
 import WebchatsAPI from './webchats'
 import WhatsAppWidgetsAPI from './whatsapp_widgets'
 import AcksAPI from './acks'
@@ -40,6 +41,10 @@ export default class API {
 
   static get forms() {
     return FormsAPI
+  }
+
+  static get popups() {
+    return PopupsAPI
   }
 
   static get webchats() {
