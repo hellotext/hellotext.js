@@ -93,10 +93,19 @@ export default class extends Controller {
   async submit(event) {
     if (event) event.preventDefault()
 
+    this.clearCustomValidity()
+
     if (this.stepIndex < this.stepTargets.length - 1) {
       await this.next()
       return
     }
+
+    if (!this.currentStepValid()) {
+      this.showErrorMessages(this.currentStepInputs)
+      return
+    }
+
+    this.clearErrorMessages(this.currentStepInputs)
 
     this.submitButtonTargets.forEach(button => {
       button.disabled = true
