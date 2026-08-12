@@ -55,15 +55,6 @@ export default class extends Controller {
 
     if (this.hasUtmValue) Hellotext.page.utm.save(this.utmValue)
 
-    Hellotext.track('cart.added', {
-      object_parameters: { items: [item] },
-      source: {
-        kind: this.kindValue,
-        message_id: this.idValue,
-        button_id: currentTarget.dataset.id,
-      },
-    })
-
     Hellotext.eventEmitter.dispatch('cart.added', {
       object_parameters: {
         items: [
@@ -73,6 +64,11 @@ export default class extends Controller {
             ...(source && { source }),
           },
         ],
+      },
+      source: {
+        kind: this.kindValue,
+        message_id: this.idValue,
+        button_id: currentTarget.dataset.id,
       },
     })
   }
