@@ -368,33 +368,17 @@ describe('MessageController', () => {
       dispatchSpy.mockRestore()
     })
 
-    it('tracks the cart.added event for the clicked product', () => {
-      controller.kindValue = 'message-kind'
-
+    it('leaves cart tracking to the platform integration', () => {
       const mockEvent = {
         currentTarget: mockButton
       }
 
       controller.addToCart(mockEvent)
 
-      expect(Hellotext.track).toHaveBeenCalledWith('cart.added', {
-        object_parameters: {
-          items: [
-            {
-              product: 'product-456',
-              quantity: 1
-            }
-          ]
-        },
-        source: {
-          kind: 'message-kind',
-          message_id: 'message-456',
-          button_id: 'btn-789'
-        }
-      })
+      expect(Hellotext.track).not.toHaveBeenCalled()
     })
 
-    it('saves the message UTM before tracking the cart addition', () => {
+    it('saves the message UTM before dispatching the cart addition', () => {
       const originalPage = Hellotext.page
       const save = jest.fn()
       Hellotext.page = { utm: { save } }
@@ -408,7 +392,7 @@ describe('MessageController', () => {
       controller.addToCart({ currentTarget: mockButton })
 
       expect(save).toHaveBeenCalledWith(controller.utmValue)
-      expect(save.mock.invocationCallOrder[0]).toBeLessThan(trackSpy.mock.invocationCallOrder[0])
+      expect(save.mock.invocationCallOrder[0]).toBeLessThan(dispatchSpy.mock.invocationCallOrder[0])
 
       Hellotext.page = originalPage
     })
@@ -428,11 +412,16 @@ describe('MessageController', () => {
               quantity: 1
             }
           ]
+        },
+        source: {
+          kind: 'bundle_suggestion',
+          message_id: 'message-456',
+          button_id: 'btn-789'
         }
       })
     })
 
-    it('dispatches reference and source metadata without adding them to the tracking payload', () => {
+    it('dispatches item metadata and message attribution to the platform integration', () => {
       mockCard.dataset.reference = 'message-item-reference'
       mockCard.dataset.source = 'webchat-carousel'
 
@@ -442,21 +431,6 @@ describe('MessageController', () => {
 
       controller.addToCart(mockEvent)
 
-      expect(Hellotext.track).toHaveBeenCalledWith('cart.added', {
-        object_parameters: {
-          items: [
-            {
-              product: 'product-456',
-              quantity: 1
-            }
-          ]
-        },
-        source: {
-          kind: 'bundle_suggestion',
-          message_id: 'message-456',
-          button_id: 'btn-789'
-        }
-      })
       expect(Hellotext.eventEmitter.dispatch).toHaveBeenCalledWith('cart.added', {
         object_parameters: {
           items: [
@@ -467,6 +441,11 @@ describe('MessageController', () => {
               source: 'webchat-carousel'
             }
           ]
+        },
+        source: {
+          kind: 'bundle_suggestion',
+          message_id: 'message-456',
+          button_id: 'btn-789'
         }
       })
     })
