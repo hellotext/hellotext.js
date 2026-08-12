@@ -178,6 +178,21 @@ describe('PopupController', () => {
     expect(completed.hidden).toBe(false)
   })
 
+  it('validates the last step before submitting', async () => {
+    const { completed, emailInput, phoneInput, stepTwo } = buildController({ hasBubble: false })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+
+    await controller.submit()
+
+    expect(API.popups.submit).not.toHaveBeenCalled()
+    expect(stepTwo.hidden).toBe(false)
+    expect(completed.hidden).toBe(true)
+    expect(phoneInput.checkValidity()).toBe(false)
+  })
+
   it('tolerates browsers that block localStorage', () => {
     buildController()
     const storage = {
