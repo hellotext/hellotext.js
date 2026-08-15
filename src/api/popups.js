@@ -31,17 +31,27 @@ class PopupsAPI {
     return new DOMParser().parseFromString(data.html, 'text/html').querySelector('article')
   }
 
-  static async submit(id, data) {
-    const response = await fetch(`${this.endpoint}/${id}/submissions`, {
-      method: 'POST',
-      headers: Hellotext.headers,
-      body: JSON.stringify({
-        session: Hellotext.session,
-        popup_submission: data,
-      }),
-    })
+  static async submit(id, data, idempotencyKey) {
+    try {
+      const response = await fetch(`${this.endpoint}/${id}/submissions`, {
+        method: 'POST',
+        headers: {
+          ...Hellotext.headers,
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify({
+          session: Hellotext.session,
+          popup_submission: data,
+        }),
+      })
 
-    return new Response(response.ok, response)
+      return new Response(response.ok, response)
+    } catch (_) {
+      return new Response(false, {
+        status: 0,
+        json: async () => ({ errors: [] }),
+      })
+    }
   }
 
   static async fetchPopup(url) {

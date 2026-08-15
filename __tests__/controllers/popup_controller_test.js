@@ -14,6 +14,7 @@ describe('PopupController', () => {
     const bubble = document.createElement('button')
     const dialog = document.createElement('section')
     const completed = document.createElement('section')
+    const globalError = document.createElement('p')
     const stepOne = document.createElement('section')
     const stepTwo = document.createElement('section')
     const emailInput = document.createElement('input')
@@ -38,10 +39,12 @@ describe('PopupController', () => {
     stepTwo.dataset.stepName = 'Step 2'
     stepTwo.hidden = true
     completed.hidden = true
+    globalError.hidden = true
+    completed.textContent = 'Sent to {destination} via {channel}'
 
     stepOne.appendChild(emailInput)
     stepTwo.appendChild(phoneInput)
-    dialog.append(stepOne, stepTwo, completed)
+    dialog.append(stepOne, stepTwo, globalError, completed)
     element.append(bubble, dialog)
     document.body.appendChild(element)
 
@@ -55,17 +58,20 @@ describe('PopupController', () => {
     controller.bubbleTarget = bubble
     controller.dialogTarget = dialog
     controller.completedTarget = completed
+    controller.globalErrorTarget = globalError
     controller.stepTargets = [stepOne, stepTwo]
     controller.inputTargets = [emailInput, phoneInput]
     controller.submitButtonTargets = [stepOneButton, stepTwoButton]
+    controller.hasGlobalErrorTarget = true
     controller.hasBubbleTarget = hasBubble
     controller.hasBubbleValue = hasBubble
     controller.captureValue = { capture_id: 'capture-id' }
+    controller.delayValue = 0
     controller.deviceValue = 'all'
     controller.idValue = 'popup-id'
     controller.rulesValue = rules
 
-    return { element, bubble, dialog, completed, stepOne, stepTwo, emailInput, phoneInput }
+    return { element, bubble, dialog, completed, globalError, stepOne, stepTwo, emailInput, phoneInput }
   }
 
   beforeEach(() => {
@@ -97,6 +103,29 @@ describe('PopupController', () => {
     expect(bubble.hidden).toBe(true)
     expect(dialog.hidden).toBe(false)
     expect(localStorage.getItem('hellotext:popup:popup-id:viewed')).toBe('true')
+  })
+
+  it('waits before showing automatic popups with a trigger delay', () => {
+    jest.useFakeTimers()
+    const { element, dialog } = buildController({ hasBubble: false })
+    controller.delayValue = 3
+
+    controller.connect()
+
+    expect(element.hidden).toBe(true)
+    expect(dialog.hidden).toBe(true)
+
+    jest.advanceTimersByTime(2999)
+
+    expect(element.hidden).toBe(true)
+    expect(dialog.hidden).toBe(true)
+
+    jest.advanceTimersByTime(1)
+
+    expect(element.hidden).toBe(false)
+    expect(dialog.hidden).toBe(false)
+
+    jest.useRealTimers()
   })
 
   it('validates the current step before moving to the next one', async () => {
@@ -144,38 +173,83 @@ describe('PopupController', () => {
 
     await controller.next()
 
-    expect(API.popups.submit).toHaveBeenCalledWith('popup-id', {
-      email: 'customer@example.com',
-      phone: '+15551234567',
-      metadata: {
-        capture: {
-          capture_id: 'capture-id',
-        },
-        fields: {
-          email: 'customer@example.com',
-          phone: '+15551234567',
-        },
-        steps: [
-          {
-            id: 'step-one',
-            name: 'Step 1',
-            fields: {
-              email: 'customer@example.com',
-            },
+    expect(API.popups.submit).toHaveBeenCalledWith(
+      'popup-id',
+      {
+        email: 'customer@example.com',
+        phone: '+15551234567',
+        metadata: {
+          capture: {
+            capture_id: 'capture-id',
           },
-          {
-            id: 'step-two',
-            name: 'Step 2',
-            fields: {
-              phone: '+15551234567',
-            },
+          fields: {
+            email: 'customer@example.com',
+            phone: '+15551234567',
           },
-        ],
+          steps: [
+            {
+              id: 'step-one',
+              name: 'Step 1',
+              fields: {
+                email: 'customer@example.com',
+              },
+            },
+            {
+              id: 'step-two',
+              name: 'Step 2',
+              fields: {
+                phone: '+15551234567',
+              },
+            },
+          ],
+        },
       },
-    })
+      expect.any(String),
+    )
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(true)
     expect(completed.hidden).toBe(false)
+    expect(completed.textContent).toBe('Sent to customer@example.com via email')
+  })
+
+  it('reuses the idempotency key when a network response fails', async () => {
+    const { emailInput, globalError, phoneInput } = buildController({ hasBubble: false })
+    API.popups.submit.mockResolvedValue({ failed: true, data: { status: 0 }, json: async () => ({ errors: [] }) })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    phoneInput.value = '+15551234567'
+
+    await controller.next()
+    const firstKey = API.popups.submit.mock.calls[0][2]
+    await controller.submit()
+
+    expect(API.popups.submit.mock.calls[1][2]).toBe(firstKey)
+    expect(controller.submitButtonTargets.every(button => button.disabled === false)).toBe(true)
+    expect(globalError.hidden).toBe(false)
+    expect(globalError.textContent).toBe('We could not submit the popup. Please try again.')
+  })
+
+  it('shows base submission errors that do not belong to a field', async () => {
+    const { emailInput, globalError, phoneInput } = buildController({ hasBubble: false })
+    API.popups.submit.mockResolvedValue({
+      failed: true,
+      data: { status: 429 },
+      json: async () => ({
+        errors: [{ parameter: 'base', description: 'too many popup submissions, please try again later' }],
+      }),
+    })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    phoneInput.value = '+15551234567'
+
+    await controller.submit()
+
+    expect(globalError.hidden).toBe(false)
+    expect(globalError.textContent).toBe('too many popup submissions, please try again later')
   })
 
   it('validates the last step before submitting', async () => {

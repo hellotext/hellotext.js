@@ -19,15 +19,17 @@ import API from '../api'
  *
  * Values:
  * - capture: Persisted capture, coupon, and journey metadata.
+ * - delay: Seconds to wait before evaluating automatic display rules.
  * - device: Popup device targeting.
  * - hasBubble: Whether the popup starts from a bubble.
  * - id: Public popup identifier.
  * - rules: Persisted AND display rules.
  */
 export default class extends Controller {
-  static targets = ['bubble', 'dialog', 'step', 'completed', 'input', 'submitButton']
+  static targets = ['bubble', 'dialog', 'step', 'completed', 'globalError', 'input', 'submitButton']
   static values = {
     capture: Object,
+    delay: Number,
     device: String,
     hasBubble: Boolean,
     id: String,
@@ -36,16 +38,22 @@ export default class extends Controller {
 
   connect() {
     this.stepIndex = 0
+    this.idempotencyKey = null
     this.onScroll = this.evaluateDisplay.bind(this)
 
     this.hideElement(this.element)
     this.hideElement(this.dialogTarget)
     if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
 
-    this.evaluateDisplay()
+    if (this.hasBubbleValue || !this.delayValue) {
+      this.evaluateDisplay()
+    } else {
+      this.displayTimeout = window.setTimeout(() => this.evaluateDisplay(), this.delayValue * 1000)
+    }
   }
 
   disconnect() {
+    window.clearTimeout(this.displayTimeout)
     window.removeEventListener('scroll', this.onScroll)
   }
 
@@ -100,6 +108,7 @@ export default class extends Controller {
       return
     }
 
+    this.clearGlobalError()
     if (!this.currentStepValid()) {
       this.showErrorMessages(this.currentStepInputs)
       return
@@ -111,17 +120,21 @@ export default class extends Controller {
       button.disabled = true
     })
 
-    const response = await API.popups.submit(this.idValue, this.submissionPayload())
+    const payload = this.submissionPayload()
+    const response = await API.popups.submit(this.idValue, payload, this.currentIdempotencyKey)
 
     this.submitButtonTargets.forEach(button => {
       button.disabled = false
     })
 
     if (response.failed) {
+      if (response.data?.status === 409) this.idempotencyKey = null
       await this.handleSubmissionError(response)
       return
     }
 
+    this.interpolateCompletion(payload)
+    this.idempotencyKey = null
     this.showCompleted()
   }
 
@@ -195,10 +208,12 @@ export default class extends Controller {
     try {
       data = await response.json()
     } catch (_) {
+      this.showGlobalError()
       return
     }
 
     const errors = data.errors || []
+    let fieldErrorShown = false
 
     errors.forEach(error => {
       const input = this.inputForError(error)
@@ -206,9 +221,28 @@ export default class extends Controller {
 
       input.setCustomValidity(error.description || input.validationMessage)
       input.reportValidity()
+      fieldErrorShown = true
     })
 
     this.showErrorMessages(this.inputTargets)
+
+    if (!fieldErrorShown) {
+      this.showGlobalError(errors.map(error => error.description).filter(Boolean).join(' '))
+    }
+  }
+
+  showGlobalError(message = '') {
+    if (!this.hasGlobalErrorTarget) return
+
+    this.globalErrorTarget.textContent = message || 'We could not submit the popup. Please try again.'
+    this.showElement(this.globalErrorTarget)
+  }
+
+  clearGlobalError() {
+    if (!this.hasGlobalErrorTarget) return
+
+    this.globalErrorTarget.textContent = ''
+    this.hideElement(this.globalErrorTarget)
   }
 
   inputForError(error) {
@@ -258,6 +292,26 @@ export default class extends Controller {
     if (input.type === 'checkbox') return input.checked
 
     return input.value
+  }
+
+  interpolateCompletion(payload) {
+    const destination = payload.email || payload.phone || ''
+    const channel = payload.email ? 'email' : payload.phone ? 'SMS' : ''
+    const replacements = {
+      '{destination}': destination,
+      '{channel}': channel,
+    }
+    const walker = document.createTreeWalker(this.completedTarget, NodeFilter.SHOW_TEXT)
+    const nodes = []
+
+    while (walker.nextNode()) nodes.push(walker.currentNode)
+
+    nodes.forEach(node => {
+      node.textContent = Object.entries(replacements).reduce(
+        (text, [placeholder, value]) => text.split(placeholder).join(value),
+        node.textContent,
+      )
+    })
   }
 
   inputsForStep(step) {
@@ -372,5 +426,17 @@ export default class extends Controller {
 
   get viewedStorageKey() {
     return `hellotext:popup:${this.idValue}:viewed`
+  }
+
+  get currentIdempotencyKey() {
+    this.idempotencyKey ||= this.generateIdempotencyKey()
+
+    return this.idempotencyKey
+  }
+
+  generateIdempotencyKey() {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
+
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
   }
 }

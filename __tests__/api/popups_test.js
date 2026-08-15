@@ -80,10 +80,14 @@ describe('PopupsAPI', () => {
       json: jest.fn().mockResolvedValue({ id: 'submission-id' }),
     })
 
-    const response = await PopupsAPI.submit('popup-id', {
-      email: 'customer@example.com',
-      metadata: { fields: { email: 'customer@example.com' } },
-    })
+    const response = await PopupsAPI.submit(
+      'popup-id',
+      {
+        email: 'customer@example.com',
+        metadata: { fields: { email: 'customer@example.com' } },
+      },
+      'submission-key',
+    )
 
     const request = global.fetch.mock.calls[0]
     const body = JSON.parse(request[1].body)
@@ -91,6 +95,7 @@ describe('PopupsAPI', () => {
     expect(request[0]).toBe('https://api.hellotext.test/v1/public/popups/popup-id/submissions')
     expect(request[1].method).toBe('POST')
     expect(request[1].headers.Authorization).toBe('Bearer business-id')
+    expect(request[1].headers['Idempotency-Key']).toBe('submission-key')
     expect(body).toEqual({
       session: 'session-123',
       popup_submission: {
@@ -103,5 +108,14 @@ describe('PopupsAPI', () => {
       },
     })
     expect(response.succeeded).toBe(true)
+  })
+
+  it('returns a failed response when the submission request errors', async () => {
+    global.fetch.mockRejectedValue(new Error('Network error'))
+
+    const response = await PopupsAPI.submit('popup-id', { email: 'customer@example.com' }, 'submission-key')
+
+    expect(response.failed).toBe(true)
+    await expect(response.json()).resolves.toEqual({ errors: [] })
   })
 })
