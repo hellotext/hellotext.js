@@ -128,6 +128,108 @@ describe('PopupController', () => {
     jest.useRealTimers()
   })
 
+  it('waits for the configured scroll depth before showing an automatic popup', () => {
+    const { element, dialog } = buildController({
+      hasBubble: false,
+      rules: {
+        operator: 'and',
+        conditions: [{ group: 'actions', type: 'scroll_depth', value: 40 }],
+      },
+    })
+    const scrollPercentage = jest.spyOn(controller, 'scrollPercentage', 'get').mockReturnValue(39)
+
+    controller.connect()
+
+    expect(element.hidden).toBe(true)
+    expect(dialog.hidden).toBe(true)
+
+    scrollPercentage.mockReturnValue(40)
+    window.dispatchEvent(new Event('scroll'))
+
+    expect(element.hidden).toBe(false)
+    expect(dialog.hidden).toBe(false)
+
+    controller.disconnect()
+  })
+
+  it('respects the viewed-popup rule using popup-specific local storage', () => {
+    const notViewedRule = {
+      operator: 'and',
+      conditions: [{ group: 'actions', type: 'viewed_popup', inclusion: false }],
+    }
+
+    localStorage.setItem('hellotext:popup:popup-id:viewed', 'true')
+    const firstPopup = buildController({ hasBubble: false, rules: notViewedRule })
+    controller.connect()
+
+    expect(firstPopup.element.hidden).toBe(true)
+    expect(firstPopup.dialog.hidden).toBe(true)
+
+    controller.disconnect()
+    localStorage.clear()
+
+    const secondPopup = buildController({ hasBubble: false, rules: notViewedRule })
+    controller.connect()
+
+    expect(secondPopup.element.hidden).toBe(false)
+    expect(secondPopup.dialog.hidden).toBe(false)
+    expect(localStorage.getItem('hellotext:popup:popup-id:viewed')).toBe('true')
+
+    controller.disconnect()
+
+    const viewedPopup = buildController({
+      hasBubble: false,
+      rules: {
+        operator: 'and',
+        conditions: [{ group: 'actions', type: 'viewed_popup', inclusion: true }],
+      },
+    })
+    controller.connect()
+
+    expect(viewedPopup.element.hidden).toBe(false)
+    expect(viewedPopup.dialog.hidden).toBe(false)
+
+    controller.disconnect()
+  })
+
+  it('only displays the popup on matching paths and combines path rules with other rules', () => {
+    window.history.replaceState({}, '', '/products/summer')
+    const { element, dialog } = buildController({
+      hasBubble: false,
+      rules: {
+        operator: 'and',
+        conditions: [
+          { group: 'properties', type: 'page_property', field: 'path', query: 'contains', value: '/products' },
+          { group: 'actions', type: 'viewed_popup', inclusion: false },
+        ],
+      },
+    })
+
+    controller.connect()
+
+    expect(element.hidden).toBe(false)
+    expect(dialog.hidden).toBe(false)
+
+    controller.disconnect()
+    localStorage.clear()
+    window.history.replaceState({}, '', '/checkout')
+
+    const blockedPopup = buildController({
+      hasBubble: false,
+      rules: {
+        operator: 'and',
+        conditions: [{ group: 'properties', type: 'page_property', field: 'path', query: 'does_not_contain', value: '/checkout' }],
+      },
+    })
+    controller.connect()
+
+    expect(blockedPopup.element.hidden).toBe(true)
+    expect(blockedPopup.dialog.hidden).toBe(true)
+
+    controller.disconnect()
+    window.history.replaceState({}, '', '/')
+  })
+
   it('validates the current step before moving to the next one', async () => {
     const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
 
