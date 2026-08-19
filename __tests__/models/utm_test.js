@@ -21,10 +21,13 @@ import { UTM } from '../../src/models/utm'
 jest.mock('../../src/models/cookies')
 
 describe('UTM', () => {
+  const now = '2026-08-19T12:00:00.000Z'
   let mockCookiesSet
   let mockCookiesGet
 
   beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date(now))
+
     // Reset mocks
     jest.clearAllMocks()
 
@@ -37,6 +40,10 @@ describe('UTM', () => {
     // Mock window.location.search
     delete window.location
     window.location = { search: '' }
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   describe('constructor', () => {
@@ -52,7 +59,8 @@ describe('UTM', () => {
           medium: 'cpc',
           campaign: 'summer_sale',
           term: 'shoes',
-          content: 'ad1'
+          content: 'ad1',
+          observed_at: now
         })
       )
     })
@@ -66,7 +74,8 @@ describe('UTM', () => {
         'hello_utm',
         JSON.stringify({
           source: 'facebook',
-          medium: 'social'
+          medium: 'social',
+          observed_at: now
         })
       )
     })
@@ -81,7 +90,8 @@ describe('UTM', () => {
         JSON.stringify({
           source: 'twitter',
           medium: 'social',
-          term: 'hashtag'
+          term: 'hashtag',
+          observed_at: now
         })
       )
     })
@@ -228,13 +238,14 @@ describe('UTM', () => {
   })
 
   describe('save', () => {
-    it('stores supplied UTM parameters in cookies', () => {
+    it('stores supplied UTM parameters with the current observation time', () => {
       const utm = new UTM()
 
       utm.save({
         source: 'hellotext',
         medium: 'webchat',
-        campaign: 'webchat_widget'
+        campaign: 'webchat_widget',
+        observed_at: '2020-01-01T00:00:00.000Z'
       })
 
       expect(mockCookiesSet).toHaveBeenCalledWith(
@@ -242,7 +253,8 @@ describe('UTM', () => {
         JSON.stringify({
           source: 'hellotext',
           medium: 'webchat',
-          campaign: 'webchat_widget'
+          campaign: 'webchat_widget',
+          observed_at: now
         })
       )
     })
@@ -259,7 +271,8 @@ describe('UTM', () => {
         JSON.stringify({
           source: 'instagram',
           medium: 'social',
-          campaign: 'influencer'
+          campaign: 'influencer',
+          observed_at: now
         })
       )
     })
@@ -287,7 +300,8 @@ describe('UTM', () => {
         JSON.stringify({
           source: 'newsletter',
           medium: 'email',
-          campaign: 'monthly'
+          campaign: 'monthly',
+          observed_at: now
         })
       )
 

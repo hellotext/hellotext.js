@@ -505,7 +505,8 @@ describe("when the class is initialized successfully", () => {
         medium: 'cpc',
         campaign: 'summer_sale',
         term: 'shoes',
-        content: 'ad1'
+        content: 'ad1',
+        observed_at: expect.any(String)
       })
 
       // Verify other expected fields are present
@@ -550,7 +551,8 @@ describe("when the class is initialized successfully", () => {
       // Verify that utm_params contains only the present UTM parameters
       expect(requestBody.utm_params).toEqual({
         source: 'facebook',
-        medium: 'social'
+        medium: 'social',
+        observed_at: expect.any(String)
       })
 
       // Verify page object contains all expected properties with updated values
