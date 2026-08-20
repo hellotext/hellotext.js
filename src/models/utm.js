@@ -21,6 +21,7 @@ class UTM {
     const cleanUtms = Object.fromEntries(
       Object.entries(utmParams).filter(([_, value]) => value),
     )
+    cleanUtms.observed_at = new Date().toISOString()
 
     Cookies.set('hello_utm', JSON.stringify(cleanUtms))
   }
