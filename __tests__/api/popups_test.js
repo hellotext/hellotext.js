@@ -53,6 +53,16 @@ describe('PopupsAPI', () => {
     expect(Hellotext.business.setLocale).toHaveBeenCalledWith('es')
   })
 
+  it('resolves the automatic device from the viewport before requesting markup', async () => {
+    Configuration.popup.device = 'auto'
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 767 })
+
+    await PopupsAPI.get('popup-id')
+
+    const url = new URL(global.fetch.mock.calls[0][0])
+    expect(url.searchParams.get('device')).toBe('mobile')
+  })
+
   it('returns null when the popup request fails', async () => {
     global.fetch.mockResolvedValue({ ok: false })
 
