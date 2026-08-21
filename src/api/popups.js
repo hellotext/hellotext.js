@@ -13,7 +13,7 @@ class PopupsAPI {
 
     url.searchParams.append('session', Hellotext.session)
     url.searchParams.append('locale', Locale.toString())
-    url.searchParams.append('device', Configuration.popup.device)
+    url.searchParams.append('device', this.runtimeDevice)
 
     const response = await this.fetchPopup(url)
 
@@ -53,6 +53,12 @@ class PopupsAPI {
     } catch (_) {
       return { ok: false }
     }
+  }
+
+  static get runtimeDevice() {
+    if (Configuration.popup.device !== 'auto') return Configuration.popup.device
+
+    return window.innerWidth <= 767 ? 'mobile' : 'desktop'
   }
 
   static async parsePopupResponse(response) {
