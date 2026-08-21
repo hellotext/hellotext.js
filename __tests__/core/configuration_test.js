@@ -65,6 +65,28 @@ describe('Configuration', () => {
     })
   })
 
+  describe('.popup', () => {
+    afterEach(() => {
+      Configuration.popup.id = undefined
+      Configuration.popup.container = 'body'
+      Configuration.popup.device = 'auto'
+    })
+
+    it('can be modified', () => {
+      Configuration.assign({ popup: { id: 'popup-id', container: '#popup-root', device: 'desktop' } })
+
+      expect(Configuration.popup.id).toEqual('popup-id')
+      expect(Configuration.popup.container).toEqual('#popup-root')
+      expect(Configuration.popup.device).toEqual('desktop')
+    })
+
+    it('accepts false as an opt-out value', () => {
+      expect(() => {
+        Configuration.assign({ popup: false })
+      }).not.toThrow()
+    })
+  })
+
   describe('.locale', () => {
     beforeEach(() => {
       Locale._identifier = undefined

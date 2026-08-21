@@ -1,7 +1,7 @@
 import Hellotext from "../src/hellotext";
 import API from "../src/api";
 import { Configuration } from "../src/core";
-import { Session, Webchat, WhatsAppWidget } from "../src/models";
+import { Popup, Session, Webchat, WhatsAppWidget } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -15,6 +15,7 @@ const defaultBusiness = (overrides = {}) => ({
   features: {},
   locale: "en",
   style_url: "https://example.com/hellotext.css",
+  popup: null,
   webchat: null,
   whitelist: "disabled",
   ...overrides,
@@ -47,17 +48,23 @@ describe("when trying to call methods before initializing the class", () => {
 })
 
 describe("when initializing business metadata", () => {
+  let loadPopup
   let loadWebchat
   let loadWhatsAppWidget
 
   beforeEach(() => {
+    loadPopup = jest.spyOn(Popup, 'load').mockResolvedValue({})
     loadWebchat = jest.spyOn(Webchat, 'load').mockResolvedValue({})
     loadWhatsAppWidget = jest.spyOn(WhatsAppWidget, 'load').mockResolvedValue({})
   })
 
   afterEach(() => {
+    loadPopup.mockRestore()
     loadWebchat.mockRestore()
     loadWhatsAppWidget.mockRestore()
+    Configuration.popup.id = undefined
+    Configuration.popup.container = 'body'
+    Configuration.popup.device = 'auto'
     Configuration.webchat.behaviour = null
     Configuration.webchat.behaviourOverride = false
     Configuration.webchat.appearance = {}
@@ -288,6 +295,49 @@ describe("when initializing business metadata", () => {
     await Hellotext.initialize("xy76ks", { whatsappWidget: false })
 
     expect(loadWhatsAppWidget).not.toHaveBeenCalled()
+  })
+
+  it("loads the dashboard popup when no explicit popup config is passed", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+
+    await Hellotext.initialize("xy76ks")
+
+    expect(loadPopup).toHaveBeenCalledWith("dashboard-popup")
+  })
+
+  it("uses the dashboard popup id with explicit local options", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+
+    await Hellotext.initialize("xy76ks", {
+      popup: {
+        container: "#popup-container",
+        device: "desktop",
+      },
+    })
+
+    expect(loadPopup).toHaveBeenCalledWith("dashboard-popup")
+    expect(Configuration.popup.container).toEqual("#popup-container")
+    expect(Configuration.popup.device).toEqual("desktop")
+  })
+
+  it("lets an explicit popup id override the dashboard popup id", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+
+    await Hellotext.initialize("xy76ks", {
+      popup: {
+        id: "explicit-popup",
+      },
+    })
+
+    expect(loadPopup).toHaveBeenCalledWith("explicit-popup")
+  })
+
+  it("skips popup loading when popup is false", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+
+    await Hellotext.initialize("xy76ks", { popup: false })
+
+    expect(loadPopup).not.toHaveBeenCalled()
   })
 
   it("does not break initialization when business fetch rejects", async () => {
