@@ -634,7 +634,40 @@ form[data-hello-form] [data-logo-container] [data-hello-brand] {
   width: 100%;
   margin-top: 16px;
   font-size: 12px;
-  opacity: 0.72;
+}
+
+.hellotext--popup__completion-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 4px;
+  text-align: center;
+}
+
+.hellotext--popup__completion-footer > span,
+.hellotext--popup__completion-action:disabled {
+  opacity: 0.5;
+}
+
+.hellotext--popup__completion-action {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  line-height: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hellotext--popup__completion-action:disabled {
+  cursor: default;
+  text-decoration: none;
 }
 
 .hellotext--popup__completed { width: 100%; text-align: center; }
