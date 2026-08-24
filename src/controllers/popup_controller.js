@@ -162,7 +162,38 @@ export default class extends Controller {
 
   showCompleted() {
     this.stepTargets.forEach(step => this.hideElement(step))
+    this.interpolateCompletionCopy()
     this.showElement(this.completedTarget)
+  }
+
+  interpolateCompletionCopy() {
+    const identity = this.identityInputs.map(input => ({
+      kind: input.dataset.popupFieldKind,
+      value: this.identityValue(input),
+    })).find(({ value }) => value)
+
+    if (!identity) return
+
+    const replacements = {
+      destination: identity.value,
+      channel: identity.kind,
+    }
+
+    this.completionTextTemplates.forEach(({ node, template }) => {
+      node.nodeValue = template.replace(
+        /\{(destination|channel)\}/g,
+        (placeholder, key) => replacements[key] || placeholder,
+      )
+    })
+  }
+
+  identityValue(input) {
+    const value = this.inputValue(input).trim()
+    if (input.dataset.popupFieldKind !== 'phone' || value.startsWith('+')) return value
+
+    const prefix = input.dataset.popupPhonePrefix
+
+    return prefix ? `${prefix}${value.replace(/^0+/, '')}` : value
   }
 
   currentStepValid() {
@@ -262,6 +293,27 @@ export default class extends Controller {
 
   inputsForStep(step) {
     return this.inputTargets.filter(input => input.dataset.popupStepId === step.dataset.stepId)
+  }
+
+  get identityInputs() {
+    const inputs = this.inputTargets.filter(input => {
+      return ['email', 'phone'].includes(input.dataset.popupFieldKind)
+    })
+
+    return inputs.filter(input => input.required).concat(inputs.filter(input => !input.required))
+  }
+
+  get completionTextTemplates() {
+    if (this._completionTextTemplates) return this._completionTextTemplates
+
+    const walker = document.createTreeWalker(this.completedTarget, NodeFilter.SHOW_TEXT)
+    this._completionTextTemplates = []
+
+    while (walker.nextNode()) {
+      this._completionTextTemplates.push({ node: walker.currentNode, template: walker.currentNode.nodeValue })
+    }
+
+    return this._completionTextTemplates
   }
 
   rulesWithoutScrollPass() {

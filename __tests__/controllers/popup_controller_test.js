@@ -38,6 +38,10 @@ describe('PopupController', () => {
     stepTwo.dataset.stepName = 'Step 2'
     stepTwo.hidden = true
     completed.hidden = true
+    completed.innerHTML = [
+      '<p>We sent it to <strong>{destination}</strong>',
+      ' via {channel}. It may take a minute to arrive.</p>',
+    ].join('')
 
     stepOne.appendChild(emailInput)
     stepTwo.appendChild(phoneInput)
@@ -176,6 +180,58 @@ describe('PopupController', () => {
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(true)
     expect(completed.hidden).toBe(false)
+    expect(completed.textContent).toBe(
+      'We sent it to customer@example.com via email. It may take a minute to arrive.',
+    )
+    expect(completed.querySelector('strong').textContent).toBe('customer@example.com')
+  })
+
+  it('uses a readable channel when the popup only requires one identity field', () => {
+    const { completed, emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    phoneInput.required = false
+    emailInput.value = 'customer@example.com'
+
+    controller.showCompleted()
+
+    expect(completed.textContent).toBe(
+      'We sent it to customer@example.com via email. It may take a minute to arrive.',
+    )
+
+    emailInput.value = 'updated@example.com'
+    controller.showCompleted()
+
+    expect(completed.textContent).toBe(
+      'We sent it to updated@example.com via email. It may take a minute to arrive.',
+    )
+  })
+
+  it('falls back to the first populated optional identity field', () => {
+    const { completed, emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    emailInput.required = false
+    phoneInput.required = false
+    emailInput.value = 'customer@example.com'
+
+    controller.showCompleted()
+
+    expect(completed.textContent).toBe(
+      'We sent it to customer@example.com via email. It may take a minute to arrive.',
+    )
+  })
+
+  it('formats a required phone with the popup country prefix', () => {
+    const { completed, emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    emailInput.required = false
+    phoneInput.dataset.popupPhonePrefix = '+58'
+    phoneInput.value = '04126625353'
+
+    controller.showCompleted()
+
+    expect(completed.textContent).toBe(
+      'We sent it to +584126625353 via phone. It may take a minute to arrive.',
+    )
   })
 
   it('validates the last step before submitting', async () => {
