@@ -101,6 +101,7 @@ describe('PopupsAPI', () => {
     expect(request[0]).toBe('https://api.hellotext.test/v1/public/popups/popup-id/submissions')
     expect(request[1].method).toBe('POST')
     expect(request[1].headers.Authorization).toBe('Bearer business-id')
+    expect(request[1].headers['Idempotency-Key']).toMatch(/^[a-zA-Z0-9._:-]+$/)
     expect(body).toEqual({
       session: 'session-123',
       popup_submission: {
@@ -113,5 +114,16 @@ describe('PopupsAPI', () => {
       },
     })
     expect(response.succeeded).toBe(true)
+  })
+
+  it('generates a new idempotency key for each submission attempt', async () => {
+    await PopupsAPI.submit('popup-id', {})
+    await PopupsAPI.submit('popup-id', {})
+
+    const keys = global.fetch.mock.calls.map(([, request]) => request.headers['Idempotency-Key'])
+
+    expect(keys[0]).toBeTruthy()
+    expect(keys[1]).toBeTruthy()
+    expect(keys[0]).not.toBe(keys[1])
   })
 })

@@ -34,7 +34,10 @@ class PopupsAPI {
   static async submit(id, data) {
     const response = await fetch(`${this.endpoint}/${id}/submissions`, {
       method: 'POST',
-      headers: Hellotext.headers,
+      headers: {
+        ...Hellotext.headers,
+        'Idempotency-Key': this.idempotencyKey(),
+      },
       body: JSON.stringify({
         session: Hellotext.session,
         popup_submission: data,
@@ -42,6 +45,14 @@ class PopupsAPI {
     })
 
     return new Response(response.ok, response)
+  }
+
+  static idempotencyKey() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
   }
 
   static async fetchPopup(url) {
