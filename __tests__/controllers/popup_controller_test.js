@@ -20,6 +20,8 @@ describe('PopupController', () => {
     const phoneInput = document.createElement('input')
     const stepOneButton = document.createElement('button')
     const stepTwoButton = document.createElement('button')
+    const resendButton = document.createElement('button')
+    const changeDestinationButton = document.createElement('button')
 
     bubble.textContent = '10% OFF'
     emailInput.type = 'email'
@@ -42,6 +44,13 @@ describe('PopupController', () => {
       '<p>We sent it to <strong>{destination}</strong>',
       ' via {channel}. It may take a minute to arrive.</p>',
     ].join('')
+    resendButton.textContent = 'Resend'
+    resendButton.hidden = true
+    resendButton.dataset.countdownLabel = 'Resend in %{time}'
+    changeDestinationButton.hidden = true
+    changeDestinationButton.dataset.emailLabel = 'Change email'
+    changeDestinationButton.dataset.phoneLabel = 'Change number'
+    completed.append(resendButton, changeDestinationButton)
 
     stepOne.appendChild(emailInput)
     stepTwo.appendChild(phoneInput)
@@ -62,6 +71,12 @@ describe('PopupController', () => {
     controller.stepTargets = [stepOne, stepTwo]
     controller.inputTargets = [emailInput, phoneInput]
     controller.submitButtonTargets = [stepOneButton, stepTwoButton]
+    Object.defineProperties(controller, {
+      resendButtonTarget: { value: resendButton, configurable: true },
+      changeDestinationButtonTarget: { value: changeDestinationButton, configurable: true },
+      hasResendButtonTarget: { value: true, configurable: true },
+      hasChangeDestinationButtonTarget: { value: true, configurable: true },
+    })
     controller.hasBubbleTarget = hasBubble
     controller.hasBubbleValue = hasBubble
     controller.captureValue = { capture_id: 'capture-id' }
@@ -69,15 +84,39 @@ describe('PopupController', () => {
     controller.idValue = 'popup-id'
     controller.rulesValue = rules
 
-    return { element, bubble, dialog, completed, stepOne, stepTwo, emailInput, phoneInput }
+    return {
+      element,
+      bubble,
+      dialog,
+      completed,
+      stepOne,
+      stepTwo,
+      emailInput,
+      phoneInput,
+      resendButton,
+      changeDestinationButton,
+    }
   }
 
   beforeEach(() => {
     originalLocalStorage = window.localStorage
-    jest.spyOn(API.popups, 'submit').mockResolvedValue({ failed: false })
+    jest.spyOn(API.popups, 'submit').mockResolvedValue({
+      failed: false,
+      json: jest.fn().mockResolvedValue({
+        id: 'submission-id',
+        verification_state: 'unverified',
+        action_token: 'action-token',
+      }),
+    })
+    jest.spyOn(API.popups, 'resend').mockResolvedValue({
+      succeeded: true,
+      data: { headers: new Headers({ 'Retry-After': '60' }), status: 202 },
+    })
+    jest.spyOn(API.popups, 'cancel').mockResolvedValue({ failed: false, succeeded: true })
   })
 
   afterEach(() => {
+    jest.useRealTimers()
     jest.restoreAllMocks()
     Object.defineProperty(window, 'localStorage', {
       value: originalLocalStorage,
@@ -180,10 +219,75 @@ describe('PopupController', () => {
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(true)
     expect(completed.hidden).toBe(false)
-    expect(completed.textContent).toBe(
+    expect(completed.querySelector('p').textContent).toBe(
       'We sent it to customer@example.com via email. It may take a minute to arrive.',
     )
     expect(completed.querySelector('strong').textContent).toBe('customer@example.com')
+  })
+
+  it('shows a one-minute resend cooldown and the change action for the submitted identity', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-08-24T12:00:00Z'))
+    const { emailInput, phoneInput, resendButton, changeDestinationButton } = buildController({ hasBubble: false })
+
+    controller.connect()
+    phoneInput.required = false
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    await controller.submit()
+
+    expect(resendButton.hidden).toBe(false)
+    expect(resendButton.disabled).toBe(true)
+    expect(resendButton.textContent).toBe('Resend in 1:00')
+    expect(changeDestinationButton.hidden).toBe(false)
+    expect(changeDestinationButton.textContent).toBe('Change email')
+
+    jest.advanceTimersByTime(60000)
+
+    expect(resendButton.disabled).toBe(false)
+    expect(resendButton.textContent).toBe('Resend')
+  })
+
+  it('resends only the identity shown in the completed step and restarts the cooldown', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-08-24T12:00:00Z'))
+    const { emailInput, phoneInput, resendButton } = buildController({ hasBubble: false })
+
+    controller.connect()
+    phoneInput.required = false
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    await controller.submit()
+    jest.advanceTimersByTime(60000)
+
+    await controller.resend({ preventDefault: jest.fn() })
+
+    expect(API.popups.resend).toHaveBeenCalledWith(
+      'popup-id',
+      'submission-id',
+      'email',
+      'action-token',
+    )
+    expect(resendButton.disabled).toBe(true)
+    expect(resendButton.textContent).toBe('Resend in 1:00')
+  })
+
+  it('returns to and focuses the step that owns the completed identity', async () => {
+    const { completed, emailInput, phoneInput, stepOne, changeDestinationButton } = buildController({ hasBubble: false })
+    jest.spyOn(emailInput, 'focus')
+
+    controller.connect()
+    phoneInput.required = false
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    await controller.submit()
+    await controller.changeDestination({ preventDefault: jest.fn() })
+
+    expect(API.popups.cancel).toHaveBeenCalledWith('popup-id', 'submission-id', 'action-token')
+    expect(completed.hidden).toBe(true)
+    expect(stepOne.hidden).toBe(false)
+    expect(emailInput.focus).toHaveBeenCalled()
+    expect(changeDestinationButton.textContent).toBe('Change email')
   })
 
   it('uses a readable channel when the popup only requires one identity field', () => {
@@ -194,14 +298,14 @@ describe('PopupController', () => {
 
     controller.showCompleted()
 
-    expect(completed.textContent).toBe(
+    expect(completed.querySelector('p').textContent).toBe(
       'We sent it to customer@example.com via email. It may take a minute to arrive.',
     )
 
     emailInput.value = 'updated@example.com'
     controller.showCompleted()
 
-    expect(completed.textContent).toBe(
+    expect(completed.querySelector('p').textContent).toBe(
       'We sent it to updated@example.com via email. It may take a minute to arrive.',
     )
   })
@@ -215,7 +319,7 @@ describe('PopupController', () => {
 
     controller.showCompleted()
 
-    expect(completed.textContent).toBe(
+    expect(completed.querySelector('p').textContent).toBe(
       'We sent it to customer@example.com via email. It may take a minute to arrive.',
     )
   })
@@ -229,7 +333,7 @@ describe('PopupController', () => {
 
     controller.showCompleted()
 
-    expect(completed.textContent).toBe(
+    expect(completed.querySelector('p').textContent).toBe(
       'We sent it to +584126625353 via phone. It may take a minute to arrive.',
     )
   })

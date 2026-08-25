@@ -47,6 +47,26 @@ class PopupsAPI {
     return new Response(response.ok, response)
   }
 
+  static async resend(id, submissionId, identity, token) {
+    const response = await fetch(`${this.endpoint}/${id}/submissions/${submissionId}/resend`, {
+      method: 'POST',
+      headers: Hellotext.headers,
+      body: JSON.stringify({ identity, token }),
+    })
+
+    return new Response(response.ok, response)
+  }
+
+  static async cancel(id, submissionId, token) {
+    const response = await fetch(`${this.endpoint}/${id}/submissions/${submissionId}/cancel`, {
+      method: 'POST',
+      headers: Hellotext.headers,
+      body: JSON.stringify({ token }),
+    })
+
+    return new Response(response.ok, response)
+  }
+
   static idempotencyKey() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID()

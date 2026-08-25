@@ -25,7 +25,16 @@ import API from '../api'
  * - rules: Persisted AND display rules.
  */
 export default class extends Controller {
-  static targets = ['bubble', 'dialog', 'step', 'completed', 'input', 'submitButton']
+  static targets = [
+    'bubble',
+    'dialog',
+    'step',
+    'completed',
+    'input',
+    'submitButton',
+    'resendButton',
+    'changeDestinationButton',
+  ]
   static values = {
     capture: Object,
     device: String,
@@ -37,6 +46,7 @@ export default class extends Controller {
   connect() {
     this.stepIndex = 0
     this.onScroll = this.evaluateDisplay.bind(this)
+    this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
 
     this.hideElement(this.element)
     this.hideElement(this.dialogTarget)
@@ -47,6 +57,7 @@ export default class extends Controller {
 
   disconnect() {
     window.removeEventListener('scroll', this.onScroll)
+    this.stopResendCooldown()
   }
 
   open(event) {
@@ -122,6 +133,15 @@ export default class extends Controller {
       return
     }
 
+    try {
+      const submission = await response.json()
+      this.submissionId = submission.id
+      this.submissionVerificationState = submission.verification_state
+      this.submissionActionToken = submission.action_token
+    } catch (_) {
+      this.submissionId = null
+    }
+
     this.showCompleted()
   }
 
@@ -163,14 +183,12 @@ export default class extends Controller {
   showCompleted() {
     this.stepTargets.forEach(step => this.hideElement(step))
     this.interpolateCompletionCopy()
+    this.configureCompletionActions()
     this.showElement(this.completedTarget)
   }
 
   interpolateCompletionCopy() {
-    const identity = this.identityInputs.map(input => ({
-      kind: input.dataset.popupFieldKind,
-      value: this.identityValue(input),
-    })).find(({ value }) => value)
+    const identity = this.completionIdentity
 
     if (!identity) return
 
@@ -194,6 +212,130 @@ export default class extends Controller {
     const prefix = input.dataset.popupPhonePrefix
 
     return prefix ? `${prefix}${value.replace(/^0+/, '')}` : value
+  }
+
+  configureCompletionActions() {
+    const identity = this.completionIdentity
+    if (!identity) return
+
+    if (this.hasChangeDestinationButtonTarget) {
+      this.changeDestinationButtonTarget.textContent =
+        this.changeDestinationButtonTarget.dataset[`${identity.kind}Label`]
+      this.showElement(this.changeDestinationButtonTarget)
+    }
+
+    if (
+      this.submissionId &&
+      this.submissionActionToken &&
+      this.submissionVerificationState === 'unverified' &&
+      this.hasResendButtonTarget
+    ) {
+      this.showElement(this.resendButtonTarget)
+      this.startResendCooldown(60)
+    }
+  }
+
+  async resend(event) {
+    if (event) event.preventDefault()
+    if (!this.submissionId || !this.submissionActionToken || this.resendPending || this.resendCooldownActive) return
+
+    const identity = this.completionIdentity
+    if (!identity) return
+
+    this.resendPending = true
+    this.resendButtonTarget.disabled = true
+
+    try {
+      const response = await API.popups.resend(
+        this.idValue,
+        this.submissionId,
+        identity.kind,
+        this.submissionActionToken,
+      )
+      const retryAfter = Number(response.data.headers?.get('Retry-After')) || 60
+
+      if (response.succeeded || response.data.status === 429) {
+        this.startResendCooldown(retryAfter)
+      } else {
+        this.resendButtonTarget.disabled = false
+      }
+    } catch (_) {
+      this.resendButtonTarget.disabled = false
+    } finally {
+      this.resendPending = false
+    }
+  }
+
+  async changeDestination(event) {
+    if (event) event.preventDefault()
+
+    const input = this.completionIdentity?.input
+    if (!input) return
+
+    const stepIndex = this.stepTargets.findIndex(step => step.dataset.stepId === input.dataset.popupStepId)
+    if (stepIndex < 0) return
+
+    this.changeDestinationButtonTarget.disabled = true
+
+    try {
+      const response = await API.popups.cancel(
+        this.idValue,
+        this.submissionId,
+        this.submissionActionToken,
+      )
+      if (response.failed) return
+    } catch (_) {
+      return
+    } finally {
+      this.changeDestinationButtonTarget.disabled = false
+    }
+
+    this.stopResendCooldown()
+    this.submissionId = null
+    this.submissionActionToken = null
+    this.showStep(stepIndex)
+    input.focus()
+  }
+
+  startResendCooldown(seconds) {
+    this.stopResendCooldown()
+    this.resendCooldownEndsAt = Date.now() + Math.max(seconds, 1) * 1000
+    this.updateResendCountdown()
+    this.resendTimer = window.setInterval(() => this.updateResendCountdown(), 1000)
+  }
+
+  stopResendCooldown() {
+    if (this.resendTimer) window.clearInterval(this.resendTimer)
+    this.resendTimer = null
+    this.resendCooldownEndsAt = null
+  }
+
+  updateResendCountdown() {
+    const seconds = Math.max(0, Math.ceil((this.resendCooldownEndsAt - Date.now()) / 1000))
+
+    if (seconds === 0) {
+      this.stopResendCooldown()
+      this.resendButtonTarget.textContent = this.resendLabel
+      this.resendButtonTarget.disabled = false
+      return
+    }
+
+    const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+    const template = this.resendButtonTarget.dataset.countdownLabel || `${this.resendLabel} %{time}`
+    this.resendButtonTarget.textContent = template.replace('%{time}', time)
+    this.resendButtonTarget.disabled = true
+  }
+
+  get resendCooldownActive() {
+    return this.resendCooldownEndsAt > Date.now()
+  }
+
+  get completionIdentity() {
+    return this.identityInputs.map(input => ({
+      input,
+      kind: input.dataset.popupFieldKind,
+      value: this.identityValue(input),
+    })).find(({ value }) => value)
   }
 
   currentStepValid() {
