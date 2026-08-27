@@ -106,6 +106,9 @@ describe('PopupController', () => {
         id: 'submission-id',
         verification_state: 'unverified',
         action_token: 'action-token',
+        delivery_status: 'queued',
+        delivery_channel: 'email',
+        destination: 'customer@example.com',
       }),
     })
     jest.spyOn(API.popups, 'resend').mockResolvedValue({
@@ -265,7 +268,6 @@ describe('PopupController', () => {
     expect(API.popups.resend).toHaveBeenCalledWith(
       'popup-id',
       'submission-id',
-      'email',
       'action-token',
     )
     expect(resendButton.disabled).toBe(true)
@@ -283,11 +285,30 @@ describe('PopupController', () => {
     await controller.submit()
     await controller.changeDestination({ preventDefault: jest.fn() })
 
-    expect(API.popups.cancel).toHaveBeenCalledWith('popup-id', 'submission-id', 'action-token')
+    expect(API.popups.cancel).not.toHaveBeenCalled()
     expect(completed.hidden).toBe(true)
     expect(stepOne.hidden).toBe(false)
     expect(emailInput.focus).toHaveBeenCalled()
     expect(changeDestinationButton.textContent).toBe('Change email')
+    expect(controller.submissionDeliveryStatus).toBeNull()
+    expect(controller.submissionDeliveryChannel).toBeNull()
+    expect(controller.submissionDestination).toBeNull()
+  })
+
+  it('returns to the identity selected by the backend fallback route', async () => {
+    const { emailInput, phoneInput, stepOne } = buildController({ hasBubble: false })
+    jest.spyOn(emailInput, 'focus')
+    controller.inputTargets = [phoneInput, emailInput]
+    controller.submissionDeliveryChannel = 'email'
+    controller.submissionDestination = 'customer@example.com'
+    emailInput.value = 'customer@example.com'
+    phoneInput.value = '+15551234567'
+
+    controller.showCompleted()
+    await controller.changeDestination({ preventDefault: jest.fn() })
+
+    expect(stepOne.hidden).toBe(false)
+    expect(emailInput.focus).toHaveBeenCalled()
   })
 
   it('uses a readable channel when the popup only requires one identity field', () => {
@@ -336,6 +357,45 @@ describe('PopupController', () => {
     expect(completed.querySelector('p').textContent).toBe(
       'We sent it to +584126625353 via phone. It may take a minute to arrive.',
     )
+  })
+
+  it('uses the backend delivery channel and destination in the completed step', () => {
+    const { completed, emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    emailInput.value = 'customer@example.com'
+    phoneInput.value = '+15551234567'
+    controller.submissionDeliveryChannel = 'sms'
+    controller.submissionDestination = '+15551234567'
+
+    controller.showCompleted()
+
+    expect(completed.querySelector('p').textContent).toBe(
+      'We sent it to +15551234567 via sms. It may take a minute to arrive.',
+    )
+  })
+
+  it('shows contact-only completion copy and no delivery actions when delivery is not required', () => {
+    const { completed, emailInput, resendButton, changeDestinationButton } = buildController({ hasBubble: false })
+    const headline = document.createElement('header')
+    const description = document.createElement('div')
+    const actions = document.createElement('footer')
+
+    emailInput.value = 'customer@example.com'
+    headline.className = 'hellotext--popup__completion-headline'
+    description.className = 'hellotext--popup__completion-description'
+    actions.dataset.deliveryActions = ''
+    completed.dataset.notRequiredHeadline = 'Thanks for signing up'
+    completed.dataset.notRequiredDescription = 'Your details were saved.'
+    completed.append(headline, description, actions)
+    controller.submissionDeliveryStatus = 'not_required'
+
+    controller.showCompleted()
+
+    expect(headline.textContent).toBe('Thanks for signing up')
+    expect(description.textContent).toBe('Your details were saved.')
+    expect(actions.hidden).toBe(true)
+    expect(resendButton.hidden).toBe(true)
+    expect(changeDestinationButton.hidden).toBe(true)
   })
 
   it('validates the last step before submitting', async () => {

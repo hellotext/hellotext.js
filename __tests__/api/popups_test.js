@@ -127,8 +127,8 @@ describe('PopupsAPI', () => {
     expect(keys[0]).not.toBe(keys[1])
   })
 
-  it('resends verification for the selected popup identity', async () => {
-    const response = await PopupsAPI.resend('popup-id', 'submission-id', 'email', 'action-token')
+  it('resends verification through the route stored by the backend', async () => {
+    const response = await PopupsAPI.resend('popup-id', 'submission-id', 'action-token')
     const request = global.fetch.mock.calls[0]
 
     expect(request[0]).toBe(
@@ -137,7 +137,7 @@ describe('PopupsAPI', () => {
     expect(request[1]).toEqual({
       method: 'POST',
       headers: Hellotext.headers,
-      body: JSON.stringify({ identity: 'email', token: 'action-token' }),
+      body: JSON.stringify({ token: 'action-token' }),
     })
     expect(response.succeeded).toBe(true)
   })

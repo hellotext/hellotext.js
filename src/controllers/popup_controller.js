@@ -138,6 +138,9 @@ export default class extends Controller {
       this.submissionId = submission.id
       this.submissionVerificationState = submission.verification_state
       this.submissionActionToken = submission.action_token
+      this.submissionDeliveryStatus = submission.delivery_status
+      this.submissionDeliveryChannel = submission.delivery_channel
+      this.submissionDestination = submission.destination
     } catch (_) {
       this.submissionId = null
     }
@@ -188,13 +191,13 @@ export default class extends Controller {
   }
 
   interpolateCompletionCopy() {
-    const identity = this.completionIdentity
+    const identity = this.completedIdentity
 
     if (!identity) return
 
     const replacements = {
       destination: identity.value,
-      channel: identity.kind,
+      channel: this.submissionDeliveryChannel || identity.kind,
     }
 
     this.completionTextTemplates.forEach(({ node, template }) => {
@@ -215,7 +218,13 @@ export default class extends Controller {
   }
 
   configureCompletionActions() {
-    const identity = this.completionIdentity
+    if (this.submissionDeliveryStatus === 'not_required') {
+      this.renderNoDeliveryCopy()
+      this.completedTarget.querySelector('[data-delivery-actions]')?.setAttribute('hidden', '')
+      return
+    }
+
+    const identity = this.completedIdentity
     if (!identity) return
 
     if (this.hasChangeDestinationButtonTarget) {
@@ -227,6 +236,7 @@ export default class extends Controller {
     if (
       this.submissionId &&
       this.submissionActionToken &&
+      this.submissionDeliveryStatus === 'queued' &&
       this.submissionVerificationState === 'unverified' &&
       this.hasResendButtonTarget
     ) {
@@ -239,7 +249,7 @@ export default class extends Controller {
     if (event) event.preventDefault()
     if (!this.submissionId || !this.submissionActionToken || this.resendPending || this.resendCooldownActive) return
 
-    const identity = this.completionIdentity
+    const identity = this.completedIdentity
     if (!identity) return
 
     this.resendPending = true
@@ -249,7 +259,6 @@ export default class extends Controller {
       const response = await API.popups.resend(
         this.idValue,
         this.submissionId,
-        identity.kind,
         this.submissionActionToken,
       )
       const retryAfter = Number(response.data.headers?.get('Retry-After')) || 60
@@ -269,30 +278,19 @@ export default class extends Controller {
   async changeDestination(event) {
     if (event) event.preventDefault()
 
-    const input = this.completionIdentity?.input
+    const input = this.completedIdentity?.input
     if (!input) return
 
     const stepIndex = this.stepTargets.findIndex(step => step.dataset.stepId === input.dataset.popupStepId)
     if (stepIndex < 0) return
 
-    this.changeDestinationButtonTarget.disabled = true
-
-    try {
-      const response = await API.popups.cancel(
-        this.idValue,
-        this.submissionId,
-        this.submissionActionToken,
-      )
-      if (response.failed) return
-    } catch (_) {
-      return
-    } finally {
-      this.changeDestinationButtonTarget.disabled = false
-    }
-
     this.stopResendCooldown()
     this.submissionId = null
     this.submissionActionToken = null
+    this.submissionVerificationState = null
+    this.submissionDeliveryStatus = null
+    this.submissionDeliveryChannel = null
+    this.submissionDestination = null
     this.showStep(stepIndex)
     input.focus()
   }
@@ -336,6 +334,33 @@ export default class extends Controller {
       kind: input.dataset.popupFieldKind,
       value: this.identityValue(input),
     })).find(({ value }) => value)
+  }
+
+  get completedIdentity() {
+    if (this.submissionDestination && this.submissionDeliveryChannel) {
+      const kind = this.submissionDeliveryChannel === 'email' ? 'email' : 'phone'
+      const input = this.identityInputs.find(candidate => candidate.dataset.popupFieldKind === kind)
+
+      return { input, kind, value: this.submissionDestination }
+    }
+
+    return this.completionIdentity
+  }
+
+  renderNoDeliveryCopy() {
+    const headline = this.completedTarget.querySelector('.hellotext--popup__completion-headline')
+    const description = this.completedTarget.querySelector('.hellotext--popup__completion-description')
+
+    if (headline && this.completedTarget.dataset.notRequiredHeadline) {
+      headline.innerHTML = ''
+      const title = document.createElement('h4')
+      const strong = document.createElement('strong')
+      strong.textContent = this.completedTarget.dataset.notRequiredHeadline
+      title.appendChild(strong)
+      headline.appendChild(title)
+    }
+
+    if (description) description.textContent = this.completedTarget.dataset.notRequiredDescription || ''
   }
 
   currentStepValid() {

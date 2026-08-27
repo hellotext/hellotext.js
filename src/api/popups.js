@@ -47,11 +47,11 @@ class PopupsAPI {
     return new Response(response.ok, response)
   }
 
-  static async resend(id, submissionId, identity, token) {
+  static async resend(id, submissionId, token) {
     const response = await fetch(`${this.endpoint}/${id}/submissions/${submissionId}/resend`, {
       method: 'POST',
       headers: Hellotext.headers,
-      body: JSON.stringify({ identity, token }),
+      body: JSON.stringify({ token }),
     })
 
     return new Response(response.ok, response)
