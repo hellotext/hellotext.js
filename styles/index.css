@@ -528,11 +528,17 @@ form[data-hello-form] [data-logo-container] [data-hello-brand] {
   gap: 12px 28px;
 }
 
-.hellotext--popup__step-header,
-.hellotext--popup__completion-headline {
+.hellotext--popup__step-header {
   width: 100%;
   margin: 0;
   font-size: 18px;
+  line-height: 1.25;
+}
+
+.hellotext--popup__completion-headline {
+  width: 100%;
+  margin: 0;
+  font-size: 1.125em;
   line-height: 1.25;
 }
 
@@ -540,13 +546,16 @@ form[data-hello-form] [data-logo-container] [data-hello-brand] {
 
 .hellotext--popup__step-header h1,
 .hellotext--popup__step-header h2,
-.hellotext--popup__step-header h3,
-.hellotext--popup__completion-headline h1,
-.hellotext--popup__completion-headline h2,
-.hellotext--popup__completion-headline h3 {
+.hellotext--popup__step-header h3 {
   margin: 0 0 8px;
   font-size: clamp(32px, 7vw, 48px);
   line-height: 0.95;
+}
+
+.hellotext--popup__completion-headline h4 {
+  margin: 0 0 8px;
+  font-size: 1.44444444em;
+  line-height: 1.25;
 }
 
 .hellotext--popup__fields-region { width: 100%; }
