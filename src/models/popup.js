@@ -18,19 +18,24 @@ class Popup {
   constructor(data) {
     this.data = data
     this.mounted = false
+    this.unmounted = false
     this.rendered = Promise.resolve(false)
   }
 
   async render() {
-    if (!this.data.html) return false
+    if (!this.data.html || this.unmounted) return false
 
     const container = this.containerToAppendTo
     if (!container) {
-      console.warn(`Hellotext popup was not mounted because the container ${Configuration.popup.container} was not found.`)
+      console.warn(
+        `Hellotext popup was not mounted because the container ${Configuration.popup.container} was not found.`,
+      )
       return false
     }
 
-    if (!await this.stylesheetLoaded) {
+    if (!(await this.stylesheetLoaded) || this.unmounted) {
+      if (this.unmounted) return false
+
       console.warn('Hellotext popup was not mounted because its stylesheet failed to load.')
       return false
     }
@@ -39,6 +44,12 @@ class Popup {
     this.mounted = true
 
     return true
+  }
+
+  unmount() {
+    this.unmounted = true
+    this.data.html?.remove()
+    this.mounted = false
   }
 
   get containerToAppendTo() {

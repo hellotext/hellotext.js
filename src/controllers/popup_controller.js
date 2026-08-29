@@ -25,6 +25,9 @@ import API from '../api'
  * - rules: Persisted AND display rules.
  */
 export default class extends Controller {
+  static controllers = new Set()
+  static displayOwner
+
   static targets = [
     'bubble',
     'dialog',
@@ -44,6 +47,7 @@ export default class extends Controller {
   }
 
   connect() {
+    this.constructor.controllers.add(this)
     this.stepIndex = 0
     this.onScroll = this.evaluateDisplay.bind(this)
     this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
@@ -56,6 +60,8 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.releaseDisplay()
+    this.constructor.controllers.delete(this)
     window.removeEventListener('scroll', this.onScroll)
     this.stopResendCooldown()
   }
@@ -71,14 +77,11 @@ export default class extends Controller {
   close(event) {
     if (event) event.preventDefault()
 
+    this.dismissed = true
     this.hideElement(this.dialogTarget)
-
-    if (this.hasBubbleValue && this.hasBubbleTarget) {
-      this.showElement(this.element)
-      this.showElement(this.bubbleTarget)
-    } else {
-      this.hideElement(this.element)
-    }
+    if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
+    this.hideElement(this.element)
+    this.releaseDisplay()
   }
 
   async next(event) {
@@ -149,7 +152,10 @@ export default class extends Controller {
   }
 
   evaluateDisplay() {
-    if (!this.matchesDevice() || !this.rulesWithoutScrollPass()) return
+    if (this.dismissed || !this.matchesDevice() || !this.rulesWithoutScrollPass()) {
+      this.releaseDisplay()
+      return
+    }
 
     if (this.scrollRule && !this.scrollRulePasses()) {
       window.addEventListener('scroll', this.onScroll, { passive: true })
@@ -157,7 +163,27 @@ export default class extends Controller {
     }
 
     window.removeEventListener('scroll', this.onScroll)
+    if (!this.claimDisplay()) return
     this.showInitialState()
+  }
+
+  claimDisplay() {
+    const Controller = this.constructor
+
+    if (Controller.displayOwner && Controller.displayOwner !== this) return false
+
+    Controller.displayOwner = this
+    return true
+  }
+
+  releaseDisplay() {
+    const Controller = this.constructor
+    if (Controller.displayOwner !== this) return
+
+    Controller.displayOwner = undefined
+    Controller.controllers.forEach(controller => {
+      if (controller !== this) controller.evaluateDisplay()
+    })
   }
 
   showInitialState() {
@@ -247,7 +273,13 @@ export default class extends Controller {
 
   async resend(event) {
     if (event) event.preventDefault()
-    if (!this.submissionId || !this.submissionActionToken || this.resendPending || this.resendCooldownActive) return
+    if (
+      !this.submissionId ||
+      !this.submissionActionToken ||
+      this.resendPending ||
+      this.resendCooldownActive
+    )
+      return
 
     const identity = this.completedIdentity
     if (!identity) return
@@ -281,7 +313,9 @@ export default class extends Controller {
     const input = this.completedIdentity?.input
     if (!input) return
 
-    const stepIndex = this.stepTargets.findIndex(step => step.dataset.stepId === input.dataset.popupStepId)
+    const stepIndex = this.stepTargets.findIndex(
+      step => step.dataset.stepId === input.dataset.popupStepId,
+    )
     if (stepIndex < 0) return
 
     this.stopResendCooldown()
@@ -329,11 +363,13 @@ export default class extends Controller {
   }
 
   get completionIdentity() {
-    return this.identityInputs.map(input => ({
-      input,
-      kind: input.dataset.popupFieldKind,
-      value: this.identityValue(input),
-    })).find(({ value }) => value)
+    return this.identityInputs
+      .map(input => ({
+        input,
+        kind: input.dataset.popupFieldKind,
+        value: this.identityValue(input),
+      }))
+      .find(({ value }) => value)
   }
 
   get completedIdentity() {
@@ -349,7 +385,9 @@ export default class extends Controller {
 
   renderNoDeliveryCopy() {
     const headline = this.completedTarget.querySelector('.hellotext--popup__completion-headline')
-    const description = this.completedTarget.querySelector('.hellotext--popup__completion-description')
+    const description = this.completedTarget.querySelector(
+      '.hellotext--popup__completion-description',
+    )
 
     if (headline && this.completedTarget.dataset.notRequiredHeadline) {
       headline.innerHTML = ''
@@ -360,7 +398,8 @@ export default class extends Controller {
       headline.appendChild(title)
     }
 
-    if (description) description.textContent = this.completedTarget.dataset.notRequiredDescription || ''
+    if (description)
+      description.textContent = this.completedTarget.dataset.notRequiredDescription || ''
   }
 
   currentStepValid() {
@@ -369,7 +408,9 @@ export default class extends Controller {
 
   showErrorMessages(inputs) {
     inputs.forEach(input => {
-      const container = input.closest('.hellotext--popup-field')?.querySelector('[data-error-container]')
+      const container = input
+        .closest('.hellotext--popup-field')
+        ?.querySelector('[data-error-container]')
       if (!container) return
 
       container.textContent = input.validity.valid ? '' : input.validationMessage
@@ -378,7 +419,9 @@ export default class extends Controller {
 
   clearErrorMessages(inputs = this.inputTargets) {
     inputs.forEach(input => {
-      const container = input.closest('.hellotext--popup-field')?.querySelector('[data-error-container]')
+      const container = input
+        .closest('.hellotext--popup-field')
+        ?.querySelector('[data-error-container]')
       if (container) container.textContent = ''
     })
   }
@@ -477,7 +520,10 @@ export default class extends Controller {
     this._completionTextTemplates = []
 
     while (walker.nextNode()) {
-      this._completionTextTemplates.push({ node: walker.currentNode, template: walker.currentNode.nodeValue })
+      this._completionTextTemplates.push({
+        node: walker.currentNode,
+        template: walker.currentNode.nodeValue,
+      })
     }
 
     return this._completionTextTemplates
@@ -502,7 +548,9 @@ export default class extends Controller {
   }
 
   pagePropertyRulePasses(condition) {
-    const expected = String(condition.value || '').trim().toLowerCase()
+    const expected = String(condition.value || '')
+      .trim()
+      .toLowerCase()
     if (!expected) return true
 
     const actual = this.pagePropertyValue(condition.field)
@@ -577,7 +625,9 @@ export default class extends Controller {
   }
 
   get scrollRule() {
-    return this.conditions.find(condition => condition.group === 'actions' && condition.type === 'scroll_depth')
+    return this.conditions.find(
+      condition => condition.group === 'actions' && condition.type === 'scroll_depth',
+    )
   }
 
   get scrollPercentage() {

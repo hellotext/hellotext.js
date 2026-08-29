@@ -103,4 +103,17 @@ describe('Popup', () => {
       })
     })
   })
+
+  it('removes its mounted popup HTML when unmounted', async () => {
+    createStylesheet()
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+
+    const popup = await Popup.load('popup-id')
+    await popup.rendered
+    popup.unmount()
+
+    expect(document.querySelector('#popup-container article')).toBeNull()
+    expect(popup.mounted).toBe(false)
+  })
 })

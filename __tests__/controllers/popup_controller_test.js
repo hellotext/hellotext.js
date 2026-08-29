@@ -9,7 +9,11 @@ describe('PopupController', () => {
   let controller
   let originalLocalStorage
 
-  const buildController = ({ hasBubble = true, rules = { operator: 'and', conditions: [] } } = {}) => {
+  const buildController = ({
+    hasBubble = true,
+    id = 'popup-id',
+    rules = { operator: 'and', conditions: [] },
+  } = {}) => {
     const element = document.createElement('article')
     const bubble = document.createElement('button')
     const dialog = document.createElement('section')
@@ -81,7 +85,7 @@ describe('PopupController', () => {
     controller.hasBubbleValue = hasBubble
     controller.captureValue = { capture_id: 'capture-id' }
     controller.deviceValue = 'all'
-    controller.idValue = 'popup-id'
+    controller.idValue = id
     controller.rulesValue = rules
 
     return {
@@ -121,6 +125,8 @@ describe('PopupController', () => {
   afterEach(() => {
     jest.useRealTimers()
     jest.restoreAllMocks()
+    PopupController.controllers.clear()
+    PopupController.displayOwner = undefined
     Object.defineProperty(window, 'localStorage', {
       value: originalLocalStorage,
       configurable: true,
@@ -143,6 +149,70 @@ describe('PopupController', () => {
     expect(bubble.hidden).toBe(true)
     expect(dialog.hidden).toBe(false)
     expect(localStorage.getItem('hellotext:popup:popup-id:viewed')).toBe('true')
+  })
+
+  it('shows only the first eligible popup and releases the surface when it closes', () => {
+    const first = buildController({ hasBubble: false, id: 'first-popup' })
+    const firstController = controller
+    const second = buildController({ hasBubble: false, id: 'second-popup' })
+    const secondController = controller
+
+    firstController.connect()
+    secondController.connect()
+
+    expect(first.dialog.hidden).toBe(false)
+    expect(second.element.hidden).toBe(true)
+
+    firstController.close()
+
+    expect(first.element.hidden).toBe(true)
+    expect(second.dialog.hidden).toBe(false)
+  })
+
+  it('releases the next eligible popup when a bubble popup closes', () => {
+    const first = buildController({ id: 'first-popup' })
+    const firstController = controller
+    const second = buildController({ hasBubble: false, id: 'second-popup' })
+    const secondController = controller
+
+    firstController.connect()
+    secondController.connect()
+
+    expect(first.bubble.hidden).toBe(false)
+    expect(second.element.hidden).toBe(true)
+
+    firstController.close()
+
+    expect(first.element.hidden).toBe(true)
+    expect(second.dialog.hidden).toBe(false)
+  })
+
+  it('allows the next popup to display when the first popup does not match the device', () => {
+    const first = buildController({ hasBubble: false, id: 'mobile-popup' })
+    const firstController = controller
+    firstController.deviceValue = 'mobile'
+    const second = buildController({ hasBubble: false, id: 'desktop-popup' })
+    const secondController = controller
+    secondController.deviceValue = 'desktop'
+
+    firstController.connect()
+    secondController.connect()
+
+    expect(first.element.hidden).toBe(true)
+    expect(second.dialog.hidden).toBe(false)
+  })
+
+  it('releases the next eligible popup when the display owner disconnects', () => {
+    const first = buildController({ hasBubble: false, id: 'first-popup' })
+    const firstController = controller
+    const second = buildController({ hasBubble: false, id: 'second-popup' })
+    const secondController = controller
+
+    firstController.connect()
+    secondController.connect()
+    firstController.disconnect()
+
+    expect(second.dialog.hidden).toBe(false)
   })
 
   it('validates the current step before moving to the next one', async () => {

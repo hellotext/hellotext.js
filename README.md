@@ -118,14 +118,14 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 
 #### Configuration Options
 
-| Property            | Description                                                                                                                                                                                     | Type    | Default                                   |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------- |
-| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null                                      |
-| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true                                      |
-| forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object  | { autoMount: true, successMessage: true } |
-| popup               | An object that mounts a dashboard popup by id, or `false` to disable popup mounting.                                                                                                             | Object \| false | null                                      |
-| webchat             | An object that overrides the dashboard webchat configuration, or `false` to disable automatic webchat mounting. See [Webchat](/docs/webchat.md).                                                   | Object \| false | Dashboard webchat when configured        |
-| whatsappWidget      | An object that overrides the dashboard WhatsApp widget configuration, or `false` to disable automatic WhatsApp widget mounting.                                                                  | Object \| false | Dashboard WhatsApp widget when configured |
+| Property            | Description                                                                                                                                                                                     | Type            | Default                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------- |
+| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String          | null                                      |
+| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean         | true                                      |
+| forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object          | { autoMount: true, successMessage: true } |
+| popup               | An object that mounts one dashboard popup by id, or `false` to disable automatic popup mounting.                                                                                                | Object \| false | null                                      |
+| webchat             | An object that overrides the dashboard webchat configuration, or `false` to disable automatic webchat mounting. See [Webchat](/docs/webchat.md).                                                | Object \| false | Dashboard webchat when configured         |
+| whatsappWidget      | An object that overrides the dashboard WhatsApp widget configuration, or `false` to disable automatic WhatsApp widget mounting.                                                                 | Object \| false | Dashboard WhatsApp widget when configured |
 
 #### Popup
 
@@ -137,6 +137,6 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', {
 })
 ```
 
-When the popup is installed automatically from the dashboard, `Hellotext.initialize('HELLOTEXT_BUSINESS_ID')` mounts the configured popup without passing `popup.id` manually.
+When popups are installed automatically from the dashboard, `Hellotext.initialize('HELLOTEXT_BUSINESS_ID')` mounts every active configured popup without passing `popup.id` manually. Only the first popup whose device and display rules match can be visible at a time; closing it allows the next eligible popup to appear.
 
-The popup is rendered from the dashboard configuration, including steps, layout, bubble, colors, rules, coupon, and journey metadata.
+Each popup is rendered from its dashboard configuration, including steps, layout, bubble, colors, rules, coupon, and journey metadata. Passing an explicit `popup.id` mounts only that popup.
