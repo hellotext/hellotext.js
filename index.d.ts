@@ -89,7 +89,6 @@ export interface HellotextBusinessData {
   webchat?: HellotextWebchatConfig | null
   whatsapp?: HellotextWhatsAppWidgetConfig | null
   popup?: HellotextPopupConfig | null
-  popups?: HellotextPopupConfig[] | null
   whitelist?: string | string[] | null
   subscription?: string | null
   [key: string]: any
@@ -150,7 +149,6 @@ declare class Hellotext {
   static forms: any
   static business: HellotextBusiness
   static popup: any
-  static popups: any[]
   static webchat: any
   static whatsapp: any
 }

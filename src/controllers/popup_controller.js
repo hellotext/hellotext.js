@@ -25,9 +25,6 @@ import API from '../api'
  * - rules: Persisted AND display rules.
  */
 export default class extends Controller {
-  static controllers = new Set()
-  static displayOwner
-
   static targets = [
     'bubble',
     'dialog',
@@ -47,7 +44,6 @@ export default class extends Controller {
   }
 
   connect() {
-    this.constructor.controllers.add(this)
     this.stepIndex = 0
     this.onScroll = this.evaluateDisplay.bind(this)
     this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
@@ -60,8 +56,6 @@ export default class extends Controller {
   }
 
   disconnect() {
-    this.releaseDisplay()
-    this.constructor.controllers.delete(this)
     window.removeEventListener('scroll', this.onScroll)
     this.stopResendCooldown()
   }
@@ -81,7 +75,6 @@ export default class extends Controller {
     this.hideElement(this.dialogTarget)
     if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
     this.hideElement(this.element)
-    this.releaseDisplay()
   }
 
   async next(event) {
@@ -153,7 +146,6 @@ export default class extends Controller {
 
   evaluateDisplay() {
     if (this.dismissed || !this.matchesDevice() || !this.rulesWithoutScrollPass()) {
-      this.releaseDisplay()
       return
     }
 
@@ -163,27 +155,7 @@ export default class extends Controller {
     }
 
     window.removeEventListener('scroll', this.onScroll)
-    if (!this.claimDisplay()) return
     this.showInitialState()
-  }
-
-  claimDisplay() {
-    const Controller = this.constructor
-
-    if (Controller.displayOwner && Controller.displayOwner !== this) return false
-
-    Controller.displayOwner = this
-    return true
-  }
-
-  releaseDisplay() {
-    const Controller = this.constructor
-    if (Controller.displayOwner !== this) return
-
-    Controller.displayOwner = undefined
-    Controller.controllers.forEach(controller => {
-      if (controller !== this) controller.evaluateDisplay()
-    })
   }
 
   showInitialState() {

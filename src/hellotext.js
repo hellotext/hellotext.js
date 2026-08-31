@@ -21,7 +21,6 @@ class Hellotext {
   static forms
   static business
   static popup
-  static popups = []
   static webchat
   static whatsapp
   static initializationGeneration = 0
@@ -39,7 +38,7 @@ class Hellotext {
       runtime: this.runtimeSnapshot(),
     }
     const { configuration, runtime: previous } = this.initializationBaseline
-    const staged = { popups: [] }
+    const staged = {}
     const nextBusiness = new Business(business)
 
     try {
@@ -70,12 +69,11 @@ class Hellotext {
       this.forms = new FormCollection()
       this.query = new Query()
       this.popup = undefined
-      this.popups = []
       this.webchat = undefined
       this.whatsapp = undefined
 
-      const popupConfigs =
-        config.popup === false ? [] : this.popupConfigs(businessData, config.popup || {})
+      const popupConfig =
+        config.popup === false ? undefined : this.popupConfig(businessData, config.popup || {})
       const webchatConfig =
         config.webchat === false
           ? false
@@ -109,13 +107,10 @@ class Hellotext {
         if (!this.initializationIsCurrent(generation)) return
       }
 
-      if (popupConfigs.length > 0) {
-        Configuration.popup.assign(popupConfigs[0])
-        for (const popupConfig of popupConfigs) {
-          const popup = await Popup.load(popupConfig.id)
-          staged.popups.push(popup)
-          if (!this.initializationIsCurrent(generation)) return
-        }
+      if (popupConfig) {
+        Configuration.popup.assign(popupConfig)
+        staged.popup = await Popup.load(popupConfig.id)
+        if (!this.initializationIsCurrent(generation)) return
       }
 
       this.unmountSurfaces(previous)
@@ -124,8 +119,7 @@ class Hellotext {
       staged.whatsapp?.markCoexistingWidgets?.()
       this.webchat = staged.webchat
       this.whatsapp = staged.whatsapp
-      this.popups = staged.popups
-      this.popup = staged.popups[0]
+      this.popup = staged.popup
 
       if (typeof MutationObserver !== 'undefined') {
         this.forms.collectExistingFormsOnPage()
@@ -154,12 +148,8 @@ class Hellotext {
     return this.initializationGeneration === generation
   }
 
-  static unmountPopups() {
-    this.unmountSurfaces({ popups: this.popups })
-  }
-
-  static unmountSurfaces({ popups = [], webchat, whatsapp }) {
-    new Set([...popups, webchat, whatsapp]).forEach(surface => surface?.unmount?.())
+  static unmountSurfaces({ popup, webchat, whatsapp }) {
+    new Set([popup, webchat, whatsapp]).forEach(surface => surface?.unmount?.())
   }
 
   static runtimeSnapshot() {
@@ -169,7 +159,6 @@ class Hellotext {
       forms: this.forms,
       query: this.query,
       popup: this.popup,
-      popups: this.popups,
       webchat: this.webchat,
       whatsapp: this.whatsapp,
     }
@@ -187,7 +176,7 @@ class Hellotext {
 
   static runtimeWithoutDisabledSurfaces(previous, config) {
     const disabled = {
-      popups: config.popup === false ? previous.popups : [],
+      popup: config.popup === false ? previous.popup : undefined,
       webchat: config.webchat === false ? previous.webchat : undefined,
       whatsapp: config.whatsappWidget === false ? previous.whatsapp : undefined,
     }
@@ -196,14 +185,13 @@ class Hellotext {
     return {
       ...previous,
       popup: config.popup === false ? undefined : previous.popup,
-      popups: config.popup === false ? [] : previous.popups,
       webchat: config.webchat === false ? undefined : previous.webchat,
       whatsapp: config.whatsappWidget === false ? undefined : previous.whatsapp,
     }
   }
 
-  static hasMountedSurfaces({ popups = [], webchat, whatsapp }) {
-    return popups.length > 0 || !!webchat || !!whatsapp
+  static hasMountedSurfaces({ popup, webchat, whatsapp }) {
+    return !!popup || !!webchat || !!whatsapp
   }
 
   static restoreRuntime(snapshot) {
@@ -281,24 +269,15 @@ class Hellotext {
     return this.deepMergePlainObjects(dashboardConfig, localConfig)
   }
 
-  static popupConfigs(businessData, localConfig) {
+  static popupConfig(businessData, localConfig) {
     if (localConfig.id) {
-      return [localConfig]
+      return localConfig
     }
 
-    const configuredPopups = Array.isArray(businessData && businessData.popups)
-      ? businessData.popups.filter(config => config && config.id)
-      : []
-    const dashboardConfigs =
-      configuredPopups.length > 0 ? configuredPopups : [(businessData && businessData.popup) || {}]
+    const dashboardConfig = businessData && businessData.popup
+    if (!dashboardConfig || !dashboardConfig.id) return undefined
 
-    return dashboardConfigs
-      .filter(config => config && config.id)
-      .map(config => this.mergePopupConfig(config, localConfig))
-      .filter(
-        (config, index, configs) =>
-          configs.findIndex(candidate => candidate.id === config.id) === index,
-      )
+    return this.mergePopupConfig(dashboardConfig, localConfig)
   }
 
   static deepMergePlainObjects(base, override) {

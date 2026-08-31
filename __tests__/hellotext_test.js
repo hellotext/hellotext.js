@@ -96,7 +96,6 @@ describe("when initializing business metadata", () => {
     Configuration.apiRoot = 'https://api.hellotext.com/v1'
     Configuration.actionCableUrl = 'wss://www.hellotext.com/cable'
     Hellotext.popup = undefined
-    Hellotext.popups = []
     Hellotext.webchat = undefined
     Hellotext.whatsapp = undefined
     Hellotext.business = undefined
@@ -328,43 +327,23 @@ describe("when initializing business metadata", () => {
   })
 
   it("loads the dashboard popup when no explicit popup config is passed", async () => {
+    const popup = { id: 'dashboard-popup' }
+    loadPopup.mockResolvedValueOnce(popup)
     mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
 
     await Hellotext.initialize("xy76ks")
 
     expect(loadPopup).toHaveBeenCalledWith("dashboard-popup")
-    expect(Hellotext.popups).toHaveLength(1)
-    expect(Hellotext.popup).toEqual(Hellotext.popups[0])
+    expect(Hellotext.popup).toEqual(popup)
   })
 
-  it("loads every unique dashboard popup when automatic popups are configured", async () => {
-    const firstPopup = { id: "first-popup" }
-    const secondPopup = { id: "second-popup" }
-    loadPopup.mockImplementation(async id => ({ id }))
-    mockBusinessFetch(defaultBusiness({
-      popup: { id: "legacy-popup" },
-      popups: [firstPopup, secondPopup, firstPopup],
-    }))
-
-    await Hellotext.initialize("xy76ks")
-
-    expect(loadPopup).toHaveBeenCalledTimes(2)
-    expect(loadPopup).toHaveBeenNthCalledWith(1, "first-popup")
-    expect(loadPopup).toHaveBeenNthCalledWith(2, "second-popup")
-    expect(Hellotext.popups).toEqual([firstPopup, secondPopup])
-    expect(Hellotext.popup).toEqual(firstPopup)
-  })
-
-  it('falls back to the legacy dashboard popup when the popup list has no valid ids', async () => {
-    mockBusinessFetch(defaultBusiness({
-      popup: { id: 'legacy-popup' },
-      popups: [null, {}, { id: '' }],
-    }))
+  it('does not load a popup when the dashboard has no popup id', async () => {
+    mockBusinessFetch(defaultBusiness({ popup: {} }))
 
     await Hellotext.initialize('xy76ks')
 
-    expect(loadPopup).toHaveBeenCalledTimes(1)
-    expect(loadPopup).toHaveBeenCalledWith('legacy-popup')
+    expect(loadPopup).not.toHaveBeenCalled()
+    expect(Hellotext.popup).toBeUndefined()
   })
 
   it("uses the dashboard popup id with explicit local options", async () => {
@@ -382,29 +361,8 @@ describe("when initializing business metadata", () => {
     expect(Configuration.popup.device).toEqual("desktop")
   })
 
-  it("applies local popup options to every dashboard popup", async () => {
-    mockBusinessFetch(defaultBusiness({
-      popups: [{ id: "first-popup" }, { id: "second-popup" }],
-    }))
-
-    await Hellotext.initialize("xy76ks", {
-      popup: {
-        container: "#popup-container",
-        device: "desktop",
-      },
-    })
-
-    expect(loadPopup).toHaveBeenCalledWith("first-popup")
-    expect(loadPopup).toHaveBeenCalledWith("second-popup")
-    expect(Configuration.popup.container).toEqual("#popup-container")
-    expect(Configuration.popup.device).toEqual("desktop")
-  })
-
   it("lets an explicit popup id override the dashboard popup id", async () => {
-    mockBusinessFetch(defaultBusiness({
-      popup: { id: "dashboard-popup" },
-      popups: [{ id: "first-dashboard-popup" }, { id: "second-dashboard-popup" }],
-    }))
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
 
     await Hellotext.initialize("xy76ks", {
       popup: {
@@ -422,42 +380,38 @@ describe("when initializing business metadata", () => {
     await Hellotext.initialize("xy76ks", { popup: false })
 
     expect(loadPopup).not.toHaveBeenCalled()
-    expect(Hellotext.popups).toEqual([])
     expect(Hellotext.popup).toBeUndefined()
   })
 
-  it("clears previously loaded popups before reinitializing", async () => {
-    mockBusinessFetch(defaultBusiness({ popups: [{ id: "dashboard-popup" }] }))
+  it("clears a previously loaded popup before reinitializing", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
     await Hellotext.initialize("xy76ks")
 
     mockBusinessFetch(defaultBusiness())
     await Hellotext.initialize("xy76ks")
 
-    expect(Hellotext.popups).toEqual([])
     expect(Hellotext.popup).toBeUndefined()
   })
 
   it('unmounts previously loaded popups before reinitializing', async () => {
     const previousPopup = { unmount: jest.fn() }
-    Hellotext.popups = [previousPopup]
+    Hellotext.popup = previousPopup
 
     await Hellotext.initialize('xy76ks', { popup: false })
 
     expect(previousPopup.unmount).toHaveBeenCalledTimes(1)
-    expect(Hellotext.popups).toEqual([])
+    expect(Hellotext.popup).toBeUndefined()
   })
 
   it('keeps the existing popup mounted when reinitialization cannot hydrate the business', async () => {
     const existingPopup = { unmount: jest.fn() }
     Hellotext.popup = existingPopup
-    Hellotext.popups = [existingPopup]
     API.businesses.get = jest.fn().mockRejectedValue(new Error('network error'))
 
     await Hellotext.initialize('xy76ks')
 
     expect(existingPopup.unmount).not.toHaveBeenCalled()
     expect(Hellotext.popup).toBe(existingPopup)
-    expect(Hellotext.popups).toEqual([existingPopup])
   })
 
   it('keeps the existing surfaces and configuration after a failed reinitialization', async () => {
@@ -465,7 +419,6 @@ describe("when initializing business metadata", () => {
     const existingWebchat = { unmount: jest.fn() }
     const existingWhatsApp = { unmount: jest.fn() }
     Hellotext.popup = existingPopup
-    Hellotext.popups = [existingPopup]
     Hellotext.webchat = existingWebchat
     Hellotext.whatsapp = existingWhatsApp
     Configuration.apiRoot = 'https://current.example/v1'
@@ -477,7 +430,6 @@ describe("when initializing business metadata", () => {
     expect(existingPopup.unmount).not.toHaveBeenCalled()
     expect(existingWebchat.unmount).not.toHaveBeenCalled()
     expect(existingWhatsApp.unmount).not.toHaveBeenCalled()
-    expect(Hellotext.popups).toEqual([existingPopup])
     expect(Hellotext.webchat).toBe(existingWebchat)
     expect(Hellotext.whatsapp).toBe(existingWhatsApp)
     expect(Configuration.apiRoot).toBe('https://current.example/v1')
@@ -489,7 +441,6 @@ describe("when initializing business metadata", () => {
     const existingWebchat = { unmount: jest.fn() }
     const existingWhatsApp = { unmount: jest.fn() }
     Hellotext.popup = existingPopup
-    Hellotext.popups = [existingPopup]
     Hellotext.webchat = existingWebchat
     Hellotext.whatsapp = existingWhatsApp
     mockBusinessFetch(defaultBusiness({ webchat: { id: 'replacement-webchat' } }))
@@ -500,9 +451,22 @@ describe("when initializing business metadata", () => {
     expect(existingPopup.unmount).not.toHaveBeenCalled()
     expect(existingWebchat.unmount).not.toHaveBeenCalled()
     expect(existingWhatsApp.unmount).not.toHaveBeenCalled()
-    expect(Hellotext.popups).toEqual([existingPopup])
     expect(Hellotext.webchat).toBe(existingWebchat)
     expect(Hellotext.whatsapp).toBe(existingWhatsApp)
+  })
+
+  it('restores the existing popup when an explicit popup id is stale', async () => {
+    const existingPopup = { unmount: jest.fn() }
+    Hellotext.popup = existingPopup
+    mockBusinessFetch(defaultBusiness())
+    loadPopup.mockRejectedValueOnce(new Error('popup not found'))
+
+    await expect(
+      Hellotext.initialize('xy76ks', { popup: { id: 'stale-popup' } }),
+    ).rejects.toThrow('popup not found')
+
+    expect(existingPopup.unmount).not.toHaveBeenCalled()
+    expect(Hellotext.popup).toBe(existingPopup)
   })
 
   it.each([
@@ -514,7 +478,6 @@ describe("when initializing business metadata", () => {
     const existingWebchat = { unmount: jest.fn() }
     const existingWhatsApp = { unmount: jest.fn() }
     Hellotext.popup = existingPopup
-    Hellotext.popups = [existingPopup]
     Hellotext.webchat = existingWebchat
     Hellotext.whatsapp = existingWhatsApp
     API.businesses.get = jest.fn().mockRejectedValue(new Error('network error'))
@@ -533,7 +496,6 @@ describe("when initializing business metadata", () => {
     const existingPopup = { unmount: jest.fn() }
     const existingWebchat = { unmount: jest.fn() }
     Hellotext.popup = existingPopup
-    Hellotext.popups = [existingPopup]
     Hellotext.webchat = existingWebchat
     API.businesses.get = jest.fn().mockResolvedValue({ ok: false })
     loadWebchat.mockRejectedValueOnce(new Error('network error'))
@@ -560,8 +522,8 @@ describe("when initializing business metadata", () => {
       .mockResolvedValueOnce(secondPopup)
     API.businesses.get = jest
       .fn()
-      .mockResolvedValueOnce(businessResponse(defaultBusiness({ popups: [{ id: 'first-popup' }] })))
-      .mockResolvedValueOnce(businessResponse(defaultBusiness({ popups: [{ id: 'second-popup' }] })))
+      .mockResolvedValueOnce(businessResponse(defaultBusiness({ popup: { id: 'first-popup' } })))
+      .mockResolvedValueOnce(businessResponse(defaultBusiness({ popup: { id: 'second-popup' } })))
 
     const firstInitialization = Hellotext.initialize('first-business')
     await waitFor(() => loadPopup.mock.calls.length === 1)
@@ -571,7 +533,6 @@ describe("when initializing business metadata", () => {
     await firstInitialization
 
     expect(firstPopup.unmount).toHaveBeenCalledTimes(1)
-    expect(Hellotext.popups).toEqual([secondPopup])
     expect(Hellotext.popup).toBe(secondPopup)
   })
 
@@ -678,7 +639,6 @@ describe("when initializing business metadata", () => {
     const stablePopup = { unmount: jest.fn() }
     Hellotext.business = stableBusiness
     Hellotext.popup = stablePopup
-    Hellotext.popups = [stablePopup]
     Configuration.apiRoot = 'https://stable.example/v1'
     Configuration.actionCableUrl = 'wss://stable.example/cable'
     API.businesses.get = jest
@@ -698,7 +658,6 @@ describe("when initializing business metadata", () => {
 
     expect(stablePopup.unmount).not.toHaveBeenCalled()
     expect(Hellotext.business).toBe(stableBusiness)
-    expect(Hellotext.popups).toEqual([stablePopup])
     expect(Configuration.apiRoot).toBe('https://stable.example/v1')
     expect(Configuration.actionCableUrl).toBe('wss://stable.example/cable')
   })
@@ -743,7 +702,6 @@ describe("when initializing business metadata", () => {
     const stablePopup = { unmount: jest.fn() }
     Hellotext.business = stableBusiness
     Hellotext.popup = stablePopup
-    Hellotext.popups = [stablePopup]
     mockBusinessFetch(
       defaultBusiness({
         style_url: 'https://example.com/staged.css',

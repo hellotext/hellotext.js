@@ -137,6 +137,6 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', {
 })
 ```
 
-When popups are installed automatically from the dashboard, `Hellotext.initialize('HELLOTEXT_BUSINESS_ID')` mounts every active configured popup without passing `popup.id` manually. Only the first popup whose device and display rules match can be visible at a time; closing it allows the next eligible popup to appear.
+When a popup is installed automatically from the dashboard, `Hellotext.initialize('HELLOTEXT_BUSINESS_ID')` mounts the configured popup without passing `popup.id` manually. Only one popup can be installed at a time.
 
-Each popup is rendered from its dashboard configuration, including steps, layout, bubble, colors, rules, coupon, and journey metadata. Passing an explicit `popup.id` mounts only that popup.
+The popup is rendered from its dashboard configuration, including steps, layout, bubble, colors, rules, coupon, and journey metadata. Passing an explicit `popup.id` mounts that popup.
