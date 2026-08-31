@@ -90,10 +90,14 @@ describe('PopupsAPI', () => {
       json: jest.fn().mockResolvedValue({ id: 'submission-id' }),
     })
 
-    const response = await PopupsAPI.submit('popup-id', {
-      email: 'customer@example.com',
-      metadata: { fields: { email: 'customer@example.com' } },
-    })
+    const response = await PopupsAPI.submit(
+      'popup-id',
+      {
+        email: 'customer@example.com',
+        metadata: { fields: { email: 'customer@example.com' } },
+      },
+      'submission-attempt-id',
+    )
 
     const request = global.fetch.mock.calls[0]
     const body = JSON.parse(request[1].body)
@@ -101,7 +105,7 @@ describe('PopupsAPI', () => {
     expect(request[0]).toBe('https://api.hellotext.test/v1/public/popups/popup-id/submissions')
     expect(request[1].method).toBe('POST')
     expect(request[1].headers.Authorization).toBe('Bearer business-id')
-    expect(request[1].headers['Idempotency-Key']).toMatch(/^[a-zA-Z0-9._:-]+$/)
+    expect(request[1].headers['Idempotency-Key']).toBe('submission-attempt-id')
     expect(body).toEqual({
       session: 'session-123',
       popup_submission: {
@@ -116,15 +120,12 @@ describe('PopupsAPI', () => {
     expect(response.succeeded).toBe(true)
   })
 
-  it('generates a new idempotency key for each submission attempt', async () => {
-    await PopupsAPI.submit('popup-id', {})
+  it('generates an idempotency key when the caller does not provide one', async () => {
     await PopupsAPI.submit('popup-id', {})
 
-    const keys = global.fetch.mock.calls.map(([, request]) => request.headers['Idempotency-Key'])
-
-    expect(keys[0]).toBeTruthy()
-    expect(keys[1]).toBeTruthy()
-    expect(keys[0]).not.toBe(keys[1])
+    expect(global.fetch.mock.calls[0][1].headers['Idempotency-Key']).toMatch(
+      /^[a-zA-Z0-9._:-]+$/,
+    )
   })
 
   it('resends verification through the route stored by the backend', async () => {

@@ -31,12 +31,12 @@ class PopupsAPI {
     return new DOMParser().parseFromString(data.html, 'text/html').querySelector('article')
   }
 
-  static async submit(id, data) {
+  static async submit(id, data, idempotencyKey = this.idempotencyKey()) {
     const response = await fetch(`${this.endpoint}/${id}/submissions`, {
       method: 'POST',
       headers: {
         ...Hellotext.headers,
-        'Idempotency-Key': this.idempotencyKey(),
+        'Idempotency-Key': idempotencyKey,
       },
       body: JSON.stringify({
         session: Hellotext.session,

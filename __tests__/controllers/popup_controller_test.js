@@ -24,6 +24,7 @@ describe('PopupController', () => {
     const phoneInput = document.createElement('input')
     const stepOneButton = document.createElement('button')
     const stepTwoButton = document.createElement('button')
+    const globalError = document.createElement('p')
     const resendButton = document.createElement('button')
     const changeDestinationButton = document.createElement('button')
 
@@ -55,10 +56,12 @@ describe('PopupController', () => {
     changeDestinationButton.dataset.emailLabel = 'Change email'
     changeDestinationButton.dataset.phoneLabel = 'Change number'
     completed.append(resendButton, changeDestinationButton)
+    globalError.hidden = true
+    globalError.dataset.submitError = "We couldn't submit your information. Please try again."
 
     stepOne.appendChild(emailInput)
     stepTwo.appendChild(phoneInput)
-    dialog.append(stepOne, stepTwo, completed)
+    dialog.append(stepOne, stepTwo, globalError, completed)
     element.append(bubble, dialog)
     document.body.appendChild(element)
 
@@ -72,6 +75,7 @@ describe('PopupController', () => {
     controller.bubbleTarget = bubble
     controller.dialogTarget = dialog
     controller.completedTarget = completed
+    controller.globalErrorTarget = globalError
     controller.stepTargets = [stepOne, stepTwo]
     controller.inputTargets = [emailInput, phoneInput]
     controller.submitButtonTargets = [stepOneButton, stepTwoButton]
@@ -80,6 +84,7 @@ describe('PopupController', () => {
       changeDestinationButtonTarget: { value: changeDestinationButton, configurable: true },
       hasResendButtonTarget: { value: true, configurable: true },
       hasChangeDestinationButtonTarget: { value: true, configurable: true },
+      hasGlobalErrorTarget: { value: true, configurable: true },
     })
     controller.hasBubbleTarget = hasBubble
     controller.hasBubbleValue = hasBubble
@@ -97,6 +102,7 @@ describe('PopupController', () => {
       stepTwo,
       emailInput,
       phoneInput,
+      globalError,
       resendButton,
       changeDestinationButton,
     }
@@ -194,35 +200,39 @@ describe('PopupController', () => {
 
     await controller.next()
 
-    expect(API.popups.submit).toHaveBeenCalledWith('popup-id', {
-      email: 'customer@example.com',
-      phone: '+15551234567',
-      metadata: {
-        capture: {
-          capture_id: 'capture-id',
-        },
-        fields: {
-          email: 'customer@example.com',
-          phone: '+15551234567',
-        },
-        steps: [
-          {
-            id: 'step-one',
-            name: 'Step 1',
-            fields: {
-              email: 'customer@example.com',
-            },
+    expect(API.popups.submit).toHaveBeenCalledWith(
+      'popup-id',
+      {
+        email: 'customer@example.com',
+        phone: '+15551234567',
+        metadata: {
+          capture: {
+            capture_id: 'capture-id',
           },
-          {
-            id: 'step-two',
-            name: 'Step 2',
-            fields: {
-              phone: '+15551234567',
-            },
+          fields: {
+            email: 'customer@example.com',
+            phone: '+15551234567',
           },
-        ],
+          steps: [
+            {
+              id: 'step-one',
+              name: 'Step 1',
+              fields: {
+                email: 'customer@example.com',
+              },
+            },
+            {
+              id: 'step-two',
+              name: 'Step 2',
+              fields: {
+                phone: '+15551234567',
+              },
+            },
+          ],
+        },
       },
-    })
+      expect.any(String),
+    )
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(true)
     expect(completed.hidden).toBe(false)
@@ -230,6 +240,65 @@ describe('PopupController', () => {
       'We sent it to customer@example.com via email. It may take a minute to arrive.',
     )
     expect(completed.querySelector('strong').textContent).toBe('customer@example.com')
+  })
+
+  it('reuses the idempotency key after a lost response and restores the submit buttons', async () => {
+    const { emailInput, phoneInput, globalError } = buildController({ hasBubble: false })
+    API.popups.submit.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    phoneInput.value = '+15551234567'
+
+    await controller.submit()
+    const firstKey = API.popups.submit.mock.calls[0][2]
+
+    expect(controller.submitButtonTargets.every(button => !button.disabled)).toBe(true)
+    expect(globalError.hidden).toBe(false)
+    expect(globalError.textContent).toBe("We couldn't submit your information. Please try again.")
+
+    await controller.submit()
+
+    expect(API.popups.submit.mock.calls[1][2]).toBe(firstKey)
+    expect(globalError.hidden).toBe(true)
+  })
+
+  it('generates a new idempotency key after the submitted data changes', async () => {
+    const { emailInput, phoneInput } = buildController({ hasBubble: false })
+    API.popups.submit.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    phoneInput.value = '+15551234567'
+    await controller.submit()
+    const firstKey = API.popups.submit.mock.calls[0][2]
+
+    phoneInput.value = '+15557654321'
+    await controller.submit()
+
+    expect(API.popups.submit.mock.calls[1][2]).not.toBe(firstKey)
+  })
+
+  it('shows submission errors that are not associated with an input', async () => {
+    const { emailInput, phoneInput, globalError } = buildController({ hasBubble: false })
+    API.popups.submit.mockResolvedValueOnce({
+      failed: true,
+      json: jest.fn().mockResolvedValue({
+        errors: [{ parameter: 'base', description: 'Enter an email address or phone number.' }],
+      }),
+    })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    phoneInput.value = '+15551234567'
+    await controller.submit()
+
+    expect(globalError.hidden).toBe(false)
+    expect(globalError.textContent).toBe('Enter an email address or phone number.')
+    expect(controller.submitButtonTargets.every(button => !button.disabled)).toBe(true)
   })
 
   it('shows a one-minute resend cooldown and the change action for the submitted identity', async () => {

@@ -32,6 +32,7 @@ export default class extends Controller {
     'completed',
     'input',
     'submitButton',
+    'globalError',
     'resendButton',
     'changeDestinationButton',
   ]
@@ -113,23 +114,25 @@ export default class extends Controller {
     }
 
     this.clearErrorMessages(this.currentStepInputs)
+    this.clearGlobalError()
 
     this.submitButtonTargets.forEach(button => {
       button.disabled = true
     })
 
-    const response = await API.popups.submit(this.idValue, this.submissionPayload())
-
-    this.submitButtonTargets.forEach(button => {
-      button.disabled = false
-    })
-
-    if (response.failed) {
-      await this.handleSubmissionError(response)
-      return
-    }
-
     try {
+      const payload = this.submissionPayload()
+      const response = await API.popups.submit(
+        this.idValue,
+        payload,
+        this.idempotencyKeyFor(payload),
+      )
+
+      if (response.failed) {
+        await this.handleSubmissionError(response)
+        return
+      }
+
       const submission = await response.json()
       this.submissionId = submission.id
       this.submissionVerificationState = submission.verification_state
@@ -137,8 +140,14 @@ export default class extends Controller {
       this.submissionDeliveryStatus = submission.delivery_status
       this.submissionDeliveryChannel = submission.delivery_channel
       this.submissionDestination = submission.destination
+      this.resetSubmissionRequest()
     } catch (_) {
-      this.submissionId = null
+      this.showGlobalError()
+      return
+    } finally {
+      this.submitButtonTargets.forEach(button => {
+        button.disabled = false
+      })
     }
 
     this.showCompleted()
@@ -309,6 +318,7 @@ export default class extends Controller {
       this.submissionDeliveryStatus = null
       this.submissionDeliveryChannel = null
       this.submissionDestination = null
+      this.resetSubmissionRequest()
       this.showStep(stepIndex)
       input.focus()
     } catch (_) {
@@ -421,26 +431,48 @@ export default class extends Controller {
     this.inputTargets.forEach(input => input.setCustomValidity(''))
   }
 
+  clearGlobalError() {
+    if (!this.hasGlobalErrorTarget) return
+
+    this.globalErrorTarget.textContent = ''
+    this.hideElement(this.globalErrorTarget)
+  }
+
+  showGlobalError(message = null) {
+    if (!this.hasGlobalErrorTarget) return
+
+    this.globalErrorTarget.textContent =
+      message || this.globalErrorTarget.dataset.submitError || 'Unable to submit. Please try again.'
+    this.showElement(this.globalErrorTarget)
+  }
+
   async handleSubmissionError(response) {
     let data
 
     try {
       data = await response.json()
     } catch (_) {
+      this.showGlobalError()
       return
     }
 
     const errors = data.errors || []
+    const generalErrors = []
 
     errors.forEach(error => {
       const input = this.inputForError(error)
-      if (!input) return
+      if (!input) {
+        if (error.description) generalErrors.push(error.description)
+        return
+      }
 
       input.setCustomValidity(error.description || input.validationMessage)
       input.reportValidity()
     })
 
     this.showErrorMessages(this.inputTargets)
+    if (generalErrors.length) this.showGlobalError(generalErrors.join(' '))
+    else if (!errors.length) this.showGlobalError()
   }
 
   inputForError(error) {
@@ -484,6 +516,22 @@ export default class extends Controller {
     })
 
     return payload
+  }
+
+  idempotencyKeyFor(payload) {
+    const serializedPayload = JSON.stringify(payload)
+
+    if (this.submissionPayloadSnapshot !== serializedPayload) {
+      this.submissionPayloadSnapshot = serializedPayload
+      this.submissionIdempotencyKey = API.popups.idempotencyKey()
+    }
+
+    return this.submissionIdempotencyKey
+  }
+
+  resetSubmissionRequest() {
+    this.submissionPayloadSnapshot = null
+    this.submissionIdempotencyKey = null
   }
 
   inputValue(input) {
