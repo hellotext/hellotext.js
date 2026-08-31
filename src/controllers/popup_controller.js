@@ -281,6 +281,7 @@ export default class extends Controller {
 
   async changeDestination(event) {
     if (event) event.preventDefault()
+    if (!this.submissionId || !this.submissionActionToken || this.changeDestinationPending) return
 
     const input = this.completedIdentity?.input
     if (!input) return
@@ -290,15 +291,33 @@ export default class extends Controller {
     )
     if (stepIndex < 0) return
 
-    this.stopResendCooldown()
-    this.submissionId = null
-    this.submissionActionToken = null
-    this.submissionVerificationState = null
-    this.submissionDeliveryStatus = null
-    this.submissionDeliveryChannel = null
-    this.submissionDestination = null
-    this.showStep(stepIndex)
-    input.focus()
+    this.changeDestinationPending = true
+    this.changeDestinationButtonTarget.disabled = true
+
+    try {
+      const response = await API.popups.cancel(
+        this.idValue,
+        this.submissionId,
+        this.submissionActionToken,
+      )
+      if (response.failed) return
+
+      this.stopResendCooldown()
+      this.submissionId = null
+      this.submissionActionToken = null
+      this.submissionVerificationState = null
+      this.submissionDeliveryStatus = null
+      this.submissionDeliveryChannel = null
+      this.submissionDestination = null
+      this.showStep(stepIndex)
+      input.focus()
+    } catch (_) {
+      // Keep Completed visible when cancellation cannot be confirmed. Starting
+      // a replacement submission before that boundary could deliver twice.
+    } finally {
+      this.changeDestinationPending = false
+      this.changeDestinationButtonTarget.disabled = false
+    }
   }
 
   startResendCooldown(seconds) {

@@ -289,7 +289,11 @@ describe('PopupController', () => {
     await controller.submit()
     await controller.changeDestination({ preventDefault: jest.fn() })
 
-    expect(API.popups.cancel).not.toHaveBeenCalled()
+    expect(API.popups.cancel).toHaveBeenCalledWith(
+      'popup-id',
+      'submission-id',
+      'action-token',
+    )
     expect(completed.hidden).toBe(true)
     expect(stepOne.hidden).toBe(false)
     expect(emailInput.focus).toHaveBeenCalled()
@@ -299,10 +303,46 @@ describe('PopupController', () => {
     expect(controller.submissionDestination).toBeNull()
   })
 
+  it('keeps the completed step visible when the previous submission cannot be canceled', async () => {
+    const { completed, emailInput, phoneInput, stepOne, changeDestinationButton } = buildController({ hasBubble: false })
+    API.popups.cancel.mockResolvedValueOnce({ failed: true, succeeded: false })
+
+    controller.connect()
+    phoneInput.required = false
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    await controller.submit()
+    await controller.changeDestination({ preventDefault: jest.fn() })
+
+    expect(completed.hidden).toBe(false)
+    expect(stepOne.hidden).toBe(true)
+    expect(changeDestinationButton.disabled).toBe(false)
+    expect(controller.submissionId).toBe('submission-id')
+  })
+
+  it('keeps the completed step visible when cancellation cannot reach the API', async () => {
+    const { completed, emailInput, phoneInput, stepOne, changeDestinationButton } = buildController({ hasBubble: false })
+    API.popups.cancel.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    controller.connect()
+    phoneInput.required = false
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    await controller.submit()
+    await controller.changeDestination({ preventDefault: jest.fn() })
+
+    expect(completed.hidden).toBe(false)
+    expect(stepOne.hidden).toBe(true)
+    expect(changeDestinationButton.disabled).toBe(false)
+    expect(controller.submissionId).toBe('submission-id')
+  })
+
   it('returns to the identity selected by the backend fallback route', async () => {
     const { emailInput, phoneInput, stepOne } = buildController({ hasBubble: false })
     jest.spyOn(emailInput, 'focus')
     controller.inputTargets = [phoneInput, emailInput]
+    controller.submissionId = 'submission-id'
+    controller.submissionActionToken = 'action-token'
     controller.submissionDeliveryChannel = 'email'
     controller.submissionDestination = 'customer@example.com'
     emailInput.value = 'customer@example.com'
