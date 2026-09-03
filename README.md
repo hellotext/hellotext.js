@@ -63,23 +63,23 @@ The library ships with a minimal CSS file that is used for [Forms](/docs/forms.m
 
 ## For Bundler Users (Vite, Webpack, etc.)
 
-The CSS is not automatically imported to avoid issues with SSR frameworks. Import it separately:
+The generic form CSS is not automatically imported to avoid issues with SSR frameworks. Import it separately:
 
 ```javascript
 // Import the library
 import Hellotext from '@hellotext/hellotext'
 
-// Import the CSS separately
+// Import the generic form CSS separately
 import '@hellotext/hellotext/styles/index.css'
 ```
 
 ## For Script Tag Users
 
-The UMD bundle (`dist/hellotext.js`) includes the CSS automatically:
+The UMD bundle (`dist/hellotext.js`) includes generic form CSS automatically. Popup styles are served by Hellotext with the public business configuration:
 
 ```html
 <script src="https://unpkg.com/@hellotext/hellotext"></script>
-<!-- CSS is included in the bundle -->
+<!-- Business runtime styles are loaded from Hellotext -->
 ```
 
 ## Events
@@ -105,6 +105,8 @@ Hellotext.removeEventListener(eventName, callback)
 - `utm-set`: this event is fired when the UTM value is collected, useful to store the UTM on your side.
 - `forms:collected` This event is fired when forms are collected. The callback will receive the array of forms collected.
 - `form:completed` This event is fired when a form has been completed. A form is completed when the user fills all required inputs and verifies their OTP(One-Time Password). The callback will receive the form object that was completed, alongside the data the user filled in the form.
+- `popup:opened` This event is fired when a popup dialog becomes visible.
+- `popup:closed` This event is fired when a popup is dismissed.
 - View Webchat events [here](/docs/webchat.md#events)
 - `cart.added` This event is fired when a customer adds a product to their cart from a Webchat message.
 

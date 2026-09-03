@@ -4,15 +4,13 @@
 
 import PopupController from '../../src/controllers/popup_controller'
 import API from '../../src/api'
+import Hellotext from '../../src/hellotext'
 
 describe('PopupController', () => {
   let controller
-  let originalLocalStorage
-
   const buildController = ({
     hasBubble = true,
     id = 'popup-id',
-    rules = { operator: 'and', conditions: [] },
   } = {}) => {
     const element = document.createElement('article')
     const bubble = document.createElement('button')
@@ -91,7 +89,6 @@ describe('PopupController', () => {
     controller.captureValue = { capture_id: 'capture-id' }
     controller.deviceValue = 'all'
     controller.idValue = id
-    controller.rulesValue = rules
 
     return {
       element,
@@ -109,7 +106,6 @@ describe('PopupController', () => {
   }
 
   beforeEach(() => {
-    originalLocalStorage = window.localStorage
     jest.spyOn(API.popups, 'submit').mockResolvedValue({
       failed: false,
       json: jest.fn().mockResolvedValue({
@@ -126,17 +122,13 @@ describe('PopupController', () => {
       data: { headers: new Headers({ 'Retry-After': '60' }), status: 202 },
     })
     jest.spyOn(API.popups, 'cancel').mockResolvedValue({ failed: false, succeeded: true })
+    jest.spyOn(Hellotext.eventEmitter, 'dispatch')
   })
 
   afterEach(() => {
     jest.useRealTimers()
     jest.restoreAllMocks()
-    Object.defineProperty(window, 'localStorage', {
-      value: originalLocalStorage,
-      configurable: true,
-    })
     document.body.innerHTML = ''
-    localStorage.clear()
   })
 
   it('shows the bubble first and opens the dialog when clicked', () => {
@@ -152,7 +144,19 @@ describe('PopupController', () => {
 
     expect(bubble.hidden).toBe(true)
     expect(dialog.hidden).toBe(false)
-    expect(localStorage.getItem('hellotext:popup:popup-id:viewed')).toBe('true')
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenCalledWith('popup:opened')
+  })
+
+  it('dispatches popup:opened for an automatic popup and popup:closed when it is dismissed', () => {
+    const { element, dialog } = buildController({ hasBubble: false })
+
+    controller.connect()
+    controller.close()
+
+    expect(element.hidden).toBe(true)
+    expect(dialog.hidden).toBe(true)
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(1, 'popup:opened')
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(2, 'popup:closed')
   })
 
   it('validates the current step before moving to the next one', async () => {
@@ -526,24 +530,4 @@ describe('PopupController', () => {
     expect(phoneInput.checkValidity()).toBe(false)
   })
 
-  it('tolerates browsers that block localStorage', () => {
-    buildController()
-    const storage = {
-      getItem: jest.fn(() => {
-        throw new Error('blocked')
-      }),
-      setItem: jest.fn(() => {
-        throw new Error('blocked')
-      }),
-      clear: jest.fn(),
-    }
-
-    Object.defineProperty(window, 'localStorage', {
-      value: storage,
-      configurable: true,
-    })
-
-    expect(() => controller.markViewed()).not.toThrow()
-    expect(controller.viewedPopupRulePasses({ inclusion: false })).toBe(true)
-  })
 })

@@ -6,6 +6,8 @@ export default class Event {
     'utm-set',
     'forms:collected',
     'form:completed',
+    'popup:opened',
+    'popup:closed',
     'webchat:mounted',
     'webchat:opened',
     'webchat:closed',

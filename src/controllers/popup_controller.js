@@ -1,13 +1,14 @@
 import { Controller } from '@hotwired/stimulus'
 
 import API from '../api'
+import Hellotext from '../hellotext'
 
 /**
  * Public popup runtime controller.
  *
- * Renders the persisted dashboard popup on merchant sites, applies client-side
- * display rules, controls bubble-to-dialog transitions, validates every step,
- * submits the collected data, and shows the completion screen.
+ * Renders the persisted dashboard popup on merchant sites, controls
+ * bubble-to-dialog transitions, validates every step, submits the collected
+ * data, and shows the completion screen.
  *
  * Targets:
  * - bubble: Launcher shown before the popup when bubble mode is enabled.
@@ -22,7 +23,6 @@ import API from '../api'
  * - device: Popup device targeting.
  * - hasBubble: Whether the popup starts from a bubble.
  * - id: Public popup identifier.
- * - rules: Persisted AND display rules.
  */
 export default class extends Controller {
   static targets = [
@@ -41,12 +41,10 @@ export default class extends Controller {
     device: String,
     hasBubble: Boolean,
     id: String,
-    rules: Object,
   }
 
   connect() {
     this.stepIndex = 0
-    this.onScroll = this.evaluateDisplay.bind(this)
     this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
 
     this.hideElement(this.element)
@@ -57,7 +55,6 @@ export default class extends Controller {
   }
 
   disconnect() {
-    window.removeEventListener('scroll', this.onScroll)
     this.stopResendCooldown()
   }
 
@@ -66,7 +63,7 @@ export default class extends Controller {
 
     if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
     this.showElement(this.dialogTarget)
-    this.markViewed()
+    Hellotext.eventEmitter.dispatch('popup:opened')
   }
 
   close(event) {
@@ -76,6 +73,7 @@ export default class extends Controller {
     this.hideElement(this.dialogTarget)
     if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
     this.hideElement(this.element)
+    Hellotext.eventEmitter.dispatch('popup:closed')
   }
 
   async next(event) {
@@ -154,16 +152,9 @@ export default class extends Controller {
   }
 
   evaluateDisplay() {
-    if (this.dismissed || !this.matchesDevice() || !this.rulesWithoutScrollPass()) {
+    if (this.dismissed || !this.matchesDevice()) {
       return
     }
-
-    if (this.scrollRule && !this.scrollRulePasses()) {
-      window.addEventListener('scroll', this.onScroll, { passive: true })
-      return
-    }
-
-    window.removeEventListener('scroll', this.onScroll)
     this.showInitialState()
   }
 
@@ -177,7 +168,7 @@ export default class extends Controller {
     }
 
     this.showElement(this.dialogTarget)
-    this.markViewed()
+    Hellotext.eventEmitter.dispatch('popup:opened')
   }
 
   showStep(index) {
@@ -568,75 +559,12 @@ export default class extends Controller {
     return this._completionTextTemplates
   }
 
-  rulesWithoutScrollPass() {
-    return this.conditions
-      .filter(condition => condition.type !== 'scroll_depth')
-      .every(condition => this.conditionPasses(condition))
-  }
-
-  conditionPasses(condition) {
-    if (condition.group === 'properties' && condition.type === 'page_property') {
-      return this.pagePropertyRulePasses(condition)
-    }
-
-    if (condition.group === 'actions' && condition.type === 'viewed_popup') {
-      return this.viewedPopupRulePasses(condition)
-    }
-
-    return true
-  }
-
-  pagePropertyRulePasses(condition) {
-    const expected = String(condition.value || '')
-      .trim()
-      .toLowerCase()
-    if (!expected) return true
-
-    const actual = this.pagePropertyValue(condition.field)
-    const includes = actual.includes(expected)
-
-    return condition.query === 'does_not_contain' ? !includes : includes
-  }
-
-  pagePropertyValue(field) {
-    if (field === 'url') return window.location.href.toLowerCase()
-    if (field === 'title') return document.title.toLowerCase()
-
-    return window.location.pathname.toLowerCase()
-  }
-
-  viewedPopupRulePasses(condition) {
-    const viewed = this.popupWasViewed()
-
-    return condition.inclusion === false ? !viewed : viewed
-  }
-
-  scrollRulePasses() {
-    return this.scrollPercentage >= Number(this.scrollRule.value || 0)
-  }
-
   matchesDevice() {
     if (this.deviceValue === 'all') return true
     if (this.deviceValue === 'mobile') return window.innerWidth < 768
     if (this.deviceValue === 'desktop') return window.innerWidth >= 768
 
     return true
-  }
-
-  markViewed() {
-    try {
-      localStorage.setItem(this.viewedStorageKey, 'true')
-    } catch (_) {
-      // Some browsers disable storage in private contexts; showing the popup is safer than crashing the page.
-    }
-  }
-
-  popupWasViewed() {
-    try {
-      return localStorage.getItem(this.viewedStorageKey) === 'true'
-    } catch (_) {
-      return false
-    }
   }
 
   showElement(element) {
@@ -657,28 +585,5 @@ export default class extends Controller {
 
   get currentStepInputs() {
     return this.inputsForStep(this.currentStep)
-  }
-
-  get conditions() {
-    return this.rulesValue?.conditions || []
-  }
-
-  get scrollRule() {
-    return this.conditions.find(
-      condition => condition.group === 'actions' && condition.type === 'scroll_depth',
-    )
-  }
-
-  get scrollPercentage() {
-    const documentElement = document.documentElement
-    const scrollableHeight = documentElement.scrollHeight - window.innerHeight
-
-    if (scrollableHeight <= 0) return 100
-
-    return Math.round((window.scrollY / scrollableHeight) * 100)
-  }
-
-  get viewedStorageKey() {
-    return `hellotext:popup:${this.idValue}:viewed`
   }
 }
