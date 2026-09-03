@@ -1,7 +1,7 @@
 import Hellotext from "../src/hellotext";
 import API from "../src/api";
 import { Configuration } from "../src/core";
-import { Session, Webchat, WhatsAppWidget } from "../src/models";
+import { Business, Popup, Session, Webchat, WhatsAppWidget } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -15,6 +15,7 @@ const defaultBusiness = (overrides = {}) => ({
   features: {},
   locale: "en",
   style_url: "https://example.com/hellotext.css",
+  popup: null,
   webchat: null,
   whitelist: "disabled",
   ...overrides,
@@ -27,6 +28,24 @@ const businessResponse = business => ({
 
 const mockBusinessFetch = (business = defaultBusiness()) => {
   API.businesses.get = jest.fn().mockResolvedValue(businessResponse(business))
+}
+
+const deferred = () => {
+  let resolve
+  const promise = new Promise(result => {
+    resolve = result
+  })
+
+  return { promise, resolve }
+}
+
+const waitFor = async predicate => {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    if (predicate()) return
+    await new Promise(resolve => setTimeout(resolve, 0))
+  }
+
+  throw new Error('Timed out waiting for condition')
 }
 
 mockBusinessFetch()
@@ -47,17 +66,23 @@ describe("when trying to call methods before initializing the class", () => {
 })
 
 describe("when initializing business metadata", () => {
+  let loadPopup
   let loadWebchat
   let loadWhatsAppWidget
 
   beforeEach(() => {
+    loadPopup = jest.spyOn(Popup, 'load').mockResolvedValue({})
     loadWebchat = jest.spyOn(Webchat, 'load').mockResolvedValue({})
     loadWhatsAppWidget = jest.spyOn(WhatsAppWidget, 'load').mockResolvedValue({})
   })
 
   afterEach(() => {
+    loadPopup.mockRestore()
     loadWebchat.mockRestore()
     loadWhatsAppWidget.mockRestore()
+    Configuration.popup.id = undefined
+    Configuration.popup.container = 'body'
+    Configuration.popup.device = 'auto'
     Configuration.webchat.behaviour = null
     Configuration.webchat.behaviourOverride = false
     Configuration.webchat.appearance = {}
@@ -68,6 +93,17 @@ describe("when initializing business metadata", () => {
     Configuration.whatsapp.appearance = {}
     Configuration.whatsapp.number = null
     Configuration.whatsapp.body = null
+    Configuration.apiRoot = 'https://api.hellotext.com/v1'
+    Configuration.actionCableUrl = 'wss://www.hellotext.com/cable'
+    Hellotext.popup = undefined
+    Hellotext.webchat = undefined
+    Hellotext.whatsapp = undefined
+    Hellotext.business = undefined
+    Hellotext.page = undefined
+    Hellotext.forms = undefined
+    Hellotext.query = undefined
+    Hellotext.initializationGeneration = 0
+    Hellotext.initializationBaseline = undefined
   })
 
   it("fetches public business data by default and stores it", async () => {
@@ -288,6 +324,439 @@ describe("when initializing business metadata", () => {
     await Hellotext.initialize("xy76ks", { whatsappWidget: false })
 
     expect(loadWhatsAppWidget).not.toHaveBeenCalled()
+  })
+
+  it("loads the dashboard popup when no explicit popup config is passed", async () => {
+    const popup = { id: 'dashboard-popup' }
+    loadPopup.mockResolvedValueOnce(popup)
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+
+    await Hellotext.initialize("xy76ks")
+
+    expect(loadPopup).toHaveBeenCalledWith("dashboard-popup")
+    expect(Hellotext.popup).toEqual(popup)
+  })
+
+  it('does not load a popup when the dashboard has no popup id', async () => {
+    mockBusinessFetch(defaultBusiness({ popup: {} }))
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(loadPopup).not.toHaveBeenCalled()
+    expect(Hellotext.popup).toBeUndefined()
+  })
+
+  it("uses the dashboard popup id with explicit local options", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+
+    await Hellotext.initialize("xy76ks", {
+      popup: {
+        container: "#popup-container",
+        device: "desktop",
+      },
+    })
+
+    expect(loadPopup).toHaveBeenCalledWith("dashboard-popup")
+    expect(Configuration.popup.container).toEqual("#popup-container")
+    expect(Configuration.popup.device).toEqual("desktop")
+  })
+
+  it("lets an explicit popup id override the dashboard popup id", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+
+    await Hellotext.initialize("xy76ks", {
+      popup: {
+        id: "explicit-popup",
+      },
+    })
+
+    expect(loadPopup).toHaveBeenCalledWith("explicit-popup")
+    expect(loadPopup).toHaveBeenCalledTimes(1)
+  })
+
+  it("skips popup loading when popup is false", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+
+    await Hellotext.initialize("xy76ks", { popup: false })
+
+    expect(loadPopup).not.toHaveBeenCalled()
+    expect(Hellotext.popup).toBeUndefined()
+  })
+
+  it("clears a previously loaded popup before reinitializing", async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+    await Hellotext.initialize("xy76ks")
+
+    mockBusinessFetch(defaultBusiness())
+    await Hellotext.initialize("xy76ks")
+
+    expect(Hellotext.popup).toBeUndefined()
+  })
+
+  it('unmounts previously loaded popups before reinitializing', async () => {
+    const previousPopup = { unmount: jest.fn() }
+    Hellotext.popup = previousPopup
+
+    await Hellotext.initialize('xy76ks', { popup: false })
+
+    expect(previousPopup.unmount).toHaveBeenCalledTimes(1)
+    expect(Hellotext.popup).toBeUndefined()
+  })
+
+  it('keeps the existing popup mounted when reinitialization cannot hydrate the business', async () => {
+    const existingPopup = { unmount: jest.fn() }
+    Hellotext.popup = existingPopup
+    API.businesses.get = jest.fn().mockRejectedValue(new Error('network error'))
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(existingPopup.unmount).not.toHaveBeenCalled()
+    expect(Hellotext.popup).toBe(existingPopup)
+  })
+
+  it('keeps the existing surfaces and configuration after a failed reinitialization', async () => {
+    const existingPopup = { unmount: jest.fn() }
+    const existingWebchat = { unmount: jest.fn() }
+    const existingWhatsApp = { unmount: jest.fn() }
+    Hellotext.popup = existingPopup
+    Hellotext.webchat = existingWebchat
+    Hellotext.whatsapp = existingWhatsApp
+    Configuration.apiRoot = 'https://current.example/v1'
+    Configuration.actionCableUrl = 'wss://current.example/cable'
+    API.businesses.get = jest.fn().mockRejectedValue(new Error('network error'))
+
+    await Hellotext.initialize('xy76ks', { apiRoot: 'https://next.example/v1' })
+
+    expect(existingPopup.unmount).not.toHaveBeenCalled()
+    expect(existingWebchat.unmount).not.toHaveBeenCalled()
+    expect(existingWhatsApp.unmount).not.toHaveBeenCalled()
+    expect(Hellotext.webchat).toBe(existingWebchat)
+    expect(Hellotext.whatsapp).toBe(existingWhatsApp)
+    expect(Configuration.apiRoot).toBe('https://current.example/v1')
+    expect(Configuration.actionCableUrl).toBe('wss://current.example/cable')
+  })
+
+  it('restores the existing surfaces when loading a replacement surface fails', async () => {
+    const existingPopup = { unmount: jest.fn() }
+    const existingWebchat = { unmount: jest.fn() }
+    const existingWhatsApp = { unmount: jest.fn() }
+    Hellotext.popup = existingPopup
+    Hellotext.webchat = existingWebchat
+    Hellotext.whatsapp = existingWhatsApp
+    mockBusinessFetch(defaultBusiness({ webchat: { id: 'replacement-webchat' } }))
+    loadWebchat.mockRejectedValueOnce(new Error('network error'))
+
+    await expect(Hellotext.initialize('xy76ks')).rejects.toThrow('network error')
+
+    expect(existingPopup.unmount).not.toHaveBeenCalled()
+    expect(existingWebchat.unmount).not.toHaveBeenCalled()
+    expect(existingWhatsApp.unmount).not.toHaveBeenCalled()
+    expect(Hellotext.webchat).toBe(existingWebchat)
+    expect(Hellotext.whatsapp).toBe(existingWhatsApp)
+  })
+
+  it('restores the existing popup when an explicit popup id is stale', async () => {
+    const existingPopup = { unmount: jest.fn() }
+    Hellotext.popup = existingPopup
+    mockBusinessFetch(defaultBusiness())
+    loadPopup.mockRejectedValueOnce(new Error('popup not found'))
+
+    await expect(
+      Hellotext.initialize('xy76ks', { popup: { id: 'stale-popup' } }),
+    ).rejects.toThrow('popup not found')
+
+    expect(existingPopup.unmount).not.toHaveBeenCalled()
+    expect(Hellotext.popup).toBe(existingPopup)
+  })
+
+  it.each([
+    ['popup', { popup: false }, 'popup'],
+    ['webchat', { webchat: false }, 'webchat'],
+    ['WhatsApp widget', { whatsappWidget: false }, 'whatsapp'],
+  ])('keeps unrelated surfaces mounted when a failed refresh explicitly disables %s', async (_, config, disabledSurface) => {
+    const existingPopup = { unmount: jest.fn() }
+    const existingWebchat = { unmount: jest.fn() }
+    const existingWhatsApp = { unmount: jest.fn() }
+    Hellotext.popup = existingPopup
+    Hellotext.webchat = existingWebchat
+    Hellotext.whatsapp = existingWhatsApp
+    API.businesses.get = jest.fn().mockRejectedValue(new Error('network error'))
+
+    await Hellotext.initialize('xy76ks', config)
+
+    expect(existingPopup.unmount).toHaveBeenCalledTimes(disabledSurface === 'popup' ? 1 : 0)
+    expect(existingWebchat.unmount).toHaveBeenCalledTimes(disabledSurface === 'webchat' ? 1 : 0)
+    expect(existingWhatsApp.unmount).toHaveBeenCalledTimes(disabledSurface === 'whatsapp' ? 1 : 0)
+    expect(Hellotext.popup).toBe(disabledSurface === 'popup' ? undefined : existingPopup)
+    expect(Hellotext.webchat).toBe(disabledSurface === 'webchat' ? undefined : existingWebchat)
+    expect(Hellotext.whatsapp).toBe(disabledSurface === 'whatsapp' ? undefined : existingWhatsApp)
+  })
+
+  it('restores a disabled stable surface when an explicit replacement fails after hydration', async () => {
+    const existingPopup = { unmount: jest.fn() }
+    const existingWebchat = { unmount: jest.fn() }
+    Hellotext.popup = existingPopup
+    Hellotext.webchat = existingWebchat
+    API.businesses.get = jest.fn().mockResolvedValue({ ok: false })
+    loadWebchat.mockRejectedValueOnce(new Error('network error'))
+
+    await expect(
+      Hellotext.initialize('xy76ks', {
+        popup: false,
+        webchat: { id: 'replacement-webchat' },
+      }),
+    ).rejects.toThrow('network error')
+
+    expect(existingPopup.unmount).not.toHaveBeenCalled()
+    expect(existingWebchat.unmount).not.toHaveBeenCalled()
+    expect(Hellotext.popup).toBe(existingPopup)
+    expect(Hellotext.webchat).toBe(existingWebchat)
+  })
+
+  it('keeps the latest initialization when an earlier popup load resolves late', async () => {
+    const firstPopupLoad = deferred()
+    const firstPopup = { id: 'first-popup', unmount: jest.fn() }
+    const secondPopup = { id: 'second-popup', unmount: jest.fn() }
+    loadPopup
+      .mockImplementationOnce(() => firstPopupLoad.promise)
+      .mockResolvedValueOnce(secondPopup)
+    API.businesses.get = jest
+      .fn()
+      .mockResolvedValueOnce(businessResponse(defaultBusiness({ popup: { id: 'first-popup' } })))
+      .mockResolvedValueOnce(businessResponse(defaultBusiness({ popup: { id: 'second-popup' } })))
+
+    const firstInitialization = Hellotext.initialize('first-business')
+    await waitFor(() => loadPopup.mock.calls.length === 1)
+    const secondInitialization = Hellotext.initialize('second-business')
+    await secondInitialization
+    firstPopupLoad.resolve(firstPopup)
+    await firstInitialization
+
+    expect(firstPopup.unmount).toHaveBeenCalledTimes(1)
+    expect(Hellotext.popup).toBe(secondPopup)
+  })
+
+  it('unmounts a stale webchat after a newer initialization completes', async () => {
+    const firstWebchatLoad = deferred()
+    const firstWebchat = { unmount: jest.fn() }
+    const secondWebchat = { unmount: jest.fn() }
+    loadWebchat
+      .mockImplementationOnce(() => firstWebchatLoad.promise)
+      .mockResolvedValueOnce(secondWebchat)
+    API.businesses.get = jest
+      .fn()
+      .mockResolvedValueOnce(
+        businessResponse(defaultBusiness({ webchat: { id: 'first-webchat' } })),
+      )
+      .mockResolvedValueOnce(
+        businessResponse(defaultBusiness({ webchat: { id: 'second-webchat' } })),
+      )
+
+    const firstInitialization = Hellotext.initialize('first-business')
+    await waitFor(() => loadWebchat.mock.calls.length === 1)
+    await Hellotext.initialize('second-business')
+    firstWebchatLoad.resolve(firstWebchat)
+    await firstInitialization
+
+    expect(firstWebchat.unmount).toHaveBeenCalledTimes(1)
+    expect(Hellotext.webchat).toBe(secondWebchat)
+  })
+
+  it('unmounts a stale WhatsApp widget after a newer initialization completes', async () => {
+    const firstWhatsAppLoad = deferred()
+    const firstWhatsApp = { unmount: jest.fn() }
+    const secondWhatsApp = { unmount: jest.fn() }
+    loadWhatsAppWidget
+      .mockImplementationOnce(() => firstWhatsAppLoad.promise)
+      .mockResolvedValueOnce(secondWhatsApp)
+    API.businesses.get = jest
+      .fn()
+      .mockResolvedValueOnce(
+        businessResponse(defaultBusiness({ whatsapp: { id: 'first-whatsapp' } })),
+      )
+      .mockResolvedValueOnce(
+        businessResponse(defaultBusiness({ whatsapp: { id: 'second-whatsapp' } })),
+      )
+
+    const firstInitialization = Hellotext.initialize('first-business')
+    await waitFor(() => loadWhatsAppWidget.mock.calls.length === 1)
+    await Hellotext.initialize('second-business')
+    firstWhatsAppLoad.resolve(firstWhatsApp)
+    await firstInitialization
+
+    expect(firstWhatsApp.unmount).toHaveBeenCalledTimes(1)
+    expect(Hellotext.whatsapp).toBe(secondWhatsApp)
+  })
+
+  it('recomputes widget coexistence after replacing webchat and WhatsApp together', async () => {
+    const nextWebchatElement = document.createElement('div')
+    const nextWhatsAppElement = document.createElement('div')
+    nextWebchatElement.className = 'hellotext--webchat'
+    nextWhatsAppElement.className = 'hellotext--whatsapp-widget'
+    document.body.append(nextWebchatElement, nextWhatsAppElement)
+
+    const markCoexistingWidgets = () => {
+      nextWebchatElement.classList.add('hellotext--with-whatsapp-widget')
+      nextWhatsAppElement.classList.add('hellotext--with-webchat')
+    }
+    const existingWebchat = {
+      unmount: jest.fn(() => nextWhatsAppElement.classList.remove('hellotext--with-webchat')),
+    }
+    const existingWhatsApp = {
+      unmount: jest.fn(() =>
+        nextWebchatElement.classList.remove('hellotext--with-whatsapp-widget'),
+      ),
+    }
+    const nextWebchat = { unmount: jest.fn(), markCoexistingWidgets: jest.fn(markCoexistingWidgets) }
+    const nextWhatsApp = { unmount: jest.fn(), markCoexistingWidgets: jest.fn(markCoexistingWidgets) }
+    Hellotext.webchat = existingWebchat
+    Hellotext.whatsapp = existingWhatsApp
+    loadWebchat.mockResolvedValueOnce(nextWebchat)
+    loadWhatsAppWidget.mockResolvedValueOnce(nextWhatsApp)
+    mockBusinessFetch(
+      defaultBusiness({
+        webchat: { id: 'replacement-webchat' },
+        whatsapp: { id: 'replacement-whatsapp' },
+      }),
+    )
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(existingWebchat.unmount).toHaveBeenCalledTimes(1)
+    expect(existingWhatsApp.unmount).toHaveBeenCalledTimes(1)
+    expect(nextWebchat.markCoexistingWidgets).toHaveBeenCalledTimes(1)
+    expect(nextWhatsApp.markCoexistingWidgets).toHaveBeenCalledTimes(1)
+    expect(nextWebchatElement.classList.contains('hellotext--with-whatsapp-widget')).toBe(true)
+    expect(nextWhatsAppElement.classList.contains('hellotext--with-webchat')).toBe(true)
+
+    nextWebchatElement.remove()
+    nextWhatsAppElement.remove()
+  })
+
+  it('restores the stable runtime when a newer initialization fails during an older refresh', async () => {
+    const firstBusinessFetch = deferred()
+    const stableBusiness = { id: 'stable-business' }
+    const stablePopup = { unmount: jest.fn() }
+    Hellotext.business = stableBusiness
+    Hellotext.popup = stablePopup
+    Configuration.apiRoot = 'https://stable.example/v1'
+    Configuration.actionCableUrl = 'wss://stable.example/cable'
+    API.businesses.get = jest
+      .fn()
+      .mockImplementationOnce(() => firstBusinessFetch.promise)
+      .mockResolvedValueOnce({ ok: false })
+
+    const firstInitialization = Hellotext.initialize('first-business', {
+      apiRoot: 'https://first.example/v1',
+    })
+    await waitFor(() => API.businesses.get.mock.calls.length === 1)
+    expect(Configuration.apiRoot).toBe('https://stable.example/v1')
+
+    await Hellotext.initialize('second-business', { apiRoot: 'https://second.example/v1' })
+    firstBusinessFetch.resolve(businessResponse(defaultBusiness({ id: 'first-business' })))
+    await firstInitialization
+
+    expect(stablePopup.unmount).not.toHaveBeenCalled()
+    expect(Hellotext.business).toBe(stableBusiness)
+    expect(Configuration.apiRoot).toBe('https://stable.example/v1')
+    expect(Configuration.actionCableUrl).toBe('wss://stable.example/cable')
+  })
+
+  it('does not leave a stylesheet from a stale business hydration', async () => {
+    const firstBusinessFetch = deferred()
+    API.businesses.get = jest
+      .fn()
+      .mockImplementationOnce(() => firstBusinessFetch.promise)
+      .mockResolvedValueOnce(
+        businessResponse(
+          defaultBusiness({
+            id: 'second-business',
+            style_url: 'https://example.com/second.css',
+          }),
+        ),
+      )
+
+    const firstInitialization = Hellotext.initialize('first-business', {
+      apiRoot: 'https://first.example/v1',
+    })
+    await waitFor(() => API.businesses.get.mock.calls.length === 1)
+    await Hellotext.initialize('second-business', { apiRoot: 'https://second.example/v1' })
+    firstBusinessFetch.resolve(
+      businessResponse(
+        defaultBusiness({
+          id: 'first-business',
+          style_url: 'https://example.com/first.css',
+        }),
+      ),
+    )
+    await firstInitialization
+
+    expect(Array.from(document.querySelectorAll('link[data-hellotext-stylesheet]'))).toHaveLength(1)
+    expect(Business.latestStylesheet.href).toContain('/second.css')
+    expect(document.head.innerHTML).not.toContain('/first.css')
+  })
+
+  it('removes a staged stylesheet when loading a replacement surface fails', async () => {
+    const stableBusiness = new Business('stable-business')
+    stableBusiness.setData(defaultBusiness({ style_url: 'https://example.com/stable.css' }))
+    const stablePopup = { unmount: jest.fn() }
+    Hellotext.business = stableBusiness
+    Hellotext.popup = stablePopup
+    mockBusinessFetch(
+      defaultBusiness({
+        style_url: 'https://example.com/staged.css',
+        webchat: { id: 'replacement-webchat' },
+      }),
+    )
+    loadWebchat.mockRejectedValueOnce(new Error('network error'))
+
+    await expect(Hellotext.initialize('xy76ks')).rejects.toThrow('network error')
+
+    expect(Business.latestStylesheet.href).toContain('/stable.css')
+    expect(document.head.innerHTML).not.toContain('/staged.css')
+    expect(Hellotext.business).toBe(stableBusiness)
+    expect(Hellotext.popup).toBe(stablePopup)
+  })
+
+  it('removes a stale stylesheet injected before a newer initialization commits', async () => {
+    const firstWebchatLoad = deferred()
+    const firstWebchat = { unmount: jest.fn() }
+    const secondWebchat = { unmount: jest.fn() }
+    loadWebchat
+      .mockImplementationOnce(() => firstWebchatLoad.promise)
+      .mockResolvedValueOnce(secondWebchat)
+    API.businesses.get = jest
+      .fn()
+      .mockResolvedValueOnce(
+        businessResponse(
+          defaultBusiness({
+            style_url: 'https://example.com/first.css',
+            webchat: { id: 'first-webchat' },
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        businessResponse(
+          defaultBusiness({
+            style_url: 'https://example.com/second.css',
+            webchat: { id: 'second-webchat' },
+          }),
+        ),
+      )
+
+    const firstInitialization = Hellotext.initialize('first-business')
+    await waitFor(() => loadWebchat.mock.calls.length === 1)
+    expect(Business.latestStylesheet.href).toContain('/first.css')
+
+    await Hellotext.initialize('second-business')
+    expect(Business.latestStylesheet.href).toContain('/second.css')
+
+    firstWebchatLoad.resolve(firstWebchat)
+    await firstInitialization
+
+    expect(firstWebchat.unmount).toHaveBeenCalledTimes(1)
+    expect(Business.latestStylesheet.href).toContain('/second.css')
+    expect(document.head.innerHTML).not.toContain('/first.css')
   })
 
   it("does not break initialization when business fetch rejects", async () => {

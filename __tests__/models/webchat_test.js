@@ -122,6 +122,20 @@ describe('Webchat', () => {
     expect(webchat.mounted).toBe(true)
   })
 
+  it('does not append its HTML after it is unmounted during stylesheet loading', async () => {
+    const linkTag = createStylesheet({ loaded: false })
+    const article = document.createElement('article')
+    API.webchats.get.mockResolvedValue(article)
+
+    const webchat = await Webchat.load('webchat-id')
+    webchat.unmount()
+    markStylesheetLoaded(linkTag)
+    await webchat.rendered
+
+    expect(document.querySelector('#webchat-container article')).toBeNull()
+    expect(webchat.mounted).toBe(false)
+  })
+
   it('does not append the webchat HTML when the stylesheet fails', async () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
     const linkTag = createStylesheet({ loaded: false })

@@ -1,12 +1,12 @@
 import { Configuration } from '../core'
 
 export default class {
-  static get endpoint() {
-    return Configuration.endpoint('public/businesses')
+  static endpoint(apiRoot = Configuration.apiRoot) {
+    return `${apiRoot}/public/businesses`
   }
 
-  static async get(id) {
-    return fetch(`${this.endpoint}/${id}`, {
+  static async get(id, apiRoot) {
+    return fetch(`${this.endpoint(apiRoot)}/${id}`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${id}`,

@@ -63,6 +63,20 @@ describe('WhatsAppWidget', () => {
     })
   })
 
+  it('does not append its HTML after it is unmounted during stylesheet loading', async () => {
+    const linkTag = createStylesheet({ loaded: false })
+    const article = document.createElement('article')
+    API.whatsappWidgets.get.mockResolvedValue(article)
+
+    const widget = await WhatsAppWidget.load('widget-id')
+    widget.unmount()
+    markStylesheetLoaded(linkTag)
+    await widget.rendered
+
+    expect(document.querySelector('#whatsapp-container article')).toBeNull()
+    expect(widget.mounted).toBe(false)
+  })
+
   it('marks itself when webchat is already mounted', () => {
     createStylesheet()
     document.body.insertAdjacentHTML('beforeend', '<article class="hellotext--webchat"></article>')

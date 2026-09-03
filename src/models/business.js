@@ -26,7 +26,9 @@ const stylesheetLoadTimeout = 10000
  * @property {Object} [features] - Feature flags enabled for the business.
  * @property {String} [locale] - Default dashboard locale for the business.
  * @property {String} [style_url] - Stylesheet URL to inject for dashboard-managed surfaces.
+ * @property {{id: String}|null} [popup] - Dashboard popup defaults.
  * @property {BusinessWebchat|null} [webchat] - Dashboard webchat defaults.
+ * @property {{id: String}|null} [whatsapp] - Dashboard WhatsApp widget defaults.
  * @property {String|Array<String>} [whitelist] - Domain whitelist configuration.
  * @property {String} [subscription] - Current business subscription tier.
  */
@@ -43,6 +45,7 @@ class Business {
     this.data = null
     this.stylesheet = null
     this.stylesheetLoaded = Promise.resolve(false)
+    this.holdsStylesheet = false
   }
 
   /**
@@ -53,9 +56,11 @@ class Business {
    *
    * @returns {Promise<BusinessData|null>}
    */
-  async hydrate() {
+  async hydrate({ apiRoot, stylesheet = true } = {}) {
     try {
-      const response = await BusinessesAPI.get(this.id)
+      const response = apiRoot
+        ? await BusinessesAPI.get(this.id, apiRoot)
+        : await BusinessesAPI.get(this.id)
 
       if (response.ok === false) {
         return null
@@ -67,7 +72,7 @@ class Business {
         return null
       }
 
-      this.setData(business)
+      this.setData(business, { stylesheet })
 
       if (business.locale) {
         this.setLocale(business.locale)
@@ -83,16 +88,39 @@ class Business {
    * @param {BusinessData} data
    * @returns {void}
    */
-  setData(data) {
+  setData(data, { stylesheet = true } = {}) {
     this.data = data
 
-    if (typeof document !== 'undefined' && data.style_url) {
-      this.stylesheet = this.constructor.ensureStylesheet(data.style_url)
+    if (stylesheet) this.loadStylesheet()
+  }
+
+  loadStylesheet() {
+    if (typeof document !== 'undefined' && this.data?.style_url) {
+      const stylesheet = this.constructor.ensureStylesheet(this.data.style_url)
+      if (this.stylesheet !== stylesheet || !this.holdsStylesheet) {
+        this.releaseStylesheet()
+        this.stylesheet = stylesheet
+        this.holdsStylesheet = true
+        stylesheet._hellotextStylesheetUsers = (stylesheet._hellotextStylesheetUsers || 0) + 1
+      }
       this.stylesheetLoaded = this.constructor.waitForStylesheet(this.stylesheet)
-    } else {
-      this.stylesheet = null
-      this.stylesheetLoaded = Promise.resolve(false)
+      return
     }
+
+    this.releaseStylesheet()
+    this.stylesheet = null
+    this.stylesheetLoaded = Promise.resolve(false)
+  }
+
+  releaseStylesheet() {
+    if (!this.stylesheet || !this.holdsStylesheet) return
+
+    const stylesheet = this.stylesheet
+    stylesheet._hellotextStylesheetUsers -= 1
+    if (stylesheet._hellotextStylesheetUsers <= 0) stylesheet.remove()
+
+    this.holdsStylesheet = false
+    this.stylesheet = null
   }
 
   static get stylesheetSelector() {
