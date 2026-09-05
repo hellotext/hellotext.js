@@ -1,6 +1,6 @@
 import { Controller } from '@hotwired/stimulus'
 
-import API from '../api'
+import PopupsAPI from '../api/popups'
 import Hellotext from '../hellotext'
 
 /**
@@ -131,9 +131,9 @@ export default class extends Controller {
    */
   open(event) {
     if (event) event.preventDefault()
-    if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
+    if (this.hasBubbleTarget) this.bubbleTarget.hidden = true
 
-    this.showElement(this.dialogTarget)
+    this.dialogTarget.hidden = false
     Hellotext.eventEmitter.dispatch('popup:opened')
   }
 
@@ -148,11 +148,11 @@ export default class extends Controller {
     if (event) event.preventDefault()
 
     this.dismissed = true
-    this.hideElement(this.dialogTarget)
+    this.dialogTarget.hidden = true
 
-    if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
+    if (this.hasBubbleTarget) this.bubbleTarget.hidden = true
 
-    this.hideElement(this.element)
+    this.element.hidden = true
     Hellotext.eventEmitter.dispatch('popup:closed')
   }
 
@@ -215,7 +215,7 @@ export default class extends Controller {
 
     try {
       const payload = this.submissionPayload()
-      const response = await API.popups.submit(
+      const response = await PopupsAPI.submit(
         this.idValue,
         payload,
         this.idempotencyKeyFor(payload),
@@ -258,7 +258,7 @@ export default class extends Controller {
    */
   evaluateDisplay() {
     if (this.dismissed || !this.matchesDevice()) {
-      this.hideElement(this.element)
+      this.element.hidden = true
       return
     }
 
@@ -273,17 +273,17 @@ export default class extends Controller {
    * @returns {void}
    */
   showInitialState() {
-    this.showElement(this.element)
+    this.element.hidden = false
 
     if (this.hasBubbleValue && this.hasBubbleTarget) {
-      this.showElement(this.bubbleTarget)
-      this.hideElement(this.dialogTarget)
+      this.bubbleTarget.hidden = false
+      this.dialogTarget.hidden = true
       return
     }
 
-    if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
+    if (this.hasBubbleTarget) this.bubbleTarget.hidden = true
 
-    this.showElement(this.dialogTarget)
+    this.dialogTarget.hidden = false
     Hellotext.eventEmitter.dispatch('popup:opened')
   }
 
@@ -298,10 +298,10 @@ export default class extends Controller {
     this.stepIndex = index
 
     this.stepTargets.forEach((step, stepIndex) => {
-      this.toggleElement(step, stepIndex !== index)
+      step.hidden = stepIndex !== index
     })
 
-    this.hideElement(this.completedTarget)
+    this.completedTarget.hidden = true
   }
 
   /**
@@ -312,12 +312,14 @@ export default class extends Controller {
    * @returns {void}
    */
   showCompleted() {
-    this.stepTargets.forEach(step => this.hideElement(step))
+    this.stepTargets.forEach(step => {
+      step.hidden = true
+    })
 
     this.interpolateCompletionCopy()
     this.configureCompletionActions()
 
-    this.showElement(this.completedTarget)
+    this.completedTarget.hidden = false
   }
 
   /**
@@ -382,7 +384,7 @@ export default class extends Controller {
     if (this.hasChangeDestinationButtonTarget) {
       this.changeDestinationButtonTarget.textContent =
         this.changeDestinationButtonTarget.dataset[`${identity.kind}Label`]
-      this.showElement(this.changeDestinationButtonTarget)
+      this.changeDestinationButtonTarget.hidden = false
     }
 
     if (
@@ -392,7 +394,7 @@ export default class extends Controller {
       this.submissionVerificationState === 'unverified' &&
       this.hasResendButtonTarget
     ) {
-      this.showElement(this.resendButtonTarget)
+      this.resendButtonTarget.hidden = false
       this.startResendCooldown(60)
     }
   }
@@ -423,7 +425,7 @@ export default class extends Controller {
     this.resendButtonTarget.disabled = true
 
     try {
-      const response = await API.popups.resend(
+      const response = await PopupsAPI.resend(
         this.idValue,
         this.submissionId,
         this.submissionActionToken,
@@ -467,7 +469,7 @@ export default class extends Controller {
     this.changeDestinationButtonTarget.disabled = true
 
     try {
-      const response = await API.popups.cancel(
+      const response = await PopupsAPI.cancel(
         this.idValue,
         this.submissionId,
         this.submissionActionToken,
@@ -672,7 +674,7 @@ export default class extends Controller {
     if (!this.hasGlobalErrorTarget) return
 
     this.globalErrorTarget.textContent = ''
-    this.hideElement(this.globalErrorTarget)
+    this.globalErrorTarget.hidden = true
   }
 
   /**
@@ -687,7 +689,7 @@ export default class extends Controller {
 
     this.globalErrorTarget.textContent =
       message || this.globalErrorTarget.dataset.submitError || 'Unable to submit. Please try again.'
-    this.showElement(this.globalErrorTarget)
+    this.globalErrorTarget.hidden = false
   }
 
   /**
@@ -798,7 +800,7 @@ export default class extends Controller {
 
     if (this.submissionPayloadSnapshot !== serializedPayload) {
       this.submissionPayloadSnapshot = serializedPayload
-      this.submissionIdempotencyKey = API.popups.idempotencyKey()
+      this.submissionIdempotencyKey = PopupsAPI.idempotencyKey()
     }
 
     return this.submissionIdempotencyKey
@@ -890,38 +892,6 @@ export default class extends Controller {
     if (this.deviceValue === 'desktop') return window.innerWidth >= 768
 
     return true
-  }
-
-  /**
-   * Reveal an element through the same hidden attribute used by the server markup.
-   * Removing it lets the runtime stylesheet retain control over the display layout.
-   *
-   * @param {HTMLElement} element - Popup element to reveal.
-   * @returns {void}
-   */
-  showElement(element) {
-    element.hidden = false
-  }
-
-  /**
-   * Hide an element using the attribute enforced by the popup runtime stylesheet.
-   *
-   * @param {HTMLElement} element - Popup element to hide.
-   * @returns {void}
-   */
-  hideElement(element) {
-    element.hidden = true
-  }
-
-  /**
-   * Set an explicit visibility state; true means hidden rather than toggling blindly.
-   *
-   * @param {HTMLElement} element - Popup element whose visibility is being selected.
-   * @param {boolean} hidden - Whether the element should be hidden.
-   * @returns {void}
-   */
-  toggleElement(element, hidden) {
-    element.hidden = hidden
   }
 
   /**

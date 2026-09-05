@@ -3,7 +3,7 @@
  */
 
 import PopupController from '../../src/controllers/popup_controller'
-import API from '../../src/api'
+import PopupsAPI from '../../src/api/popups'
 import Hellotext from '../../src/hellotext'
 
 describe('PopupController', () => {
@@ -107,7 +107,7 @@ describe('PopupController', () => {
   }
 
   beforeEach(() => {
-    jest.spyOn(API.popups, 'submit').mockResolvedValue({
+    jest.spyOn(PopupsAPI, 'submit').mockResolvedValue({
       failed: false,
       json: jest.fn().mockResolvedValue({
         id: 'submission-id',
@@ -118,11 +118,11 @@ describe('PopupController', () => {
         destination: 'customer@example.com',
       }),
     })
-    jest.spyOn(API.popups, 'resend').mockResolvedValue({
+    jest.spyOn(PopupsAPI, 'resend').mockResolvedValue({
       succeeded: true,
       data: { headers: new Headers({ 'Retry-After': '60' }), status: 202 },
     })
-    jest.spyOn(API.popups, 'cancel').mockResolvedValue({ failed: false, succeeded: true })
+    jest.spyOn(PopupsAPI, 'cancel').mockResolvedValue({ failed: false, succeeded: true })
     jest.spyOn(Hellotext.eventEmitter, 'dispatch')
   })
 
@@ -172,7 +172,7 @@ describe('PopupController', () => {
 
     expect(stepOne.hidden).toBe(false)
     expect(stepTwo.hidden).toBe(true)
-    expect(API.popups.submit).not.toHaveBeenCalled()
+    expect(PopupsAPI.submit).not.toHaveBeenCalled()
 
     emailInput.value = 'customer@example.com'
 
@@ -180,7 +180,7 @@ describe('PopupController', () => {
 
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(false)
-    expect(API.popups.submit).not.toHaveBeenCalled()
+    expect(PopupsAPI.submit).not.toHaveBeenCalled()
   })
 
   it('advances instead of submitting when the form submits before the last step', async () => {
@@ -195,7 +195,7 @@ describe('PopupController', () => {
     expect(event.preventDefault).toHaveBeenCalled()
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(false)
-    expect(API.popups.submit).not.toHaveBeenCalled()
+    expect(PopupsAPI.submit).not.toHaveBeenCalled()
   })
 
   it('submits collected fields and shows the completed step on the last step', async () => {
@@ -208,7 +208,7 @@ describe('PopupController', () => {
 
     await controller.next()
 
-    expect(API.popups.submit).toHaveBeenCalledWith(
+    expect(PopupsAPI.submit).toHaveBeenCalledWith(
       'popup-id',
       {
         email: 'customer@example.com',
@@ -252,7 +252,7 @@ describe('PopupController', () => {
 
   it('reuses the idempotency key after a lost response and restores the submit buttons', async () => {
     const { emailInput, phoneInput, globalError } = buildController({ hasBubble: false })
-    API.popups.submit.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    PopupsAPI.submit.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
     controller.connect()
     emailInput.value = 'customer@example.com'
@@ -260,7 +260,7 @@ describe('PopupController', () => {
     phoneInput.value = '+15551234567'
 
     await controller.submit()
-    const firstKey = API.popups.submit.mock.calls[0][2]
+    const firstKey = PopupsAPI.submit.mock.calls[0][2]
 
     expect(controller.submitButtonTargets.every(button => !button.disabled)).toBe(true)
     expect(globalError.hidden).toBe(false)
@@ -268,30 +268,30 @@ describe('PopupController', () => {
 
     await controller.submit()
 
-    expect(API.popups.submit.mock.calls[1][2]).toBe(firstKey)
+    expect(PopupsAPI.submit.mock.calls[1][2]).toBe(firstKey)
     expect(globalError.hidden).toBe(true)
   })
 
   it('generates a new idempotency key after the submitted data changes', async () => {
     const { emailInput, phoneInput } = buildController({ hasBubble: false })
-    API.popups.submit.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    PopupsAPI.submit.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
     controller.connect()
     emailInput.value = 'customer@example.com'
     await controller.next()
     phoneInput.value = '+15551234567'
     await controller.submit()
-    const firstKey = API.popups.submit.mock.calls[0][2]
+    const firstKey = PopupsAPI.submit.mock.calls[0][2]
 
     phoneInput.value = '+15557654321'
     await controller.submit()
 
-    expect(API.popups.submit.mock.calls[1][2]).not.toBe(firstKey)
+    expect(PopupsAPI.submit.mock.calls[1][2]).not.toBe(firstKey)
   })
 
   it('shows submission errors that are not associated with an input', async () => {
     const { emailInput, phoneInput, globalError } = buildController({ hasBubble: false })
-    API.popups.submit.mockResolvedValueOnce({
+    PopupsAPI.submit.mockResolvedValueOnce({
       failed: true,
       json: jest.fn().mockResolvedValue({
         errors: [{ parameter: 'base', description: 'Enter an email address or phone number.' }],
@@ -346,7 +346,7 @@ describe('PopupController', () => {
 
     await controller.resend({ preventDefault: jest.fn() })
 
-    expect(API.popups.resend).toHaveBeenCalledWith(
+    expect(PopupsAPI.resend).toHaveBeenCalledWith(
       'popup-id',
       'submission-id',
       'action-token',
@@ -366,7 +366,7 @@ describe('PopupController', () => {
     await controller.submit()
     await controller.changeDestination({ preventDefault: jest.fn() })
 
-    expect(API.popups.cancel).toHaveBeenCalledWith(
+    expect(PopupsAPI.cancel).toHaveBeenCalledWith(
       'popup-id',
       'submission-id',
       'action-token',
@@ -382,7 +382,7 @@ describe('PopupController', () => {
 
   it('keeps the completed step visible when the previous submission cannot be canceled', async () => {
     const { completed, emailInput, phoneInput, stepOne, changeDestinationButton } = buildController({ hasBubble: false })
-    API.popups.cancel.mockResolvedValueOnce({ failed: true, succeeded: false })
+    PopupsAPI.cancel.mockResolvedValueOnce({ failed: true, succeeded: false })
 
     controller.connect()
     phoneInput.required = false
@@ -399,7 +399,7 @@ describe('PopupController', () => {
 
   it('keeps the completed step visible when cancellation cannot reach the API', async () => {
     const { completed, emailInput, phoneInput, stepOne, changeDestinationButton } = buildController({ hasBubble: false })
-    API.popups.cancel.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    PopupsAPI.cancel.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
     controller.connect()
     phoneInput.required = false
@@ -528,7 +528,7 @@ describe('PopupController', () => {
 
     await controller.submit()
 
-    expect(API.popups.submit).not.toHaveBeenCalled()
+    expect(PopupsAPI.submit).not.toHaveBeenCalled()
     expect(stepTwo.hidden).toBe(false)
     expect(completed.hidden).toBe(true)
     expect(phoneInput.checkValidity()).toBe(false)
