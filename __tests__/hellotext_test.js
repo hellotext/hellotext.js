@@ -237,16 +237,31 @@ describe("when initializing business metadata", () => {
     expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
   })
 
-  it("loads dashboard webchat and WhatsApp widget together", async () => {
+  it("loads dashboard webchat, WhatsApp widget, and popup concurrently", async () => {
+    const webchat = { id: "dashboard-webchat" }
+    const whatsapp = { id: "dashboard-whatsapp-widget" }
+    const popup = { id: "dashboard-popup" }
+
     mockBusinessFetch(defaultBusiness({
-      webchat: { id: "dashboard-webchat" },
-      whatsapp: { id: "dashboard-whatsapp-widget" },
+      webchat,
+      whatsapp,
+      popup,
     }))
+
+    loadWebchat.mockImplementationOnce(() => Promise.resolve().then(() => {
+      expect(loadWhatsAppWidget).toHaveBeenCalledWith(whatsapp.id)
+      expect(loadPopup).toHaveBeenCalledWith(popup.id)
+      return webchat
+    }))
+    loadWhatsAppWidget.mockResolvedValueOnce(whatsapp)
+    loadPopup.mockResolvedValueOnce(popup)
 
     await Hellotext.initialize("xy76ks")
 
-    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
-    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+    expect(loadWebchat).toHaveBeenCalledWith(webchat.id)
+    expect(Hellotext.webchat).toBe(webchat)
+    expect(Hellotext.whatsapp).toBe(whatsapp)
+    expect(Hellotext.popup).toBe(popup)
   })
 
   it("deep merges explicit local WhatsApp widget options with dashboard defaults", async () => {

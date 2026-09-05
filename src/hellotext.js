@@ -53,23 +53,39 @@ class Hellotext {
 
     Configuration.webchat.behaviourOverride = hasExplicitBehaviourOverride
 
+    const widgetLoads = []
+
     if (config.webchat !== false && webchatConfig.id) {
       Configuration.webchat.assign(webchatConfig)
 
-      this.webchat = await Webchat.load(webchatConfig.id)
+      widgetLoads.push(
+        Webchat.load(webchatConfig.id).then(webchat => {
+          this.webchat = webchat
+        }),
+      )
     }
 
     if (config.whatsappWidget !== false && whatsappConfig.id) {
       Configuration.whatsapp.assign(whatsappConfig)
 
-      this.whatsapp = await WhatsAppWidget.load(whatsappConfig.id)
+      widgetLoads.push(
+        WhatsAppWidget.load(whatsappConfig.id).then(whatsapp => {
+          this.whatsapp = whatsapp
+        }),
+      )
     }
 
     if (config.popup !== false && popupConfig.id) {
       Configuration.popup.assign(popupConfig)
 
-      this.popup = await Popup.load(popupConfig.id)
+      widgetLoads.push(
+        Popup.load(popupConfig.id).then(popup => {
+          this.popup = popup
+        }),
+      )
     }
+
+    await Promise.all(widgetLoads)
 
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()
