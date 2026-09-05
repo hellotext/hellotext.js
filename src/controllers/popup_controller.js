@@ -36,6 +36,7 @@ export default class extends Controller {
     'resendButton',
     'changeDestinationButton',
   ]
+
   static values = {
     capture: Object,
     device: String,
@@ -43,14 +44,12 @@ export default class extends Controller {
     id: String,
   }
 
-  connect() {
+  initialize() {
     this.stepIndex = 0
     this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
+  }
 
-    this.hideElement(this.element)
-    this.hideElement(this.dialogTarget)
-    if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
-
+  connect() {
     this.evaluateDisplay()
   }
 
@@ -60,8 +59,8 @@ export default class extends Controller {
 
   open(event) {
     if (event) event.preventDefault()
-
     if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
+
     this.showElement(this.dialogTarget)
     Hellotext.eventEmitter.dispatch('popup:opened')
   }
@@ -71,7 +70,9 @@ export default class extends Controller {
 
     this.dismissed = true
     this.hideElement(this.dialogTarget)
+
     if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
+
     this.hideElement(this.element)
     Hellotext.eventEmitter.dispatch('popup:closed')
   }
@@ -153,8 +154,10 @@ export default class extends Controller {
 
   evaluateDisplay() {
     if (this.dismissed || !this.matchesDevice()) {
+      this.hideElement(this.element)
       return
     }
+
     this.showInitialState()
   }
 
@@ -166,6 +169,8 @@ export default class extends Controller {
       this.hideElement(this.dialogTarget)
       return
     }
+
+    if (this.hasBubbleTarget) this.hideElement(this.bubbleTarget)
 
     this.showElement(this.dialogTarget)
     Hellotext.eventEmitter.dispatch('popup:opened')
@@ -183,8 +188,10 @@ export default class extends Controller {
 
   showCompleted() {
     this.stepTargets.forEach(step => this.hideElement(step))
+
     this.interpolateCompletionCopy()
     this.configureCompletionActions()
+
     this.showElement(this.completedTarget)
   }
 

@@ -89,6 +89,7 @@ describe('PopupController', () => {
     controller.captureValue = { capture_id: 'capture-id' }
     controller.deviceValue = 'all'
     controller.idValue = id
+    controller.initialize()
 
     return {
       element,
