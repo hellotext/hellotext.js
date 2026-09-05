@@ -23,8 +23,6 @@ class Hellotext {
   static popup
   static webchat
   static whatsapp
-  static initializationGeneration = 0
-  static initializationBaseline
 
   /**
    * initialize the module.
@@ -32,229 +30,50 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config = {}) {
-    const generation = ++this.initializationGeneration
-    this.initializationBaseline ||= {
-      configuration: this.configurationSnapshot(),
-      runtime: this.runtimeSnapshot(),
+    this.business = new Business(business)
+    this.page = new Page()
+
+    Configuration.assign(config)
+    Session.initialize(this.page)
+
+    this.forms = new FormCollection()
+
+    this.query = new Query()
+
+    const businessData = await this.business.hydrate()
+
+    const popupConfig = this.deepMergePlainObjects(businessData?.popup, config.popup)
+    const webchatConfig = this.mergeWebchatConfig(businessData?.webchat, config.webchat)
+    const whatsappConfig = this.mergeWhatsAppConfig(businessData?.whatsapp, config.whatsappWidget)
+
+    const hasExplicitBehaviourOverride =
+      config.webchat &&
+      config.webchat !== false &&
+      Object.prototype.hasOwnProperty.call(config.webchat, 'behaviour')
+
+    Configuration.webchat.behaviourOverride = hasExplicitBehaviourOverride
+
+    if (config.webchat !== false && webchatConfig.id) {
+      Configuration.webchat.assign(webchatConfig)
+
+      this.webchat = await Webchat.load(webchatConfig.id)
     }
-    const { configuration, runtime: previous } = this.initializationBaseline
-    const staged = {}
-    const nextBusiness = new Business(business)
 
-    try {
-      const businessData = await nextBusiness.hydrate({
-        apiRoot: config.apiRoot,
-        stylesheet: false,
-      })
+    if (config.whatsappWidget !== false && whatsappConfig.id) {
+      Configuration.whatsapp.assign(whatsappConfig)
 
-      if (!this.initializationIsCurrent(generation)) return
-      if (!businessData && this.hasMountedSurfaces(previous)) {
-        if (!this.hasExplicitSurface(config) && this.hasDisabledSurface(config)) {
-          this.restoreRuntime(this.runtimeWithoutDisabledSurfaces(previous, config))
-        } else if (!this.hasExplicitSurface(config)) {
-          this.restoreRuntime(previous)
-        }
-
-        if (!this.hasExplicitSurface(config)) {
-          this.restoreConfiguration(configuration)
-          return
-        }
-      }
-
-      Configuration.assign(config)
-      this.business = nextBusiness
-      nextBusiness.loadStylesheet()
-      this.page = new Page()
-      Session.initialize(this.page)
-      this.forms = new FormCollection()
-      this.query = new Query()
-      this.popup = undefined
-      this.webchat = undefined
-      this.whatsapp = undefined
-
-      const popupConfig =
-        config.popup === false ? undefined : this.popupConfig(businessData, config.popup || {})
-      const webchatConfig =
-        config.webchat === false
-          ? false
-          : this.mergeWebchatConfig(
-              (businessData && businessData.webchat) || {},
-              config.webchat || {},
-            )
-      const whatsappConfig =
-        config.whatsappWidget === false
-          ? false
-          : this.mergeWhatsAppConfig(
-              (businessData && businessData.whatsapp) || {},
-              config.whatsappWidget || {},
-            )
-
-      const hasExplicitBehaviourOverride =
-        config.webchat &&
-        config.webchat !== false &&
-        Object.prototype.hasOwnProperty.call(config.webchat, 'behaviour')
-      Configuration.webchat.behaviourOverride = hasExplicitBehaviourOverride
-
-      if (webchatConfig && webchatConfig.id) {
-        Configuration.webchat.assign(webchatConfig)
-        staged.webchat = await Webchat.load(webchatConfig.id)
-        if (!this.initializationIsCurrent(generation)) return
-      }
-
-      if (whatsappConfig && whatsappConfig.id) {
-        Configuration.whatsapp.assign(whatsappConfig)
-        staged.whatsapp = await WhatsAppWidget.load(whatsappConfig.id)
-        if (!this.initializationIsCurrent(generation)) return
-      }
-
-      if (popupConfig) {
-        Configuration.popup.assign(popupConfig)
-        staged.popup = await Popup.load(popupConfig.id)
-        if (!this.initializationIsCurrent(generation)) return
-      }
-
-      this.unmountSurfaces(previous)
-      previous.business?.releaseStylesheet?.()
-      staged.webchat?.markCoexistingWidgets?.()
-      staged.whatsapp?.markCoexistingWidgets?.()
-      this.webchat = staged.webchat
-      this.whatsapp = staged.whatsapp
-      this.popup = staged.popup
-
-      if (typeof MutationObserver !== 'undefined') {
-        this.forms.collectExistingFormsOnPage()
-      }
-    } catch (error) {
-      this.unmountSurfaces(staged)
-      nextBusiness.releaseStylesheet()
-
-      if (this.initializationIsCurrent(generation)) {
-        this.restoreRuntime(previous)
-        this.restoreConfiguration(configuration)
-      }
-
-      throw error
-    } finally {
-      if (!this.initializationIsCurrent(generation)) {
-        this.unmountSurfaces(staged)
-        nextBusiness.releaseStylesheet()
-      } else {
-        this.initializationBaseline = undefined
-      }
+      this.whatsapp = await WhatsAppWidget.load(whatsappConfig.id)
     }
-  }
 
-  static initializationIsCurrent(generation) {
-    return this.initializationGeneration === generation
-  }
+    if (config.popup !== false && popupConfig.id) {
+      Configuration.popup.assign(popupConfig)
 
-  static unmountSurfaces({ popup, webchat, whatsapp }) {
-    new Set([popup, webchat, whatsapp]).forEach(surface => surface?.unmount?.())
-  }
-
-  static runtimeSnapshot() {
-    return {
-      business: this.business,
-      page: this.page,
-      forms: this.forms,
-      query: this.query,
-      popup: this.popup,
-      webchat: this.webchat,
-      whatsapp: this.whatsapp,
+      this.popup = await Popup.load(popupConfig.id)
     }
-  }
 
-  static hasExplicitSurface(config) {
-    return [config.popup, config.webchat, config.whatsappWidget].some(
-      surface => surface && surface !== false && surface.id,
-    )
-  }
-
-  static hasDisabledSurface(config) {
-    return config.popup === false || config.webchat === false || config.whatsappWidget === false
-  }
-
-  static runtimeWithoutDisabledSurfaces(previous, config) {
-    const disabled = {
-      popup: config.popup === false ? previous.popup : undefined,
-      webchat: config.webchat === false ? previous.webchat : undefined,
-      whatsapp: config.whatsappWidget === false ? previous.whatsapp : undefined,
+    if (typeof MutationObserver !== 'undefined') {
+      this.forms.collectExistingFormsOnPage()
     }
-    this.unmountSurfaces(disabled)
-
-    return {
-      ...previous,
-      popup: config.popup === false ? undefined : previous.popup,
-      webchat: config.webchat === false ? undefined : previous.webchat,
-      whatsapp: config.whatsappWidget === false ? undefined : previous.whatsapp,
-    }
-  }
-
-  static hasMountedSurfaces({ popup, webchat, whatsapp }) {
-    return !!popup || !!webchat || !!whatsapp
-  }
-
-  static restoreRuntime(snapshot) {
-    Object.assign(this, snapshot)
-  }
-
-  static configurationSnapshot() {
-    return {
-      apiRoot: Configuration.apiRoot,
-      actionCableUrl: Configuration.actionCableUrl,
-      autoGenerateSession: Configuration.autoGenerateSession,
-      session: Configuration.session,
-      locale: Configuration.locale,
-      forms: {
-        autoMount: Configuration.forms.autoMount,
-        successMessage: Configuration.forms.successMessage,
-      },
-      popup: {
-        id: Configuration.popup.id,
-        container: Configuration.popup.container,
-        device: Configuration.popup.device,
-      },
-      webchat: {
-        id: Configuration.webchat.id,
-        container: Configuration.webchat.container,
-        placement: Configuration.webchat.placement,
-        style: this.clone(Configuration.webchat.style),
-        appearance: this.clone(Configuration.webchat.appearance),
-        whatsapp: this.clone(Configuration.webchat.whatsapp),
-        mode: Configuration.webchat.mode,
-        behaviour: this.clone(Configuration.webchat.behaviour),
-        behaviourOverride: Configuration.webchat.hasBehaviourOverride,
-        strategy: Configuration.webchat._strategy,
-      },
-      whatsapp: {
-        id: Configuration.whatsapp.id,
-        container: Configuration.whatsapp.container,
-        placement: Configuration.whatsapp.placement,
-        appearance: this.clone(Configuration.whatsapp.appearance),
-        number: Configuration.whatsapp.number,
-        body: Configuration.whatsapp.body,
-      },
-    }
-  }
-
-  static restoreConfiguration(snapshot) {
-    Configuration.apiRoot = snapshot.apiRoot
-    Configuration.actionCableUrl = snapshot.actionCableUrl
-    Configuration.autoGenerateSession = snapshot.autoGenerateSession
-    Configuration.session = snapshot.session
-    Configuration.locale = snapshot.locale
-    Configuration.forms.assign(snapshot.forms)
-    Configuration.popup.assign(snapshot.popup)
-    Configuration.webchat.assign(snapshot.webchat)
-    Configuration.webchat.behaviourOverride = snapshot.webchat.behaviourOverride
-    Configuration.whatsapp.assign(snapshot.whatsapp)
-  }
-
-  static clone(value) {
-    if (Array.isArray(value)) return value.map(item => this.clone(item))
-    if (!this.isPlainObject(value)) return value
-
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, this.clone(item)]))
   }
 
   static mergeWebchatConfig(dashboardConfig, localConfig) {
@@ -265,25 +84,10 @@ class Hellotext {
     return this.deepMergePlainObjects(dashboardConfig, localConfig)
   }
 
-  static mergePopupConfig(dashboardConfig, localConfig) {
-    return this.deepMergePlainObjects(dashboardConfig, localConfig)
-  }
-
-  static popupConfig(businessData, localConfig) {
-    if (localConfig.id) {
-      return localConfig
-    }
-
-    const dashboardConfig = businessData && businessData.popup
-    if (!dashboardConfig || !dashboardConfig.id) return undefined
-
-    return this.mergePopupConfig(dashboardConfig, localConfig)
-  }
-
   static deepMergePlainObjects(base, override) {
     const result = { ...base }
 
-    Object.entries(override).forEach(([key, value]) => {
+    Object.entries(override || {}).forEach(([key, value]) => {
       if (this.isPlainObject(value) && this.isPlainObject(result[key])) {
         result[key] = this.deepMergePlainObjects(result[key], value)
       } else {

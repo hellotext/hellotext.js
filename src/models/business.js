@@ -45,7 +45,6 @@ class Business {
     this.data = null
     this.stylesheet = null
     this.stylesheetLoaded = Promise.resolve(false)
-    this.holdsStylesheet = false
   }
 
   /**
@@ -56,11 +55,9 @@ class Business {
    *
    * @returns {Promise<BusinessData|null>}
    */
-  async hydrate({ apiRoot, stylesheet = true } = {}) {
+  async hydrate() {
     try {
-      const response = apiRoot
-        ? await BusinessesAPI.get(this.id, apiRoot)
-        : await BusinessesAPI.get(this.id)
+      const response = await BusinessesAPI.get(this.id)
 
       if (response.ok === false) {
         return null
@@ -72,7 +69,7 @@ class Business {
         return null
       }
 
-      this.setData(business, { stylesheet })
+      this.setData(business)
 
       if (business.locale) {
         this.setLocale(business.locale)
@@ -88,39 +85,16 @@ class Business {
    * @param {BusinessData} data
    * @returns {void}
    */
-  setData(data, { stylesheet = true } = {}) {
+  setData(data) {
     this.data = data
 
-    if (stylesheet) this.loadStylesheet()
-  }
-
-  loadStylesheet() {
-    if (typeof document !== 'undefined' && this.data?.style_url) {
-      const stylesheet = this.constructor.ensureStylesheet(this.data.style_url)
-      if (this.stylesheet !== stylesheet || !this.holdsStylesheet) {
-        this.releaseStylesheet()
-        this.stylesheet = stylesheet
-        this.holdsStylesheet = true
-        stylesheet._hellotextStylesheetUsers = (stylesheet._hellotextStylesheetUsers || 0) + 1
-      }
+    if (typeof document !== 'undefined' && data.style_url) {
+      this.stylesheet = this.constructor.ensureStylesheet(data.style_url)
       this.stylesheetLoaded = this.constructor.waitForStylesheet(this.stylesheet)
-      return
+    } else {
+      this.stylesheet = null
+      this.stylesheetLoaded = Promise.resolve(false)
     }
-
-    this.releaseStylesheet()
-    this.stylesheet = null
-    this.stylesheetLoaded = Promise.resolve(false)
-  }
-
-  releaseStylesheet() {
-    if (!this.stylesheet || !this.holdsStylesheet) return
-
-    const stylesheet = this.stylesheet
-    stylesheet._hellotextStylesheetUsers -= 1
-    if (stylesheet._hellotextStylesheetUsers <= 0) stylesheet.remove()
-
-    this.holdsStylesheet = false
-    this.stylesheet = null
   }
 
   static get stylesheetSelector() {

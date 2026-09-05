@@ -17,12 +17,11 @@ class Popup {
   constructor(data) {
     this.data = data
     this.mounted = false
-    this.unmounted = false
     this.rendered = Promise.resolve(false)
   }
 
   async render() {
-    if (!this.data.html || this.unmounted) return false
+    if (!this.data.html) return false
 
     const container = this.containerToAppendTo
     if (!container) {
@@ -36,12 +35,6 @@ class Popup {
     this.mounted = true
 
     return true
-  }
-
-  unmount() {
-    this.unmounted = true
-    this.data.html?.remove()
-    this.mounted = false
   }
 
   get containerToAppendTo() {

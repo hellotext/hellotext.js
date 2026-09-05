@@ -18,12 +18,11 @@ class WhatsAppWidget {
   constructor(data) {
     this.data = data
     this.mounted = false
-    this.unmounted = false
     this.rendered = Promise.resolve(false)
   }
 
   async render() {
-    if (!this.data.html || this.unmounted) return false
+    if (!this.data.html) return false
 
     const container = this.containerToAppendTo
     if (!container) {
@@ -33,9 +32,7 @@ class WhatsAppWidget {
       return false
     }
 
-    if (!(await this.stylesheetLoaded) || this.unmounted) {
-      if (this.unmounted) return false
-
+    if (!(await this.stylesheetLoaded)) {
       console.warn(
         'Hellotext WhatsApp widget was not mounted because its stylesheet failed to load.',
       )
@@ -47,15 +44,6 @@ class WhatsAppWidget {
     this.mounted = true
 
     return true
-  }
-
-  unmount() {
-    this.unmounted = true
-    this.data.html?.remove()
-    document
-      .querySelector('.hellotext--webchat:not(.hellotext--whatsapp-widget)')
-      ?.classList.remove('hellotext--with-whatsapp-widget')
-    this.mounted = false
   }
 
   get containerToAppendTo() {
