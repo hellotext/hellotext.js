@@ -1,7 +1,6 @@
 import { Configuration } from '../core'
 
 import API from '../api'
-import { Business } from './business'
 
 class Popup {
   static async load(id) {
@@ -33,13 +32,6 @@ class Popup {
       return false
     }
 
-    if (!(await this.stylesheetLoaded) || this.unmounted) {
-      if (this.unmounted) return false
-
-      console.warn('Hellotext popup was not mounted because its stylesheet failed to load.')
-      return false
-    }
-
     container.appendChild(this.data.html)
     this.mounted = true
 
@@ -58,10 +50,6 @@ class Popup {
     } catch (_) {
       return null
     }
-  }
-
-  get stylesheetLoaded() {
-    return Business.waitForStylesheet(Business.latestStylesheet)
   }
 }
 

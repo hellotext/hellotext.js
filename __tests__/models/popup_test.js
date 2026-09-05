@@ -7,29 +7,6 @@ import { Configuration } from '../../src/core'
 import { Popup } from '../../src/models'
 
 describe('Popup', () => {
-  const createStylesheet = ({ loaded = true } = {}) => {
-    const linkTag = document.createElement('link')
-    linkTag.rel = 'stylesheet'
-    linkTag.href = 'https://example.com/hellotext.css'
-    linkTag.setAttribute('data-hellotext-stylesheet', 'true')
-
-    if (loaded) {
-      linkTag.dataset.hellotextStylesheetLoaded = 'true'
-    }
-
-    document.head.appendChild(linkTag)
-
-    return linkTag
-  }
-
-  const markStylesheetLoaded = linkTag => {
-    Object.defineProperty(linkTag, 'sheet', {
-      value: {},
-      configurable: true,
-    })
-    linkTag.dispatchEvent(new Event('load'))
-  }
-
   beforeEach(() => {
     document.body.innerHTML = '<main id="popup-container"></main>'
     Configuration.popup.container = '#popup-container'
@@ -46,26 +23,28 @@ describe('Popup', () => {
     Configuration.popup.container = 'body'
   })
 
-  it('waits for the stylesheet before appending the popup HTML', () => {
-    const linkTag = createStylesheet({ loaded: false })
+  it.each(['missing', 'loading', 'failed'])('mounts immediately when the stylesheet is %s', async state => {
+    if (state !== 'missing') {
+      const linkTag = document.createElement('link')
+      linkTag.rel = 'stylesheet'
+      linkTag.href = 'https://example.com/hellotext.css'
+      linkTag.setAttribute('data-hellotext-stylesheet', 'true')
+      if (state === 'failed') linkTag.dataset.hellotextStylesheetLoaded = 'false'
+      document.head.appendChild(linkTag)
+    }
+
     const article = document.createElement('article')
     article.className = 'hellotext--popup'
     API.popups.get.mockResolvedValue(article)
 
-    return Popup.load('popup-id').then(popup => {
-      expect(document.querySelector('#popup-container article')).toBeNull()
+    const popup = await Popup.load('popup-id')
 
-      markStylesheetLoaded(linkTag)
-
-      return popup.rendered.then(() => {
-        expect(document.querySelector('#popup-container article')).toBe(article)
-        expect(popup.mounted).toBe(true)
-      })
-    })
+    expect(document.querySelector('#popup-container article')).toBe(article)
+    expect(popup.mounted).toBe(true)
+    await expect(popup.rendered).resolves.toBe(true)
   })
 
   it('does not mount when the API returns no popup HTML', () => {
-    createStylesheet()
     API.popups.get.mockResolvedValue(null)
 
     return Popup.load('popup-id').then(popup => {
@@ -77,7 +56,6 @@ describe('Popup', () => {
   })
 
   it('does not mount when the configured container is missing', () => {
-    createStylesheet()
     Configuration.popup.container = '#missing-container'
     jest.spyOn(console, 'warn').mockImplementation(() => {})
     API.popups.get.mockResolvedValue(document.createElement('article'))
@@ -91,7 +69,6 @@ describe('Popup', () => {
   })
 
   it('does not mount when the configured container selector is invalid', () => {
-    createStylesheet()
     Configuration.popup.container = '['
     jest.spyOn(console, 'warn').mockImplementation(() => {})
     API.popups.get.mockResolvedValue(document.createElement('article'))
@@ -105,7 +82,6 @@ describe('Popup', () => {
   })
 
   it('removes its mounted popup HTML when unmounted', async () => {
-    createStylesheet()
     const article = document.createElement('article')
     API.popups.get.mockResolvedValue(article)
 
