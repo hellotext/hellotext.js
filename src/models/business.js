@@ -26,7 +26,9 @@ const stylesheetLoadTimeout = 10000
  * @property {Object} [features] - Feature flags enabled for the business.
  * @property {String} [locale] - Default dashboard locale for the business.
  * @property {String} [style_url] - Stylesheet URL to inject for dashboard-managed surfaces.
+ * @property {{id: String}|null} [popup] - Dashboard popup defaults.
  * @property {BusinessWebchat|null} [webchat] - Dashboard webchat defaults.
+ * @property {{id: String}|null} [whatsapp] - Dashboard WhatsApp widget defaults.
  * @property {String|Array<String>} [whitelist] - Domain whitelist configuration.
  * @property {String} [subscription] - Current business subscription tier.
  */

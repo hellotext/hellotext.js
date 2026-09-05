@@ -6,6 +6,7 @@ import {
   Fingerprint,
   FormCollection,
   Page,
+  Popup,
   Query,
   Session,
   User,
@@ -19,6 +20,7 @@ class Hellotext {
   static eventEmitter = new Event()
   static forms
   static business
+  static popup
   static webchat
   static whatsapp
 
@@ -39,36 +41,51 @@ class Hellotext {
     this.query = new Query()
 
     const businessData = await this.business.hydrate()
-    const webchatConfig =
-      config.webchat === false
-        ? false
-        : this.mergeWebchatConfig(
-            (businessData && businessData.webchat) || {},
-            config.webchat || {},
-          )
-    const whatsappConfig =
-      config.whatsappWidget === false
-        ? false
-        : this.mergeWhatsAppConfig(
-            (businessData && businessData.whatsapp) || {},
-            config.whatsappWidget || {},
-          )
+
+    const popupConfig = this.deepMergePlainObjects(businessData?.popup, config.popup)
+    const webchatConfig = this.mergeWebchatConfig(businessData?.webchat, config.webchat)
+    const whatsappConfig = this.mergeWhatsAppConfig(businessData?.whatsapp, config.whatsappWidget)
 
     const hasExplicitBehaviourOverride =
       config.webchat &&
       config.webchat !== false &&
       Object.prototype.hasOwnProperty.call(config.webchat, 'behaviour')
+
     Configuration.webchat.behaviourOverride = hasExplicitBehaviourOverride
 
-    if (webchatConfig && webchatConfig.id) {
+    const widgetLoads = []
+
+    if (config.webchat !== false && webchatConfig.id) {
       Configuration.webchat.assign(webchatConfig)
-      this.webchat = await Webchat.load(webchatConfig.id)
+
+      widgetLoads.push(
+        Webchat.load(webchatConfig.id).then(webchat => {
+          this.webchat = webchat
+        }),
+      )
     }
 
-    if (whatsappConfig && whatsappConfig.id) {
+    if (config.whatsappWidget !== false && whatsappConfig.id) {
       Configuration.whatsapp.assign(whatsappConfig)
-      this.whatsapp = await WhatsAppWidget.load(whatsappConfig.id)
+
+      widgetLoads.push(
+        WhatsAppWidget.load(whatsappConfig.id).then(whatsapp => {
+          this.whatsapp = whatsapp
+        }),
+      )
     }
+
+    if (config.popup !== false && popupConfig.id) {
+      Configuration.popup.assign(popupConfig)
+
+      widgetLoads.push(
+        Popup.load(popupConfig.id).then(popup => {
+          this.popup = popup
+        }),
+      )
+    }
+
+    await Promise.all(widgetLoads)
 
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()
@@ -86,7 +103,7 @@ class Hellotext {
   static deepMergePlainObjects(base, override) {
     const result = { ...base }
 
-    Object.entries(override).forEach(([key, value]) => {
+    Object.entries(override || {}).forEach(([key, value]) => {
       if (this.isPlainObject(value) && this.isPlainObject(result[key])) {
         result[key] = this.deepMergePlainObjects(result[key], value)
       } else {

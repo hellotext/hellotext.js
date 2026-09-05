@@ -7,6 +7,7 @@ This library allows you the following,
 - Track events happening on your site to [Hellotext](https://www.hellotext.com) in real-time.
 - Use Hellotext Forms to dynamically collect data from your customers based on your specific business requirements.
 - Use Hellotext Webchat to interact with your customers in real-time.
+- Use Hellotext Popups to collect customer information from dashboard-built popups.
 
 ## Installation
 
@@ -55,6 +56,7 @@ Learn how to leverage the library to track events and collect forms.
 - [Tracking Events](/docs/tracking.md)
 - [Forms](/docs/forms.md)
 - [Webchat](/docs/webchat.md)
+- [Popups](/docs/popups.md)
 
 ## CSS
 
@@ -62,23 +64,23 @@ The library ships with a minimal CSS file that is used for [Forms](/docs/forms.m
 
 ## For Bundler Users (Vite, Webpack, etc.)
 
-The CSS is not automatically imported to avoid issues with SSR frameworks. Import it separately:
+The generic form CSS is not automatically imported to avoid issues with SSR frameworks. Import it separately:
 
 ```javascript
 // Import the library
 import Hellotext from '@hellotext/hellotext'
 
-// Import the CSS separately
+// Import the generic form CSS separately
 import '@hellotext/hellotext/styles/index.css'
 ```
 
 ## For Script Tag Users
 
-The UMD bundle (`dist/hellotext.js`) includes the CSS automatically:
+The UMD bundle (`dist/hellotext.js`) includes generic form CSS automatically. Popup styles are served by Hellotext with the public business configuration:
 
 ```html
 <script src="https://unpkg.com/@hellotext/hellotext"></script>
-<!-- CSS is included in the bundle -->
+<!-- Business runtime styles are loaded from Hellotext -->
 ```
 
 ## Events
@@ -104,6 +106,9 @@ Hellotext.removeEventListener(eventName, callback)
 - `utm-set`: this event is fired when the UTM value is collected, useful to store the UTM on your side.
 - `forms:collected` This event is fired when forms are collected. The callback will receive the array of forms collected.
 - `form:completed` This event is fired when a form has been completed. A form is completed when the user fills all required inputs and verifies their OTP(One-Time Password). The callback will receive the form object that was completed, alongside the data the user filled in the form.
+- `popup:mounted` This event is fired when a popup is mounted, before its initial display state is evaluated.
+- `popup:opened` This event is fired when a popup dialog becomes visible.
+- `popup:closed` This event is fired when a popup is dismissed.
 - View Webchat events [here](/docs/webchat.md#events)
 - `cart.added` This event is fired when a customer adds a product to their cart from a Webchat message.
 
@@ -117,10 +122,27 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 
 #### Configuration Options
 
-| Property            | Description                                                                                                                                                                                     | Type    | Default                                   |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------- |
-| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String  | null                                      |
-| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean | true                                      |
-| forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object  | { autoMount: true, successMessage: true } |
-| webchat             | An object that overrides the dashboard webchat configuration, or `false` to disable automatic webchat mounting. See [Webchat](/docs/webchat.md).                                                   | Object \| false | Dashboard webchat when configured        |
-| whatsappWidget      | An object that overrides the dashboard WhatsApp widget configuration, or `false` to disable automatic WhatsApp widget mounting.                                                                  | Object \| false | Dashboard WhatsApp widget when configured |
+| Property            | Description                                                                                                                                                                                     | Type            | Default                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------- |
+| session             | A valid Hellotext session which was stored previously. When not set, Hellotext attempts to retrieve the stored value from `document.cookie` when available, otherwise it creates a new session. | String          | null                                      |
+| autoGenerateSession | Whether the library should automatically generate a session when no session is found in the query or the cookies                                                                                | Boolean         | true                                      |
+| forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object          | { autoMount: true, successMessage: true } |
+| popup               | Options for the dashboard popup, or `false` to disable automatic popup mounting. See [Popups](/docs/popups.md).                                                                                 | Object \| false | Dashboard popup when configured           |
+| webchat             | An object that overrides the dashboard webchat configuration, or `false` to disable automatic webchat mounting. See [Webchat](/docs/webchat.md).                                                | Object \| false | Dashboard webchat when configured         |
+| whatsappWidget      | An object that overrides the dashboard WhatsApp widget configuration, or `false` to disable automatic WhatsApp widget mounting.                                                                 | Object \| false | Dashboard WhatsApp widget when configured |
+
+#### Popup
+
+```javascript
+Hellotext.initialize('HELLOTEXT_BUSINESS_ID', {
+  popup: {
+    id: 'POPUP_ID',
+  },
+})
+```
+
+When a popup is installed automatically from the dashboard, `Hellotext.initialize('HELLOTEXT_BUSINESS_ID')` mounts the configured popup without passing `popup.id` manually. Only one popup can be installed at a time.
+
+The popup is rendered from its dashboard configuration, including steps, fields, layout, bubble, and colors. Passing an explicit `popup.id` loads that popup.
+
+See [Popups](/docs/popups.md) for configuration, display behaviour, validation, completion, and [events](/docs/popups.md#events).
