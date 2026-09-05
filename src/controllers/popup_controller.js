@@ -50,6 +50,7 @@ export default class extends Controller {
   }
 
   connect() {
+    Hellotext.eventEmitter.dispatch('popup:mounted')
     this.evaluateDisplay()
   }
 

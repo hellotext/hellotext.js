@@ -105,6 +105,7 @@ Hellotext.removeEventListener(eventName, callback)
 - `utm-set`: this event is fired when the UTM value is collected, useful to store the UTM on your side.
 - `forms:collected` This event is fired when forms are collected. The callback will receive the array of forms collected.
 - `form:completed` This event is fired when a form has been completed. A form is completed when the user fills all required inputs and verifies their OTP(One-Time Password). The callback will receive the form object that was completed, alongside the data the user filled in the form.
+- `popup:mounted` This event is fired when a popup is mounted, before its initial display state is evaluated.
 - `popup:opened` This event is fired when a popup dialog becomes visible.
 - `popup:closed` This event is fired when a popup is dismissed.
 - View Webchat events [here](/docs/webchat.md#events)

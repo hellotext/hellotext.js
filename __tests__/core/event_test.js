@@ -10,6 +10,7 @@ describe(".valid", function () {
   });
 
   it("is true for popup lifecycle events", () => {
+    expect(Event.valid("popup:mounted")).toEqual(true)
     expect(Event.valid("popup:opened")).toEqual(true)
     expect(Event.valid("popup:closed")).toEqual(true)
   });

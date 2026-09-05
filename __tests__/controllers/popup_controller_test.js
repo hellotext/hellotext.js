@@ -140,15 +140,17 @@ describe('PopupController', () => {
     expect(element.hidden).toBe(false)
     expect(bubble.hidden).toBe(false)
     expect(dialog.hidden).toBe(true)
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenCalledTimes(1)
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(1, 'popup:mounted')
 
     controller.open()
 
     expect(bubble.hidden).toBe(true)
     expect(dialog.hidden).toBe(false)
-    expect(Hellotext.eventEmitter.dispatch).toHaveBeenCalledWith('popup:opened')
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(2, 'popup:opened')
   })
 
-  it('dispatches popup:opened for an automatic popup and popup:closed when it is dismissed', () => {
+  it('dispatches popup:mounted before an automatic popup opens and popup:closed when it is dismissed', () => {
     const { element, dialog } = buildController({ hasBubble: false })
 
     controller.connect()
@@ -156,8 +158,9 @@ describe('PopupController', () => {
 
     expect(element.hidden).toBe(true)
     expect(dialog.hidden).toBe(true)
-    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(1, 'popup:opened')
-    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(2, 'popup:closed')
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(1, 'popup:mounted')
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(2, 'popup:opened')
+    expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(3, 'popup:closed')
   })
 
   it('validates the current step before moving to the next one', async () => {
