@@ -55,6 +55,8 @@ Learn how to leverage the library to track events and collect forms.
 - [Tracking Events](/docs/tracking.md)
 - [Forms](/docs/forms.md)
 - [Webchat](/docs/webchat.md)
+- [WhatsApp widget](/docs/whatsapp.md)
+- [Push notifications](/docs/push.md)
 
 ## CSS
 
