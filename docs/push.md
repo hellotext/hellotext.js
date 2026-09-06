@@ -2,9 +2,11 @@
 
 > **Using VTEX or Shopify?** Connecting either integration to Hellotext automatically sets up Push notifications for your store. You can skip the manual service-worker setup and initialization below (steps 1 and 2).
 
-> **Availability is managed by Hellotext.** Push notifications are enabled as part of your business's use of the Hellotext platform. Availability depends on your current plan and platform usage, and Hellotext controls when Push is enabled or disabled for each business.
+> **Collect subscriptions on any plan.** Your website can initialize Push and collect, refresh, and manage browser subscriptions regardless of your business's plan. You can complete setup and start building your Push audience before upgrading.
 >
-> Completing the installation, whether manually or through Shopify or VTEX, prepares your website to use Push. It does not activate the feature independently or guarantee continued availability. Hellotext can disable Push for a business even when its service worker is still installed and the technical setup is complete.
+> **Sending notifications requires Pro or Enterprise.** Delivery is provided through the Hellotext platform, and Hellotext controls whether a business can send based on its current plan and platform usage. Completing the technical setup does not by itself enable delivery.
+>
+> If your business moves to a plan that does not include sending, subscription collection and management continue while delivery stops. Existing subscriptions are retained, so valid subscriptions are ready to receive notifications when your business upgrades to an eligible plan. Plan restrictions on sending do not disable `Hellotext.push` for subscription management.
 
 Use this guide to add Subscribe and Unsubscribe actions to your website. You will publish a notification service worker, pass its URL when initializing Hellotext, and connect your own buttons to the Push methods.
 
