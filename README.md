@@ -61,31 +61,81 @@ Follow these guides to set up tracking, forms, chat widgets, and Push notificati
 
 ## Events
 
-This library emits events that you can listen to and perform specific action when the event happens.
-Think of it like `addEventListener` for HTML elements. You can listen for events, and remove events as well.
-
-To listen to an event, you can call the `on` method, like so
+Use `Hellotext.on` to listen for SDK events. The callback receives the event's payload directly.
+Register listeners before `Hellotext.initialize` to receive events emitted during initialization.
 
 ```javascript
 Hellotext.on(eventName, callback)
 ```
 
-To remove an event listener, you can call `removeEventListener`
+To unsubscribe, pass the same callback to `Hellotext.removeEventListener`:
 
 ```javascript
 Hellotext.removeEventListener(eventName, callback)
 ```
 
-### List of events
+### Sessions and attribution
 
-- `session-set`: This event is fired when the session value for `Hellotext.session` is set. Either through an API request, or if the session was found in the cookie.
-- `utm-set`: this event is fired when the UTM value is collected, useful to store the UTM on your side.
-- `forms:collected` This event is fired when forms are collected. The callback will receive the array of forms collected.
-- `form:completed` This event is fired when a form has been completed. A form is completed when the user fills all required inputs and verifies their OTP(One-Time Password). The callback will receive the form object that was completed, alongside the data the user filled in the form.
-- View Webchat events [here](/docs/webchat.md#events)
-- `cart.added` This event is fired when a customer adds a product to their cart from a Webchat message.
+| Event | When it fires | Callback payload |
+| --- | --- | --- |
+| `session-set` | The session value is set, including when an existing session is restored during initialization. | The current session value, also available as `Hellotext.session`. |
+| `utm-set` | UTM parameters are saved. | A JSON string containing the saved UTM parameters and `observed_at`. Use `JSON.parse` to read it as an object. |
 
-### Configuration
+See [Understanding Sessions](/docs/sessions.md) and [Tracking Events](/docs/tracking.md).
+
+### Forms
+
+| Event | When it fires | Callback payload |
+| --- | --- | --- |
+| `forms:collected` | Forms found on the page have finished loading, before automatic mounting. | The `FormCollection` instance, with methods such as `getById`, `getByIndex`, and `forEach`. |
+| `form:completed` | A form completes, or a previously completed form is restored from local storage during mounting. | `{ id, state, data, completedAt }`, where `data` contains the submitted values and `completedAt` is a timestamp in milliseconds. |
+
+See [Forms](/docs/forms.md) for collection, mounting, and completion details.
+
+### Smart Alerts
+
+Each alert event receives `{ kind }`, where `kind` identifies the section: `homepage`,
+`product_collection`, or `product_details`.
+
+| Event | When it fires | Callback payload |
+| --- | --- | --- |
+| `alert:shown` | A section is displayed by a successful `show` call, including forced calls. | `{ kind }` |
+| `alert:dismissed` | The visitor clicks the secondary action, hiding the alert and starting its dismissal cooldown. | `{ kind }` |
+| `alert:accepted` | The visitor clicks the primary action, before the browser permission result or subscription completion. | `{ kind }` |
+
+`alert:accepted` does not confirm that the visitor granted permission or subscribed.
+Programmatic hiding, cleanup, and dismissals received from another tab do not emit `alert:dismissed`.
+
+```javascript
+Hellotext.on('alert:accepted', ({ kind }) => {
+  console.log('Alert accepted in', kind)
+})
+```
+
+See [Smart Alerts](/docs/push.md#show-a-smart-alert) for display options and dismissal behavior.
+
+### Webchat
+
+| Event | When it fires | Callback payload |
+| --- | --- | --- |
+| `webchat:mounted` | The Webchat widget is mounted. | None. |
+| `webchat:opened` | The Webchat conversation opens. | None. |
+| `webchat:closed` | The Webchat conversation closes. | None. |
+| `webchat:message:sent` | A visitor's message or quick reply is successfully sent. | The message object, including `id`, `body`, and `attachments`, with additional context for quick replies and product cards. |
+| `webchat:message:received` | An incoming message is added to the Webchat conversation. | The message object, with `body` containing its displayed text. |
+
+See [Webchat events](/docs/webchat.md#events) for message payload examples.
+
+### Cart
+
+| Event | When it fires | Callback payload |
+| --- | --- | --- |
+| `cart.added` | The visitor clicks an add-to-cart button in a Webchat product card. | `{ object_parameters: { items }, source }`. Each item contains `product`, `quantity`, and optional `reference` and `source`; the outer `source` contains `kind`, `message_id`, and `button_id`. |
+
+Handle `cart.added` in your storefront integration to update the cart. This event records the button
+click; it does not confirm that your storefront added the item successfully.
+
+## Configuration
 
 When initializing the library, you may pass an optional configuration object as the second argument.
 
@@ -93,7 +143,7 @@ When initializing the library, you may pass an optional configuration object as 
 Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 ```
 
-#### Configuration Options
+### Configuration Options
 
 | Property            | Description                                                                                                                                                                                     | Type    | Default                                   |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------- |
