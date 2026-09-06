@@ -63,7 +63,7 @@ self.addEventListener('notificationclick', event => {
   let url
 
   try {
-    url = new URL(data.url || '/', self.location.origin)
+    url = new URL(data.actions?.[event.action] || data.url || '/', self.location.origin)
   } catch (error) {
     return
   }
