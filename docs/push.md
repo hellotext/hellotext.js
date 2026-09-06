@@ -1,5 +1,7 @@
 # Set up Push notifications
 
+> **Using VTEX or Shopify?** Connecting either integration to Hellotext automatically sets up Push notifications for your store. You can skip the manual service-worker setup and initialization below (steps 1 and 2).
+
 Use this guide to add Subscribe and Unsubscribe actions to your website. You will publish a notification service worker, pass its URL when initializing Hellotext, and connect your own buttons to the Push methods.
 
 ## 1. Publish your service worker
