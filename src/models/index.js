@@ -1,3 +1,4 @@
+export { Alert } from './alert'
 export { Business } from './business'
 export { Cookies } from './cookies'
 export { Fingerprint } from './fingerprint'
