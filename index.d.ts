@@ -7,6 +7,7 @@ export interface HellotextConfig {
   }
   webchat?: false | HellotextWebchatConfig
   whatsappWidget?: false | HellotextWhatsAppWidgetConfig
+  push?: false | HellotextPushConfig
   session?: string
   autoGenerateSession?: boolean
 }
@@ -67,6 +68,18 @@ export interface HellotextWhatsAppWidgetConfig {
   appearance?: HellotextWhatsAppWidgetAppearance
 }
 
+export interface HellotextPushConfig {
+  serviceWorkerUrl?: string | null
+  channelId?: string | null
+}
+
+export interface HellotextPush {
+  readonly ready: Promise<void>
+  readonly subscribed: boolean
+  subscribe(): Promise<Response | void>
+  unsubscribe(): Promise<Response | null | void>
+}
+
 export interface HellotextBusinessCountry {
   code?: string
   prefix?: string
@@ -81,6 +94,7 @@ export interface HellotextBusinessData {
   style_url?: string
   webchat?: HellotextWebchatConfig | null
   whatsapp?: HellotextWhatsAppWidgetConfig | null
+  push?: { public_key: string } | null
   whitelist?: string | string[] | null
   subscription?: string | null
   [key: string]: any
@@ -142,6 +156,7 @@ declare class Hellotext {
   static business: HellotextBusiness
   static webchat: any
   static whatsapp: any
+  static push: HellotextPush | null
 }
 
 export declare class User {

@@ -1,7 +1,7 @@
 import Hellotext from "../src/hellotext";
 import API from "../src/api";
 import { Configuration } from "../src/core";
-import { Session, Webchat, WhatsAppWidget } from "../src/models";
+import { Push, Session, Webchat, WhatsAppWidget } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -828,3 +828,82 @@ describe("when the class is initialized successfully", () => {
     })
   })
 });
+
+describe('when initializing Push', () => {
+  let supported
+  let initializePush
+  let loadWebchat
+
+  beforeEach(() => {
+    supported = jest.spyOn(Push, 'supported', 'get').mockReturnValue(true)
+    initializePush = jest.spyOn(Push.prototype, 'initialize').mockResolvedValue()
+    loadWebchat = jest.spyOn(Webchat, 'load').mockResolvedValue({})
+    mockBusinessFetch(defaultBusiness({ push: { public_key: 'business-public-key' } }))
+  })
+
+  afterEach(() => {
+    Hellotext.push?.dispose()
+    Hellotext.push = null
+    Configuration.push.assign({})
+    supported.mockRestore()
+    initializePush.mockRestore()
+    loadWebchat.mockRestore()
+  })
+
+  it('reads the business public key and configured worker URL', async () => {
+    await Hellotext.initialize('xy76ks', { push: { serviceWorkerUrl: '/hellotext-sw.js' } })
+
+    expect(Hellotext.push.publicKey).toBe('business-public-key')
+    expect(Hellotext.push.serviceWorkerUrl).toBe('/hellotext-sw.js')
+    expect(initializePush).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips Push when the business has no public key', async () => {
+    mockBusinessFetch(defaultBusiness())
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(Hellotext.push).toBeNull()
+    expect(initializePush).not.toHaveBeenCalled()
+  })
+
+  it('skips Push when the browser does not support it', async () => {
+    supported.mockReturnValue(false)
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(Hellotext.push).toBeNull()
+    expect(initializePush).not.toHaveBeenCalled()
+  })
+
+  it('allows Push to be disabled explicitly', async () => {
+    await Hellotext.initialize('xy76ks', { push: false })
+
+    expect(Hellotext.push).toBeNull()
+    expect(initializePush).not.toHaveBeenCalled()
+  })
+
+  it('finishes initialization and loads widgets while Push is still waiting for a worker', async () => {
+    initializePush.mockReturnValue(new Promise(() => {}))
+    mockBusinessFetch(defaultBusiness({
+      push: { public_key: 'business-public-key' },
+      webchat: { id: 'dashboard-webchat' },
+    }))
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat')
+    expect(Hellotext.isInitialized).toBe(true)
+  })
+
+  it('cleans up the previous Push instance when initialized again', async () => {
+    await Hellotext.initialize('xy76ks')
+    const dispose = jest.spyOn(Hellotext.push, 'dispose')
+    mockBusinessFetch(defaultBusiness())
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(dispose).toHaveBeenCalledTimes(1)
+    expect(Hellotext.push).toBeNull()
+  })
+})
