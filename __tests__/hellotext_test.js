@@ -896,6 +896,29 @@ describe('when initializing Push', () => {
     expect(Hellotext.isInitialized).toBe(true)
   })
 
+  it('resets omitted Push options when initializing another business', async () => {
+    mockBusinessFetch(defaultBusiness({
+      id: 'business-a',
+      push: { public_key: 'business-a-public-key' },
+    }))
+    await Hellotext.initialize('business-a', {
+      push: {
+        serviceWorkerUrl: '/business-a-worker.js',
+        channelId: 'business-a-channel',
+      },
+    })
+
+    mockBusinessFetch(defaultBusiness({
+      id: 'business-b',
+      push: { public_key: 'business-b-public-key' },
+    }))
+    await Hellotext.initialize('business-b')
+
+    expect(Hellotext.push.publicKey).toBe('business-b-public-key')
+    expect(Hellotext.push.serviceWorkerUrl).toBeNull()
+    expect(Hellotext.push.channelId).toBeNull()
+  })
+
   it('cleans up the previous Push instance when initialized again', async () => {
     await Hellotext.initialize('xy76ks')
     const dispose = jest.spyOn(Hellotext.push, 'dispose')

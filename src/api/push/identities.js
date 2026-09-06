@@ -11,6 +11,7 @@ class PushIdentitiesAPI {
   static async create(data = {}) {
     const response = await fetch(this.endpoint, {
       method: 'POST',
+      keepalive: true,
       headers: Hellotext.headers,
       body: JSON.stringify({
         ...data,
@@ -25,6 +26,7 @@ class PushIdentitiesAPI {
   static async destroy(data = {}) {
     const response = await fetch(this.endpoint, {
       method: 'DELETE',
+      keepalive: true,
       headers: Hellotext.headers,
       body: JSON.stringify({
         ...data,

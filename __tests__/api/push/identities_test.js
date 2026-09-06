@@ -54,6 +54,7 @@ describe('PushIdentitiesAPI', () => {
         session: 'session-123',
         origin: window.location.origin,
       }),
+      keepalive: true,
     })
     expect(response.succeeded).toBe(true)
     await expect(response.json()).resolves.toEqual({ id: 'identity-id' })
@@ -78,6 +79,7 @@ describe('PushIdentitiesAPI', () => {
         session: 'session-123',
         origin: window.location.origin,
       }),
+      keepalive: true,
     })
     expect(response.succeeded).toBe(true)
   })

@@ -36,7 +36,7 @@ class Hellotext {
     this.business = new Business(business)
     this.page = new Page()
 
-    Configuration.assign(config)
+    Configuration.assign({ push: {}, ...config })
     Session.initialize(this.page)
 
     this.forms = new FormCollection()
