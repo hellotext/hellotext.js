@@ -20,8 +20,9 @@ describe('PushAlertsAPI', () => {
     Hellotext.business = previousBusiness
   })
 
-  it.each(['shown', 'dismissed', 'accepted'])('posts %s with the current session and section', async kind => {
-    const response = await API.pushAlerts.create({ section: 'homepage', kind })
+  it.each(['shown', 'dismissed', 'accepted'])('posts %s with the current session, section, and page', async kind => {
+    const page = { url: 'https://shop.example.com/?utm_source=email#offers', title: 'Shop', path: '/' }
+    const response = await API.pushAlerts.create({ section: 'homepage', kind, page })
 
     expect(global.fetch).toHaveBeenCalledWith('https://api.hellotext.test/v1/public/push/alerts', {
       method: 'POST',
@@ -31,7 +32,7 @@ describe('PushAlertsAPI', () => {
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ session: 'session-id', section: 'homepage', kind }),
+      body: JSON.stringify({ session: 'session-id', section: 'homepage', kind, page }),
     })
     expect(response.succeeded).toBe(true)
   })

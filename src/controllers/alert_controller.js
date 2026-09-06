@@ -101,6 +101,7 @@ export default class extends Controller {
     this.secondaryActionTarget.textContent = secondaryAction ?? section.secondary_action
 
     this.kind = kind
+    this.page = Hellotext.page.trackingData.page
     this.element.hidden = false
 
     this.record('shown')
@@ -192,7 +193,8 @@ export default class extends Controller {
   }
 
   /**
-   * Posts an interaction without delaying display, dismissal, or native permission.
+   * Posts an interaction with the page snapshot captured when the alert was shown.
+   * Does not delay display, dismissal, or native permission.
    * Recording failures leave the alert interaction unchanged.
    *
    * @private
@@ -201,7 +203,7 @@ export default class extends Controller {
    */
   async record(kind) {
     try {
-      const response = await API.pushAlerts.create({ section: this.kind, kind })
+      const response = await API.pushAlerts.create({ section: this.kind, kind, page: this.page })
 
       if (response.failed) console.warn('Hellotext Smart Alert submission failed:', response)
     } catch (error) {

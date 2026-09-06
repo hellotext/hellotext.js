@@ -3,6 +3,7 @@ import AlertController from '../../src/controllers/alert_controller'
 import Hellotext from '../../src/hellotext'
 import API from '../../src/api'
 import { Alert } from '../../src/models/alert'
+import { Page } from '../../src/models/page'
 
 const DAY = 24 * 60 * 60 * 1000
 const sections = ['homepage', 'product_collection', 'product_details'].map(kind => ({
@@ -38,12 +39,15 @@ describe('Smart Alert interactions', () => {
   let originalNotification
   let events
   let businessNumber = 0
+  let previousPage
 
   const primary = () => alert.element.querySelector('[data-hellotext--alert-target="primaryAction"]')
   const secondary = () => alert.element.querySelector('[data-hellotext--alert-target="secondaryAction"]')
   const saved = () => JSON.parse(localStorage.getItem(`hellotext:alert:${business.id}`))
 
   beforeEach(async () => {
+    previousPage = Hellotext.page
+    Hellotext.page = new Page()
     jest.spyOn(API.pushAlerts, 'create').mockResolvedValue({ succeeded: true })
     localStorage.clear()
     document.body.innerHTML = ''
@@ -76,6 +80,7 @@ describe('Smart Alert interactions', () => {
     application.stop()
     jest.restoreAllMocks()
     global.Notification = originalNotification
+    Hellotext.page = previousPage
     document.body.innerHTML = ''
     Object.entries(events).forEach(([name, callback]) => Hellotext.removeEventListener(`alert:${name}`, callback))
   })
@@ -95,9 +100,34 @@ describe('Smart Alert interactions', () => {
     expect(push.subscribe).not.toHaveBeenCalled()
     expect(Notification.requestPermission).not.toHaveBeenCalled()
     expect(events.shown.mock.calls).toEqual(sections.map(({ kind }) => [{ kind }]))
-    expect(API.pushAlerts.create.mock.calls).toEqual(sections.map(({ kind }) => [{ section: kind, kind: 'shown' }]))
+    expect(API.pushAlerts.create.mock.calls).toEqual(sections.map(({ kind }) => [{ section: kind, kind: 'shown', page: Hellotext.page.trackingData.page }]))
     expect(events.dismissed).not.toHaveBeenCalled()
     expect(events.accepted).not.toHaveBeenCalled()
+  })
+
+  it.each(['accepted', 'dismissed'])('keeps the displayed page snapshot when %s after navigation', async kind => {
+    Hellotext.page = new Page('https://shop.example.com/products/shirt?variant=42&utm_source=email#details')
+    const page = Hellotext.page.trackingData.page
+    await alert.show('product_details')
+
+    Hellotext.page = new Page('https://shop.example.com/collections/shoes')
+    if (kind === 'accepted') primary().click()
+    else secondary().click()
+
+    expect(API.pushAlerts.create.mock.calls).toEqual([
+      [{ section: 'product_details', kind: 'shown', page }],
+      [{ section: 'product_details', kind, page }],
+    ])
+  })
+
+  it('captures fresh page data for the next display', async () => {
+    await alert.show('homepage')
+    Hellotext.page = new Page('https://shop.example.com/collections/shoes?color=red#products')
+    const page = Hellotext.page.trackingData.page
+
+    await alert.show('product_collection')
+
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_collection', kind: 'shown', page })
   })
 
   it('renders merchant copy as text and hides the previous section for an unknown kind', async () => {
@@ -157,7 +187,7 @@ describe('Smart Alert interactions', () => {
     expect(alert.element.hidden).toBe(true)
     expect(events.dismissed).toHaveBeenCalledTimes(1)
     expect(events.dismissed).toHaveBeenCalledWith({ kind: 'homepage' })
-    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'homepage', kind: 'dismissed' })
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'homepage', kind: 'dismissed', page: Hellotext.page.trackingData.page })
 
     alert.dispose()
     alert = new Alert({ html: alertHTML() }, business, push)
@@ -338,7 +368,7 @@ describe('Smart Alert interactions', () => {
     expect(push.subscribe).toHaveBeenCalledTimes(1)
     expect(events.accepted).toHaveBeenCalledTimes(1)
     expect(events.accepted).toHaveBeenCalledWith({ kind: 'homepage' })
-    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'homepage', kind: 'accepted' })
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'homepage', kind: 'accepted', page: Hellotext.page.trackingData.page })
     expect(primary().disabled).toBe(true)
     expect(secondary().disabled).toBe(true)
     expect(alert.element.getAttribute('aria-busy')).toBe('true')
@@ -371,10 +401,10 @@ describe('Smart Alert interactions', () => {
     primary().click()
     expect(push.subscribe).toHaveBeenCalledTimes(1)
     expect(API.pushAlerts.create.mock.calls).toEqual([
-      [{ section: 'homepage', kind: 'shown' }],
-      [{ section: 'homepage', kind: 'dismissed' }],
-      [{ section: 'product_details', kind: 'shown' }],
-      [{ section: 'product_details', kind: 'accepted' }],
+      [{ section: 'homepage', kind: 'shown', page: Hellotext.page.trackingData.page }],
+      [{ section: 'homepage', kind: 'dismissed', page: Hellotext.page.trackingData.page }],
+      [{ section: 'product_details', kind: 'shown', page: Hellotext.page.trackingData.page }],
+      [{ section: 'product_details', kind: 'accepted', page: Hellotext.page.trackingData.page }],
     ])
     await Promise.resolve()
   })

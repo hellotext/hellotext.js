@@ -2,6 +2,8 @@ import { Application } from '@hotwired/stimulus'
 import AlertController from '../../src/controllers/alert_controller'
 import { Alert } from '../../src/models/alert'
 import API from '../../src/api'
+import Hellotext from '../../src/hellotext'
+import { Page } from '../../src/models/page'
 
 const sections = [
   {
@@ -44,8 +46,11 @@ describe('Alert', () => {
   let business
   let push
   let notificationDescriptor
+  let previousPage
 
   beforeEach(async () => {
+    previousPage = Hellotext.page
+    Hellotext.page = new Page()
     document.body.innerHTML = ''
     localStorage.clear()
     jest.spyOn(API.pushAlerts, 'create').mockResolvedValue({ succeeded: true })
@@ -65,6 +70,7 @@ describe('Alert', () => {
     alert?.dispose()
     application.stop()
     jest.restoreAllMocks()
+    Hellotext.page = previousPage
     document.body.innerHTML = ''
     if (notificationDescriptor) {
       Object.defineProperty(window, 'Notification', notificationDescriptor)
