@@ -59,31 +59,6 @@ Follow these guides to set up tracking, forms, chat widgets, and Push notificati
 - [WhatsApp widget](/docs/whatsapp.md)
 - [Push notifications](/docs/push.md)
 
-## CSS
-
-The library ships with a minimal CSS file that is used for [Forms](/docs/forms.md). It is pre-bundled but you control when to import it.
-
-## For Bundler Users (Vite, Webpack, etc.)
-
-The CSS is not automatically imported to avoid issues with SSR frameworks. Import it separately:
-
-```javascript
-// Import the library
-import Hellotext from '@hellotext/hellotext'
-
-// Import the CSS separately
-import '@hellotext/hellotext/styles/index.css'
-```
-
-## For Script Tag Users
-
-The UMD bundle (`dist/hellotext.js`) includes the CSS automatically:
-
-```html
-<script src="https://unpkg.com/@hellotext/hellotext"></script>
-<!-- CSS is included in the bundle -->
-```
-
 ## Events
 
 This library emits events that you can listen to and perform specific action when the event happens.

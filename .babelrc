@@ -4,18 +4,15 @@
       "@babel/preset-env",
       {
         "targets": {
-          "esmodules": true
+          "chrome": "90",
+          "safari": "15",
+          "firefox": "90",
+          "edge": "90"
         },
-        "modules": false
+        "modules": false,
+        "bugfixes": true
       }
     ]
-  ],
-  "plugins": [
-    ["@babel/plugin-proposal-private-methods", { "loose": true }],
-    ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
-    ["@babel/plugin-proposal-class-properties", { "loose": true }],
-    "@babel/plugin-transform-classes",
-    "@babel/plugin-proposal-export-default-from"
   ],
   "env": {
     "test": {
@@ -36,18 +33,12 @@
           "@babel/preset-env",
           {
             "targets": {
-              "node": "14"
+              "node": "18"
             },
-            "modules": "commonjs"
+            "modules": "commonjs",
+            "bugfixes": true
           }
         ]
-      ],
-      "plugins": [
-        ["@babel/plugin-proposal-private-methods", { "loose": true }],
-        ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
-        ["@babel/plugin-proposal-class-properties", { "loose": true }],
-        "@babel/plugin-transform-classes",
-        "@babel/plugin-proposal-export-default-from"
       ]
     }
   }
