@@ -6,6 +6,7 @@ import {
   Fingerprint,
   FormCollection,
   Page,
+  Push,
   Query,
   Session,
   User,
@@ -21,6 +22,7 @@ class Hellotext {
   static business
   static webchat
   static whatsapp
+  static push
 
   /**
    * initialize the module.
@@ -28,10 +30,13 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config = {}) {
+    this.push?.dispose()
+    this.push = null
+
     this.business = new Business(business)
     this.page = new Page()
 
-    Configuration.assign(config)
+    Configuration.assign({ push: {}, ...config })
     Session.initialize(this.page)
 
     this.forms = new FormCollection()
@@ -39,6 +44,15 @@ class Hellotext {
     this.query = new Query()
 
     const businessData = await this.business.hydrate()
+
+    if (config.push !== false && businessData?.push?.public_key && Push.supported) {
+      this.push = new Push(businessData.push)
+
+      this.push.initialize().catch(error => {
+        console.warn('Hellotext Push initialization failed:', error)
+      })
+    }
+
     const webchatConfig =
       config.webchat === false
         ? false

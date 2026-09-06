@@ -5,6 +5,7 @@ import IdentificationsAPI from './identifications'
 import WebchatsAPI from './webchats'
 import WhatsAppWidgetsAPI from './whatsapp_widgets'
 import AcksAPI from './acks'
+import PushIdentitiesAPI from './push/identities'
 
 // Browsers keep `fetch(..., { keepalive: true })` requests alive during page
 // unload/navigation, which is exactly the failure mode for analytics events
@@ -56,6 +57,10 @@ export default class API {
 
   static get acks() {
     return AcksAPI
+  }
+
+  static get pushIdentities() {
+    return PushIdentitiesAPI
   }
 }
 

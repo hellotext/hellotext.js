@@ -2,6 +2,7 @@ import { Forms } from './configuration/forms'
 import { Locale } from './configuration/locale'
 import { Webchat } from './configuration/webchat'
 import { WhatsApp } from './configuration/whatsapp'
+import { Push } from './configuration/push'
 
 /**
  * @class Configuration
@@ -12,6 +13,7 @@ import { WhatsApp } from './configuration/whatsapp'
  * @property {Forms} [forms] - form configuration
  * @property {Webchat} [webchat] - webchat configuration
  * @property {WhatsApp} [whatsappWidget] - WhatsApp widget configuration
+ * @property {Push} [push] - push subscription configuration
  * @property {Locale} [locale] - locale configuration
  */
 class Configuration {
@@ -24,6 +26,7 @@ class Configuration {
   static forms = Forms
   static webchat = Webchat
   static whatsapp = WhatsApp
+  static push = Push
 
   /**
    *
@@ -47,6 +50,8 @@ class Configuration {
           this.webchat = Webchat.assign(value)
         } else if (key === 'whatsappWidget') {
           this.whatsapp = WhatsApp.assign(value)
+        } else if (key === 'push') {
+          this.push = Push.assign(value)
         } else {
           this[key] = value
         }
