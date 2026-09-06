@@ -175,9 +175,3 @@ export declare class Cookies {
 }
 
 export default Hellotext
-
-// Declare the CSS module
-declare module '@hellotext/hellotext/styles/index.css' {
-  const styles: string
-  export default styles
-}
