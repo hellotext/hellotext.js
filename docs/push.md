@@ -178,6 +178,70 @@ if (Hellotext.push) {
 }
 ```
 
+## Show a Smart Alert
+
+Enable the Smart Alert playbook in Hellotext and configure its sections. After initializing
+the SDK, show the section that matches the current page:
+
+```js
+await Hellotext.alert?.show('homepage')
+// On a collection page: 'product_collection'
+// On a product page: 'product_details'
+```
+
+Use the standard SDK entry point, which registers the alert's Stimulus controller. The SDK
+uses the HTML, appearance, and enabled section content from your playbook. It does not
+automatically detect the page type. `show` waits for the stylesheet, controller, and existing
+Push subscription, and returns whether it displayed the alert. A disabled or unknown section
+is not displayed. `Hellotext.alert` is unavailable when the playbook or Push is disabled,
+or when the browser does not support Push.
+
+Clicking the primary action requests browser notification permission and subscribes through
+`Hellotext.push`. Visitors who already subscribed or denied browser permission are not prompted.
+
+Clicking “Not now” hides all sections for 7 days after the first dismissal, then for 30 days
+after every subsequent dismissal. This history is stored in the browser for that business
+and website, and survives navigation and later visits. If browser storage is unavailable,
+the cooldown lasts only for the current page.
+
+Pass options to override the text for one call or bypass an existing dismissal cooldown:
+
+```js
+await Hellotext.alert?.show('product_details', {
+  force: true,
+  title: 'Interested in this product?',
+  description: 'Get notified when it returns.',
+  primaryAction: 'Notify me',
+  secondaryAction: 'Maybe later',
+})
+```
+
+`force` bypasses only the dismissal cooldown and does not reset its history. Disabled or
+unknown sections, existing subscriptions, and denied browser permission still prevent showing.
+If the visitor dismisses the forced alert, the normal dismissal count and cooldown advance.
+
+Text overrides apply only to that call. Omitted fields use the section defaults, and later
+calls without overrides use the saved copy again. `primaryAction` and `secondaryAction` change
+the button labels; the buttons still subscribe and dismiss. All overrides are rendered as text.
+
+For client-side navigation to a page with no alert, use `Hellotext.alert?.hide()`. Programmatic
+hiding does not count as a dismissal or extend the cooldown.
+
+Listen for alert activity with `Hellotext.on`. Each event receives `{ kind }`, identifying
+the section involved:
+
+- `alert:shown`: a section was displayed by a successful `show` call, including forced calls.
+- `alert:dismissed`: the visitor clicked the secondary action and started a cooldown.
+  Programmatic hiding, cleanup, and dismissals received from another tab do not emit it.
+- `alert:accepted`: the visitor clicked the primary action. This fires before the browser
+  permission result or subscription completion, so it does not confirm a subscription.
+
+```js
+Hellotext.on('alert:accepted', ({ kind }) => {
+  console.log('Alert accepted in', kind)
+})
+```
+
 ## Disable Push on a page
 
 If you do not want to enable Push for a particular page, pass `push: false` when initializing Hellotext:

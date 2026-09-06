@@ -27,7 +27,8 @@ const stylesheetLoadTimeout = 10000
  * @property {String} [locale] - Default dashboard locale for the business.
  * @property {String} [style_url] - Stylesheet URL to inject for dashboard-managed surfaces.
  * @property {BusinessWebchat|null} [webchat] - Dashboard webchat defaults.
- * @property {{public_key: String}|null} [push] - Public VAPID key for push subscriptions.
+ * @property {{public_key: String}|null} [push] - Push public key.
+ * @property {{html: String}|null} [alert] - Smart Alert HTML.
  * @property {String|Array<String>} [whitelist] - Domain whitelist configuration.
  * @property {String} [subscription] - Current business subscription tier.
  */

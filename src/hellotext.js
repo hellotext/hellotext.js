@@ -2,6 +2,7 @@ import { Configuration, Event } from './core'
 
 import API, { Response, keepaliveFor } from './api'
 import {
+  Alert,
   Business,
   Fingerprint,
   FormCollection,
@@ -23,6 +24,7 @@ class Hellotext {
   static webchat
   static whatsapp
   static push
+  static alert
 
   /**
    * initialize the module.
@@ -30,10 +32,13 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config = {}) {
+    this.alert?.dispose()
+    this.alert = null
     this.push?.dispose()
     this.push = null
 
-    this.business = new Business(business)
+    const businessContext = new Business(business)
+    this.business = businessContext
     this.page = new Page()
 
     Configuration.assign({ push: {}, ...config })
@@ -43,7 +48,8 @@ class Hellotext {
 
     this.query = new Query()
 
-    const businessData = await this.business.hydrate()
+    const businessData = await businessContext.hydrate()
+    if (this.business !== businessContext) return
 
     if (config.push !== false && businessData?.push?.public_key && Push.supported) {
       this.push = new Push(businessData.push)
@@ -51,6 +57,10 @@ class Hellotext {
       this.push.initialize().catch(error => {
         console.warn('Hellotext Push initialization failed:', error)
       })
+
+      if (businessData.alert?.html) {
+        this.alert = new Alert(businessData.alert, businessContext, this.push)
+      }
     }
 
     const webchatConfig =
