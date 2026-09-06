@@ -1,12 +1,90 @@
 # Set up Push notifications
 
+Use this guide to add Subscribe and Unsubscribe actions to your website. You will publish a notification service worker, pass its URL when initializing Hellotext, and connect your own buttons to the Push methods.
+
 ## 1. Publish your service worker
 
-Serve your notification service worker from your HTTPS website, for example at `/hellotext-sw.js`.
+Create a JavaScript file on the same HTTPS website as your pages. For example, if your website is `https://store.example.com`, publish the file at `https://store.example.com/hellotext-sw.js`.
 
-## 2. Initialize Hellotext
+Copy the following code into that file. It displays Hellotext notifications, opens the notification's destination when clicked, and allows updated versions of the worker to activate while visitors still have your website open.
 
-Replace `BUSINESS_ID` with your Hellotext business ID and `serviceWorkerUrl` with your worker's path:
+If you already maintain a service worker for your website, add these handlers to that file and use its URL in the next step.
+
+```js
+self.addEventListener('install', event => {
+  event.waitUntil(self.skipWaiting())
+})
+
+self.addEventListener('push', event => {
+  if (!event.data) return
+
+  let payload
+
+  try {
+    payload = event.data.json()
+  } catch (error) {
+    return
+  }
+
+  if (
+    !payload ||
+    payload.source !== 'hellotext' ||
+    typeof payload.title !== 'string' ||
+    !payload.title
+  ) {
+    return
+  }
+
+  const options = payload.options || {}
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      ...options,
+      data: { ...options.data, source: 'hellotext' },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', event => {
+  const { data } = event.notification
+
+  if (!data || data.source !== 'hellotext') return
+
+  event.notification.close()
+
+  let url
+
+  try {
+    url = new URL(data.url || '/', self.location.origin)
+  } catch (error) {
+    return
+  }
+
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      const client = clients.find(windowClient => windowClient.url === url.href)
+
+      return client ? client.focus() : self.clients.openWindow(url.href)
+    }),
+  )
+})
+```
+
+Make sure the URL serves the JavaScript file with a JavaScript content type, such as `text/javascript`. Opening `/hellotext-sw.js` directly should show the script, rather than your website's HTML page or a not-found page.
+
+### Why the installation handler matters
+
+A returning visitor may already have an older version of your service worker installed. Replacing the file on your website does not immediately replace the worker in that visitor's browser. Normally, an updated worker waits until the older worker is no longer controlling any open pages before it takes over.
+
+The `install` handler above calls `self.skipWaiting()` to allow the updated worker to take over without asking the visitor to close their tabs. Keep that handler when you customize the example. It is especially useful when you add notification handling to a worker that visitors already have installed.
+
+When you provide `serviceWorkerUrl`, Hellotext checks for an update and waits for the replacement worker to activate before completing the subscription setup. This also applies when you change the contents of the worker file but keep its URL the same. `skipWaiting()` allows that activation to happen during the current visit; it does not skip downloading or installing the worker.
+
+## 2. Initialize Hellotext with your worker's URL
+
+Initialize Hellotext before connecting your subscription buttons. Replace `BUSINESS_ID` with your Hellotext business ID and `/hellotext-sw.js` with the path of the file you published:
 
 ```js
 await Hellotext.initialize('BUSINESS_ID', {
@@ -16,40 +94,88 @@ await Hellotext.initialize('BUSINESS_ID', {
 })
 ```
 
-If your website already registers this worker, omit `serviceWorkerUrl`.
+Pass the URL of the worker file itself. You can use a path beginning with `/`, as shown above, or an absolute URL on the same origin as your page.
 
-To select a specific Push channel, also pass `channelId: 'PUSH_CHANNEL_ID'` inside `push`. Otherwise, leave it out.
+### If your website already registers the worker
 
-## 3. Connect your subscribe button
+You can omit `serviceWorkerUrl` if your website already registers and activates a service worker containing the notification handlers above for the current page:
 
-Call this from your subscribe button's click handler:
+```js
+await Hellotext.initialize('BUSINESS_ID')
+```
+
+In that setup, your existing registration code is responsible for updating and activating the worker. Keep the `install` handler in the worker so an older version can be replaced while the website remains open.
+
+### Optional channel selection
+
+If you need to choose a specific Push channel, pass its ID as `channelId` alongside the worker URL:
+
+```js
+await Hellotext.initialize('BUSINESS_ID', {
+  push: {
+    serviceWorkerUrl: '/hellotext-sw.js',
+    channelId: 'PUSH_CHANNEL_ID',
+  },
+})
+```
+
+Leave `channelId` out to use the default channel selection.
+
+| Option                  | What to pass                                                                       | When to omit it                                                               |
+| ----------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `push.serviceWorkerUrl` | The URL of your published notification service worker, such as `/hellotext-sw.js`. | Your website already registers and activates the worker for the current page. |
+| `push.channelId`        | The ID of the Push channel you want to use.                                        | You do not need to choose a specific channel.                                 |
+
+## 3. Connect your Subscribe button
+
+After initialization, check whether `Hellotext.push` is available before showing or enabling your Push controls. If it is unavailable, hide or disable those controls.
+
+Run the following code from your Subscribe button's click handler. The call may wait for the worker to become ready, so show the subscribed confirmation only after `response.succeeded` is true:
 
 ```js
 if (Hellotext.push) {
-  const response = await Hellotext.push.subscribe()
-  if (response?.succeeded) {
-    // Show your subscribed confirmation.
+  try {
+    const response = await Hellotext.push.subscribe()
+
+    if (response?.succeeded) {
+      // Show your subscribed confirmation.
+    } else if (response?.failed) {
+      // Show an error and let the visitor try again.
+    }
+  } catch (error) {
+    // Show an error and let the visitor try again.
   }
 }
 ```
 
-## 4. Connect your unsubscribe button
+The same method can be called when the visitor already has a Hellotext subscription; you do not need a separate "subscribe again" implementation.
 
-Call this from your unsubscribe button's click handler:
+## 4. Connect your Unsubscribe button
+
+Run the following code from your Unsubscribe button's click handler. Wait for the result before showing confirmation. A `null` result means there was no subscription to remove and can be treated as already unsubscribed:
 
 ```js
 if (Hellotext.push) {
-  const response = await Hellotext.push.unsubscribe()
-  if (!response || response.succeeded) {
-    // Show your unsubscribed confirmation.
+  try {
+    const response = await Hellotext.push.unsubscribe()
+
+    if (response === null || response?.succeeded) {
+      // Show your unsubscribed confirmation.
+    } else if (response?.failed) {
+      // Show an error and let the visitor try again.
+    }
+  } catch (error) {
+    // Show an error and let the visitor try again.
   }
 }
 ```
 
-Hide or disable both buttons when `Hellotext.push` is unavailable. In each click handler, catch rejected calls and show an error when the call rejects or `response.failed` is true.
+## Disable Push on a page
 
-To turn off Push on a page, initialize with `push: false`:
+If you do not want to enable Push for a particular page, pass `push: false` when initializing Hellotext:
 
 ```js
 await Hellotext.initialize('BUSINESS_ID', { push: false })
 ```
+
+In this configuration, `Hellotext.push` is unavailable. Disabling Push in the page configuration does not unsubscribe a visitor who previously subscribed; use `Hellotext.push.unsubscribe()` while Push is enabled if you want to remove that subscription.

@@ -7,6 +7,7 @@ This library allows you the following,
 - Track events happening on your site to [Hellotext](https://www.hellotext.com) in real-time.
 - Use Hellotext Forms to dynamically collect data from your customers based on your specific business requirements.
 - Use Hellotext Webchat to interact with your customers in real-time.
+- Let visitors subscribe and unsubscribe to browser notifications with [Push notifications](/docs/push.md).
 
 ## Installation
 
@@ -49,7 +50,7 @@ Failing to initialize the class before calling any other method will throw a `No
 
 ## Documentation
 
-Learn how to leverage the library to track events and collect forms.
+Follow these guides to set up tracking, forms, chat widgets, and Push notifications on your website.
 
 - [Understanding Sessions](/docs/sessions.md)
 - [Tracking Events](/docs/tracking.md)
@@ -126,3 +127,4 @@ Hellotext.initialize('HELLOTEXT_BUSINESS_ID', configurationOptions)
 | forms               | An object that controls how Hellotext should control the forms on the page. See [Forms](/docs/forms.md) documentation for more information.                                                     | Object  | { autoMount: true, successMessage: true } |
 | webchat             | An object that overrides the dashboard webchat configuration, or `false` to disable automatic webchat mounting. See [Webchat](/docs/webchat.md).                                                   | Object \| false | Dashboard webchat when configured        |
 | whatsappWidget      | An object that overrides the dashboard WhatsApp widget configuration, or `false` to disable automatic WhatsApp widget mounting.                                                                  | Object \| false | Dashboard WhatsApp widget when configured |
+| push | Configure browser Push with a notification worker URL and an optional channel ID, or pass `false` to disable it. See the [Push setup guide](/docs/push.md) for the worker file and button examples. | Object \| false | Enabled when available |
