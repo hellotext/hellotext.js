@@ -319,11 +319,23 @@ class Push {
   async loadRegistration() {
     if (this.serviceWorkerUrl) {
       const registration = await navigator.serviceWorker.register(this.serviceWorkerUrl)
-      if (registration.active) return registration
+
+      if (registration.active && !registration.installing && !registration.waiting) {
+        // A returning visitor may have an older worker that does not include our Push handlers.
+        // Calling register() with the same URL can return that existing registration without
+        // checking whether the script served at that URL has changed since their last visit.
+        //
+        // If no replacement is already installing or waiting, explicitly check for an update
+        // before treating the active worker as ready. Awaiting update() completes the update
+        // check, but does not wait for a replacement worker to activate. The code below selects
+        // that replacement, if one was found, and waits for its activation before subscribing.
+        await registration.update()
+      }
+
+      const worker = registration.installing || registration.waiting || registration.active
+      if (worker?.state === 'activated') return registration
 
       return new Promise((resolve, reject) => {
-        const worker = registration.installing || registration.waiting
-
         const timeout = setTimeout(
           () => finish(new Error('Push service worker did not become active')),
           10000,

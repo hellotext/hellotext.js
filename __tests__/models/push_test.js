@@ -54,7 +54,8 @@ describe('Push', () => {
       }),
     }
     registration = {
-      active: {},
+      active: { state: 'activated' },
+      update: jest.fn().mockResolvedValue(),
       unregister: jest.fn(),
       pushManager: {
         getSubscription: jest.fn().mockImplementation(async () => storedSubscription),
@@ -239,13 +240,17 @@ describe('Push', () => {
     expect(push.subscribed).toBe(true)
   })
 
-  it('waits for the configured service worker to activate before subscribing', async () => {
+  it.each([
+    ['first installation', 'installing', false],
+    ['replacement installation', 'installing', true],
+    ['waiting replacement', 'waiting', true],
+  ])('waits for activation during %s before subscribing', async (_description, phase, hasActive) => {
     Configuration.push.assign({ serviceWorkerUrl: '/hellotext-worker.js', channelId: 'channel-id' })
     push = new Push({ public_key: publicKey })
     const worker = new EventTarget()
-    worker.state = 'installing'
-    registration.active = null
-    registration.installing = worker
+    worker.state = phase === 'waiting' ? 'installed' : 'installing'
+    if (!hasActive) registration.active = null
+    registration[phase] = worker
 
     const subscribing = push.subscribe()
     await Promise.resolve()
@@ -253,8 +258,10 @@ describe('Push', () => {
 
     expect(navigator.serviceWorker.register).toHaveBeenCalledWith('/hellotext-worker.js')
     expect(registration.pushManager.subscribe).not.toHaveBeenCalled()
+    expect(API.pushIdentities.create).not.toHaveBeenCalled()
 
     worker.state = 'activated'
+    registration[phase] = null
     registration.active = worker
     worker.dispatchEvent(new Event('statechange'))
     await subscribing
@@ -263,6 +270,43 @@ describe('Push', () => {
       subscription: subscriptionData,
       channel_id: 'channel-id',
     })
+  })
+
+  it('checks for an update at the same worker URL and waits for it to activate', async () => {
+    Configuration.push.assign({ serviceWorkerUrl: '/hellotext-worker.js' })
+    push = new Push({ public_key: publicKey })
+    registration.active.scriptURL = new URL('/hellotext-worker.js', window.location.href).href
+    const worker = new EventTarget()
+    worker.scriptURL = registration.active.scriptURL
+    worker.state = 'installing'
+    const update = deferred()
+    registration.update.mockImplementation(async () => {
+      await update.promise
+      registration.installing = worker
+    })
+
+    const subscribing = push.subscribe()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(registration.update).toHaveBeenCalledTimes(1)
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled()
+
+    update.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled()
+    expect(API.pushIdentities.create).not.toHaveBeenCalled()
+
+    worker.state = 'activated'
+    registration.installing = null
+    registration.active = worker
+    worker.dispatchEvent(new Event('statechange'))
+    await subscribing
+
+    expect(registration.pushManager.subscribe).toHaveBeenCalledTimes(1)
+    expect(API.pushIdentities.create).toHaveBeenCalledTimes(1)
   })
 
   it('cancels pending registration retries when disposed', async () => {
