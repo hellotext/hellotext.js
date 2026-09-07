@@ -47,6 +47,7 @@ describe('PopupController display rules', () => {
   }))
 
   beforeEach(() => {
+    window.history.replaceState({}, '', '/')
     jest.spyOn(Hellotext.eventEmitter, 'dispatch').mockImplementation(() => {})
   })
 
@@ -156,5 +157,107 @@ describe('PopupController display rules', () => {
     controller.evaluateDisplay()
 
     expect(element.hidden).toBe(true)
+  })
+
+  describe('SPA navigation', () => {
+    it('re-evaluates page rules after pushState', () => {
+      jest.useFakeTimers()
+      const { element } = buildController({ lanes: [lane(['page.path', 'contains', '/sale'])] })
+
+      controller.connect()
+      expect(element.hidden).toBe(true)
+
+      window.history.pushState({}, '', '/sale')
+      jest.runOnlyPendingTimers()
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('re-evaluates title rules after Turbo renders', () => {
+      jest.useFakeTimers()
+      document.title = 'Home'
+      const { element } = buildController({ lanes: [lane(['page.title', 'contains', 'sale'])] })
+
+      controller.connect()
+      expect(element.hidden).toBe(true)
+
+      document.title = 'Sale'
+      window.dispatchEvent(new Event('turbo:render'))
+      jest.runOnlyPendingTimers()
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it.each(['pushState', 'replaceState'])(
+      're-evaluates title rules after %s even when the URL is unchanged',
+      method => {
+        jest.useFakeTimers()
+        document.title = 'Home'
+        const { element } = buildController({ lanes: [lane(['page.title', 'contains', 'sale'])] })
+
+        controller.connect()
+        expect(element.hidden).toBe(true)
+
+        window.history[method]({}, '', '/')
+        document.title = 'Sale'
+        jest.runOnlyPendingTimers()
+
+        expect(element.hidden).toBe(false)
+      },
+    )
+
+    it('restores history methods and cancels pending navigation work on disconnect', () => {
+      jest.useFakeTimers()
+      const originalPushState = window.history.pushState
+      const originalReplaceState = window.history.replaceState
+      buildController({ lanes: [lane(['page.path', 'contains', '/sale'])] })
+
+      controller.connect()
+      window.history.pushState({}, '', '/sale')
+      controller.disconnect()
+      jest.runOnlyPendingTimers()
+
+      expect(window.history.pushState).toBe(originalPushState)
+      expect(window.history.replaceState).toBe(originalReplaceState)
+      expect(controller.element.hidden).toBe(true)
+    })
+
+    it('keeps a downstream history wrapper functional after disconnect', () => {
+      jest.useFakeTimers()
+      const { element } = buildController({ lanes: [lane(['page.path', 'contains', '/sale'])] })
+
+      controller.connect()
+      const popupPushState = window.history.pushState
+      const downstreamPushState = jest.fn(function (...args) {
+        return popupPushState.apply(this, args)
+      })
+      window.history.pushState = downstreamPushState
+      const evaluateDisplay = jest.spyOn(controller, 'evaluateDisplay')
+
+      controller.disconnect()
+
+      expect(window.history.pushState).toBe(downstreamPushState)
+      expect(() => window.history.pushState({}, '', '/sale')).not.toThrow()
+      jest.runOnlyPendingTimers()
+      expect(downstreamPushState).toHaveBeenCalledTimes(1)
+      expect(evaluateDisplay).not.toHaveBeenCalled()
+      expect(element.hidden).toBe(true)
+    })
+
+    it('restarts time on page after navigation', () => {
+      jest.useFakeTimers()
+      const { element } = buildController({ lanes: [lane(['session.time_on_page', 'at_least', 5])] })
+
+      controller.connect()
+      jest.advanceTimersByTime(4000)
+      window.history.pushState({}, '', '/sale')
+      jest.runOnlyPendingTimers()
+      jest.advanceTimersByTime(2000)
+
+      expect(element.hidden).toBe(true)
+
+      jest.advanceTimersByTime(3000)
+      expect(element.hidden).toBe(false)
+    })
   })
 })

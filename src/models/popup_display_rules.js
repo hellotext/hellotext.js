@@ -15,16 +15,41 @@
 const NEGATIVE_OPERATORS = ['does_not_contain', 'is_not']
 
 const THRESHOLD_FIELDS = ['session.scroll_depth', 'session.time_on_page']
+const STRING_FIELDS = ['page.url', 'page.path', 'page.title', 'session.referrer']
+const THRESHOLD_RANGES = {
+  'session.scroll_depth': [1, 100],
+  'session.time_on_page': [1, 3600],
+}
+const MAX_STRING_VALUE_LENGTH = 512
+const STRING_OPERATORS = [
+  'contains',
+  'does_not_contain',
+  'is',
+  'is_not',
+  'starts_with',
+  'ends_with',
+]
 
 export class PopupDisplayRules {
   constructor(payload) {
-    this.lanes = (payload && Array.isArray(payload.lanes) ? payload.lanes : []).map(lane =>
-      Array.isArray(lane) ? lane : [],
-    )
+    // An explicit empty lane list means universal eligibility. Anything else that does
+    // not conform to the public payload shape must fail closed: treating a missing or
+    // malformed `lanes` property as the same thing would expose a popup unexpectedly.
+    this.valid =
+      payload !== null &&
+      typeof payload === 'object' &&
+      !Array.isArray(payload) &&
+      Array.isArray(payload.lanes)
+    this.lanes = (this.valid ? payload.lanes : []).map(lane => {
+      // An empty lane is intentional: it means the server already satisfied every
+      // visitor-only condition. Any other malformed lane must fail closed instead of
+      // accidentally becoming that universal match.
+      return Array.isArray(lane) ? lane : [null]
+    })
   }
 
   get empty() {
-    return this.lanes.length === 0
+    return this.valid && this.lanes.length === 0
   }
 
   /**
@@ -32,16 +57,27 @@ export class PopupDisplayRules {
    * knows it has to keep re-checking instead of deciding once on connect.
    */
   get needsMeasurements() {
-    return this.lanes.some(lane => lane.some(condition => THRESHOLD_FIELDS.includes(condition.field)))
+    return this.lanes.some(lane =>
+      lane.some(condition => THRESHOLD_FIELDS.includes(condition?.field)),
+    )
+  }
+
+  get needsNavigation() {
+    return this.lanes.some(lane => lane.some(condition => this.validCondition(condition)))
   }
 
   matches(context) {
+    if (!this.valid) return false
     if (this.empty) return true
 
-    return this.lanes.some(lane => lane.every(condition => this.conditionMatches(condition, context)))
+    return this.lanes.some(lane =>
+      lane.every(condition => this.conditionMatches(condition, context)),
+    )
   }
 
   conditionMatches(condition, context) {
+    if (!this.validCondition(condition)) return false
+
     const actual = this.actualValue(condition.field, context)
 
     if (THRESHOLD_FIELDS.includes(condition.field)) {
@@ -70,6 +106,38 @@ export class PopupDisplayRules {
     }
   }
 
+  validCondition(condition) {
+    if (!condition || typeof condition !== 'object' || !Array.isArray(condition.values))
+      return false
+
+    if (THRESHOLD_FIELDS.includes(condition.field)) {
+      const value = condition.values[0]
+      const numericValue = Number(value)
+      const [minimum, maximum] = THRESHOLD_RANGES[condition.field]
+
+      return (
+        condition.operator === 'at_least' &&
+        condition.values.length === 1 &&
+        (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) &&
+        Number.isInteger(numericValue) &&
+        numericValue >= minimum &&
+        numericValue <= maximum
+      )
+    }
+
+    return (
+      STRING_FIELDS.includes(condition.field) &&
+      STRING_OPERATORS.includes(condition.operator) &&
+      condition.values.length > 0 &&
+      condition.values.every(
+        value =>
+          typeof value === 'string' &&
+          value.trim().length > 0 &&
+          value.length <= MAX_STRING_VALUE_LENGTH,
+      )
+    )
+  }
+
   thresholdMatches(condition, actual) {
     if (actual === undefined || actual === null || actual === '') return false
 
@@ -87,7 +155,7 @@ export class PopupDisplayRules {
     if (actual === undefined || actual === null) return negative
 
     const value = String(actual).toLowerCase()
-    const hit = (condition.values || []).some(expected =>
+    const hit = condition.values.some(expected =>
       this.compare(condition.operator, value, String(expected).toLowerCase()),
     )
 

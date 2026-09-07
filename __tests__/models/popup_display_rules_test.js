@@ -11,8 +11,14 @@ const page = context => ({ url: 'https://shop.test', path: '/', title: '', ...co
 describe('PopupDisplayRules', () => {
   it('matches everything when the payload carries no lanes', () => {
     expect(new PopupDisplayRules({ lanes: [] }).matches(page())).toBe(true)
-    expect(new PopupDisplayRules(undefined).matches(page())).toBe(true)
-    expect(new PopupDisplayRules({}).matches(page())).toBe(true)
+  })
+
+  it('fails closed unless the payload explicitly supplies a lanes array', () => {
+    expect(new PopupDisplayRules(undefined).matches(page())).toBe(false)
+    expect(new PopupDisplayRules(null).matches(page())).toBe(false)
+    expect(new PopupDisplayRules({}).matches(page())).toBe(false)
+    expect(new PopupDisplayRules({ lanes: null }).matches(page())).toBe(false)
+    expect(new PopupDisplayRules({ lanes: {} }).matches(page())).toBe(false)
   })
 
   it('requires every condition inside one lane', () => {
@@ -93,5 +99,42 @@ describe('PopupDisplayRules', () => {
 
   it('ignores a field it does not know instead of throwing', () => {
     expect(rules([['profile.country', 'is', 'uy']]).matches(page())).toBe(false)
+  })
+
+  it('fails closed for malformed lanes and conditions', () => {
+    expect(new PopupDisplayRules({ lanes: [null] }).matches(page())).toBe(false)
+    expect(new PopupDisplayRules({ lanes: [[null]] }).matches(page())).toBe(false)
+    expect(
+      new PopupDisplayRules({
+        lanes: [[{ field: 'page.path', operator: 'does_not_contain', values: [] }]],
+      }).matches(page()),
+    ).toBe(false)
+  })
+
+  it('does not throw for malformed payloads', () => {
+    expect(() => new PopupDisplayRules({ lanes: [{ field: 'page.path' }] }).matches(page())).not.toThrow()
+  })
+
+  it('fails closed for values outside the catalog bounds', () => {
+    expect(
+      new PopupDisplayRules({
+        lanes: [[{ field: 'session.scroll_depth', operator: 'at_least', values: [''] }]],
+      }).matches(page({ scrollDepth: 100 })),
+    ).toBe(false)
+    expect(
+      new PopupDisplayRules({
+        lanes: [[{ field: 'session.time_on_page', operator: 'at_least', values: [3601] }]],
+      }).matches(page({ timeOnPage: 3601 })),
+    ).toBe(false)
+    expect(
+      new PopupDisplayRules({
+        lanes: [[{ field: 'page.path', operator: 'contains', values: [' '] }]],
+      }).matches(page()),
+    ).toBe(false)
+    expect(
+      new PopupDisplayRules({
+        lanes: [[{ field: 'page.path', operator: 'contains', values: ['a'.repeat(513)] }]],
+      }).matches(page()),
+    ).toBe(false)
   })
 })

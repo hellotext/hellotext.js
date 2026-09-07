@@ -89,6 +89,8 @@ describe('PopupController', () => {
     controller.captureValue = { capture_id: 'capture-id' }
     controller.deviceValue = 'all'
     controller.idValue = id
+    // Before initialize(): that is where the controller builds its display rules.
+    controller.rulesValue = { lanes: [] }
     controller.initialize()
 
     return {

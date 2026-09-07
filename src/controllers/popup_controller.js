@@ -107,7 +107,7 @@ export default class extends Controller {
     this.stepIndex = 0
     this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
     this.rules = new PopupDisplayRules(this.rulesValue)
-    this.connectedAt = Date.now()
+    this.connectedAt = this.pageStartedAt()
   }
 
   /**
@@ -119,6 +119,7 @@ export default class extends Controller {
    */
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
+    this.watchNavigation()
     this.evaluateDisplay()
     this.watchMeasurements()
   }
@@ -131,6 +132,107 @@ export default class extends Controller {
   disconnect() {
     this.stopResendCooldown()
     this.stopWatchingMeasurements()
+    this.stopWatchingNavigation()
+  }
+
+  pageStartedAt() {
+    const timeOrigin = window.performance?.timeOrigin
+
+    return Number.isFinite(timeOrigin) && timeOrigin <= Date.now() ? timeOrigin : Date.now()
+  }
+
+  /**
+   * Merchant sites can be SPAs. Re-check client-side page/session rules whenever their
+   * route changes, including History API navigation which does not emit a browser event.
+   * The wrapper is restored only when it is still ours, so a later integration is never
+   * overwritten during cleanup.
+   */
+  watchNavigation() {
+    if (this.displayed || !this.rules.needsNavigation || this.onNavigation) return
+
+    this.lastLocation = window.location.href
+    this.onNavigation = () => this.scheduleNavigationEvaluation()
+    this.onTurboNavigation = () => this.scheduleNavigationEvaluation(true)
+
+    window.addEventListener('popstate', this.onNavigation)
+    window.addEventListener('hashchange', this.onNavigation)
+    window.addEventListener('turbo:load', this.onTurboNavigation)
+    window.addEventListener('turbo:render', this.onTurboNavigation)
+
+    const originalPushState = window.history.pushState
+    const originalReplaceState = window.history.replaceState
+    let navigationActive = true
+
+    this.originalPushState = originalPushState
+    this.originalReplaceState = originalReplaceState
+    this.stopNavigationWrapper = () => {
+      navigationActive = false
+    }
+    this.patchedPushState = (...args) => {
+      const result = originalPushState.apply(window.history, args)
+
+      // A SPA can update document.title without changing the URL. History calls are an
+      // explicit navigation boundary, so they must still re-evaluate title rules.
+      if (navigationActive) this.scheduleNavigationEvaluation(true)
+      return result
+    }
+    this.patchedReplaceState = (...args) => {
+      const result = originalReplaceState.apply(window.history, args)
+
+      if (navigationActive) this.scheduleNavigationEvaluation(true)
+      return result
+    }
+    window.history.pushState = this.patchedPushState
+    window.history.replaceState = this.patchedReplaceState
+  }
+
+  scheduleNavigationEvaluation(force = false) {
+    this.navigationEvaluationForced ||= force
+    if (this.navigationTimer) return
+
+    this.navigationTimer = setTimeout(() => {
+      this.navigationTimer = undefined
+
+      const location = window.location.href
+      if (!this.navigationEvaluationForced && location === this.lastLocation) return
+
+      this.navigationEvaluationForced = false
+      this.lastLocation = location
+      this.connectedAt = Date.now()
+      this.evaluateDisplay()
+    })
+  }
+
+  stopWatchingNavigation() {
+    this.stopNavigationWrapper?.()
+    this.stopNavigationWrapper = undefined
+
+    if (this.onNavigation) {
+      window.removeEventListener('popstate', this.onNavigation)
+      window.removeEventListener('hashchange', this.onNavigation)
+      this.onNavigation = undefined
+    }
+    if (this.onTurboNavigation) {
+      window.removeEventListener('turbo:load', this.onTurboNavigation)
+      window.removeEventListener('turbo:render', this.onTurboNavigation)
+      this.onTurboNavigation = undefined
+    }
+    if (this.navigationTimer) {
+      clearTimeout(this.navigationTimer)
+      this.navigationTimer = undefined
+    }
+    if (window.history.pushState === this.patchedPushState) {
+      window.history.pushState = this.originalPushState
+    }
+    if (window.history.replaceState === this.patchedReplaceState) {
+      window.history.replaceState = this.originalReplaceState
+    }
+
+    this.patchedPushState = undefined
+    this.patchedReplaceState = undefined
+    this.originalPushState = undefined
+    this.originalReplaceState = undefined
+    this.navigationEvaluationForced = false
   }
 
   /**
@@ -308,6 +410,7 @@ export default class extends Controller {
     // recorded as having been shown.
     this.displayed = true
     this.stopWatchingMeasurements()
+    this.stopWatchingNavigation()
     this.showInitialState()
   }
 
