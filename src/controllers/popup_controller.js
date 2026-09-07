@@ -2,6 +2,7 @@ import { Controller } from '@hotwired/stimulus'
 
 import PopupsAPI from '../api/popups'
 import Hellotext from '../hellotext'
+import { PopupDisplayRules } from '../models/popup_display_rules'
 
 /**
  * An input rendered by the popup's server-side field components.
@@ -70,6 +71,7 @@ import Hellotext from '../hellotext'
  * - device: Popup device targeting.
  * - hasBubble: Whether the popup starts from a bubble.
  * - id: Public popup identifier.
+ * - rules: Page-scoped display rules that survived server-side evaluation.
  */
 export default class extends Controller {
   static targets = [
@@ -91,6 +93,7 @@ export default class extends Controller {
     device: String,
     hasBubble: Boolean,
     id: String,
+    rules: Object,
   }
 
   /**
@@ -103,6 +106,8 @@ export default class extends Controller {
   initialize() {
     this.stepIndex = 0
     this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
+    this.rules = new PopupDisplayRules(this.rulesValue)
+    this.connectedAt = Date.now()
   }
 
   /**
@@ -115,6 +120,7 @@ export default class extends Controller {
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
     this.evaluateDisplay()
+    this.watchMeasurements()
   }
 
   /**
@@ -124,6 +130,32 @@ export default class extends Controller {
    */
   disconnect() {
     this.stopResendCooldown()
+    this.stopWatchingMeasurements()
+  }
+
+  /**
+   * Scroll depth and time on page only grow, so a popup gated on them cannot be decided
+   * once on connect. Watching starts only when a rule actually needs a measurement, so a
+   * popup without one adds no listeners and no timer.
+   */
+  watchMeasurements() {
+    if (this.displayed || !this.rules.needsMeasurements) return
+
+    this.onScroll = () => this.evaluateDisplay()
+    window.addEventListener('scroll', this.onScroll, { passive: true })
+    this.measurementTimer = setInterval(() => this.evaluateDisplay(), 1000)
+  }
+
+  stopWatchingMeasurements() {
+    if (this.onScroll) {
+      window.removeEventListener('scroll', this.onScroll)
+      this.onScroll = undefined
+    }
+
+    if (this.measurementTimer) {
+      clearInterval(this.measurementTimer)
+      this.measurementTimer = undefined
+    }
   }
 
   /**
@@ -261,12 +293,48 @@ export default class extends Controller {
    * @returns {void}
    */
   evaluateDisplay() {
-    if (this.dismissed || !this.matchesDevice()) {
+    if (this.dismissed || this.displayed || !this.matchesDevice()) {
       this.element.hidden = true
       return
     }
 
+    if (!this.rules.matches(this.pageContext())) {
+      this.element.hidden = true
+      return
+    }
+
+    // A popup counts as shown only once it actually displays. Rules matching is not
+    // enough: a visitor who never scrolls far enough never sees it, and must not be
+    // recorded as having been shown.
+    this.displayed = true
+    this.stopWatchingMeasurements()
     this.showInitialState()
+  }
+
+  pageContext() {
+    return {
+      url: window.location.href,
+      path: window.location.pathname,
+      title: document.title,
+      referrer: document.referrer || undefined,
+      scrollDepth: this.scrollDepth(),
+      timeOnPage: Math.floor((Date.now() - this.connectedAt) / 1000),
+    }
+  }
+
+  /**
+   * Percentage of the document the visitor has reached, counting the viewport itself. A
+   * page shorter than the viewport has nothing to scroll, so it reads as fully seen rather
+   * than dividing by zero.
+   */
+  scrollDepth() {
+    const scrollable = document.documentElement.scrollHeight - window.innerHeight
+
+    if (scrollable <= 0) return 100
+
+    const scrolled = (window.scrollY / scrollable) * 100
+
+    return Math.max(0, Math.min(100, Math.round(scrolled)))
   }
 
   /**
