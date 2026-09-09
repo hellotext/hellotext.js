@@ -120,6 +120,7 @@ export default class extends Controller {
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
     this.watchNavigation()
+    this.watchActivities()
     this.evaluateDisplay()
     this.watchMeasurements()
   }
@@ -133,6 +134,7 @@ export default class extends Controller {
     this.stopResendCooldown()
     this.stopWatchingMeasurements()
     this.stopWatchingNavigation()
+    this.stopWatchingActivities()
   }
 
   pageStartedAt() {
@@ -258,6 +260,20 @@ export default class extends Controller {
       clearInterval(this.measurementTimer)
       this.measurementTimer = undefined
     }
+  }
+
+  watchActivities() {
+    if (this.displayed || !this.rules.needsActivities || this.onActivity) return
+
+    this.onActivity = () => this.evaluateDisplay()
+    Hellotext.on('activity:occurred', this.onActivity)
+  }
+
+  stopWatchingActivities() {
+    if (!this.onActivity) return
+
+    Hellotext.removeEventListener('activity:occurred', this.onActivity)
+    this.onActivity = undefined
   }
 
   /**
@@ -411,6 +427,7 @@ export default class extends Controller {
     this.displayed = true
     this.stopWatchingMeasurements()
     this.stopWatchingNavigation()
+    this.stopWatchingActivities()
     this.showInitialState()
   }
 
@@ -422,6 +439,7 @@ export default class extends Controller {
       referrer: document.referrer || undefined,
       scrollDepth: this.scrollDepth(),
       timeOnPage: Math.floor((Date.now() - this.connectedAt) / 1000),
+      activities: Hellotext.activities,
     }
   }
 

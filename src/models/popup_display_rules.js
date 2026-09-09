@@ -16,6 +16,12 @@ const NEGATIVE_OPERATORS = ['does_not_contain', 'is_not']
 
 const THRESHOLD_FIELDS = ['session.scroll_depth', 'session.time_on_page']
 const STRING_FIELDS = ['page.url', 'page.path', 'page.title', 'session.referrer']
+const EVENT_FIELDS = [
+  'activity.product_viewed',
+  'activity.cart_added',
+  'activity.purchase_completed',
+  'activity.form_completed',
+]
 const THRESHOLD_RANGES = {
   'session.scroll_depth': [1, 100],
   'session.time_on_page': [1, 3600],
@@ -66,6 +72,10 @@ export class PopupDisplayRules {
     return this.lanes.some(lane => lane.some(condition => this.validCondition(condition)))
   }
 
+  get needsActivities() {
+    return this.lanes.some(lane => lane.some(condition => EVENT_FIELDS.includes(condition?.field)))
+  }
+
   matches(context) {
     if (!this.valid) return false
     if (this.empty) return true
@@ -77,6 +87,13 @@ export class PopupDisplayRules {
 
   conditionMatches(condition, context) {
     if (!this.validCondition(condition)) return false
+
+    if (EVENT_FIELDS.includes(condition.field)) {
+      return (
+        context.activities?.has?.(condition.field) ||
+        context.activities?.includes?.(condition.field)
+      )
+    }
 
     const actual = this.actualValue(condition.field, context)
 
@@ -123,6 +140,10 @@ export class PopupDisplayRules {
         numericValue >= minimum &&
         numericValue <= maximum
       )
+    }
+
+    if (EVENT_FIELDS.includes(condition.field)) {
+      return condition.operator === 'occurred' && condition.values.length === 0
     }
 
     return (

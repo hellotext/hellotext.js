@@ -2,7 +2,9 @@ import { PopupDisplayRules } from '../../src/models/popup_display_rules'
 
 function rules(...lanes) {
   return new PopupDisplayRules({
-    lanes: lanes.map(lane => lane.map(([field, operator, values]) => ({ field, operator, values: [].concat(values) }))),
+    lanes: lanes.map(lane =>
+      lane.map(([field, operator, values]) => ({ field, operator, values: [].concat(values) })),
+    ),
   })
 }
 
@@ -22,14 +24,20 @@ describe('PopupDisplayRules', () => {
   })
 
   it('requires every condition inside one lane', () => {
-    const definition = rules([['page.path', 'contains', '/sale'], ['page.title', 'contains', 'shoes']])
+    const definition = rules([
+      ['page.path', 'contains', '/sale'],
+      ['page.title', 'contains', 'shoes'],
+    ])
 
     expect(definition.matches(page({ path: '/sale/shoes', title: 'Running shoes' }))).toBe(true)
     expect(definition.matches(page({ path: '/sale/shoes', title: 'Running hats' }))).toBe(false)
   })
 
   it('matches when any lane matches', () => {
-    const definition = rules([['page.path', 'contains', '/sale']], [['page.path', 'contains', '/outlet']])
+    const definition = rules(
+      [['page.path', 'contains', '/sale']],
+      [['page.path', 'contains', '/outlet']],
+    )
 
     expect(definition.matches(page({ path: '/outlet/new' }))).toBe(true)
     expect(definition.matches(page({ path: '/blog' }))).toBe(false)
@@ -43,12 +51,18 @@ describe('PopupDisplayRules', () => {
   })
 
   it('compares strings case-insensitively', () => {
-    expect(rules([['page.title', 'contains', 'SHOES']]).matches(page({ title: 'Running shoes' }))).toBe(true)
+    expect(
+      rules([['page.title', 'contains', 'SHOES']]).matches(page({ title: 'Running shoes' })),
+    ).toBe(true)
   })
 
   it('supports the prefix and suffix operators', () => {
-    expect(rules([['page.path', 'starts_with', '/sa']]).matches(page({ path: '/sale' }))).toBe(true)
-    expect(rules([['page.path', 'ends_with', 'le']]).matches(page({ path: '/sale' }))).toBe(true)
+    expect(rules([['page.path', 'starts_with', '/sa']]).matches(page({ path: '/sale' }))).toBe(
+      true,
+    )
+    expect(rules([['page.path', 'ends_with', 'le']]).matches(page({ path: '/sale' }))).toBe(
+      true,
+    )
     expect(rules([['page.path', 'is', '/sale']]).matches(page({ path: '/sale' }))).toBe(true)
   })
 
@@ -91,6 +105,31 @@ describe('PopupDisplayRules', () => {
     })
   })
 
+  describe('activity conditions', () => {
+    it('matches a supported activity observed in the current visit', () => {
+      const definition = rules([['activity.product_viewed', 'occurred', []]])
+
+      expect(
+        definition.matches(page({ activities: new Set(['activity.product_viewed']) })),
+      ).toBe(true)
+      expect(definition.matches(page({ activities: new Set() }))).toBe(false)
+      expect(definition.needsActivities).toBe(true)
+    })
+
+    it('fails closed for values or operators outside the event contract', () => {
+      expect(
+        rules([['activity.product_viewed', 'occurred', ['once']]]).matches(
+          page({ activities: new Set(['activity.product_viewed']) }),
+        ),
+      ).toBe(false)
+      expect(
+        rules([['activity.product_viewed', 'is', []]]).matches(
+          page({ activities: new Set(['activity.product_viewed']) }),
+        ),
+      ).toBe(false)
+    })
+  })
+
   // The server strips visitor conditions after deciding them, so a lane can arrive empty.
   // An empty lane is satisfied and the popup displays.
   it('treats a lane emptied by server-side evaluation as satisfied', () => {
@@ -112,7 +151,9 @@ describe('PopupDisplayRules', () => {
   })
 
   it('does not throw for malformed payloads', () => {
-    expect(() => new PopupDisplayRules({ lanes: [{ field: 'page.path' }] }).matches(page())).not.toThrow()
+    expect(() =>
+      new PopupDisplayRules({ lanes: [{ field: 'page.path' }] }).matches(page()),
+    ).not.toThrow()
   })
 
   it('fails closed for values outside the catalog bounds', () => {

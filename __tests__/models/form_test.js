@@ -108,6 +108,15 @@ describe('markAsCompleted', () => {
     form.markAsCompleted()
     expect(emit).toHaveBeenCalled()
   })
+
+  it('records a form activity for popup display rules', () => {
+    const form = new Form({ id: 1 })
+    const recordActivity = jest.spyOn(Hellotext, 'recordActivity')
+
+    form.markAsCompleted()
+
+    expect(recordActivity).toHaveBeenCalledWith('form.completed')
+  })
 })
 
 describe('localeAuthKey', () => {

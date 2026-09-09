@@ -457,6 +457,8 @@ describe("when the class is initialized successfully", () => {
     });
 
     describe("when tracking events", () => {
+      beforeEach(() => Hellotext.activities.clear())
+
       it("success attribute is true when response from the server is received successfully", async () => {
         global.fetch = jest.fn().mockResolvedValue({
           json: jest.fn().mockResolvedValue({received: "success"}),
@@ -468,6 +470,28 @@ describe("when the class is initialized successfully", () => {
         expect(response.succeeded).toEqual(true)
       });
 
+      it("records supported popup activity only after the server accepts it", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("product.viewed")
+
+        expect(Hellotext.activities).toContain('activity.product_viewed')
+      });
+
+      it("records an accepted cart addition for popup activity rules", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("cart.added")
+
+        expect(Hellotext.activities).toContain('activity.cart_added')
+      });
+
       it("success attribute is false when response from the server is rejected", async () => {
         global.fetch = jest.fn().mockResolvedValue({
           json: jest.fn().mockResolvedValue({}),
@@ -477,6 +501,29 @@ describe("when the class is initialized successfully", () => {
         const response = await Hellotext.track("page.viewed")
 
         expect(response.failed).toEqual(true)
+      });
+
+      it("does not record popup activity when tracking is rejected", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({}),
+          status: 422
+        })
+
+        await Hellotext.track("cart.added")
+
+        expect(Hellotext.activities).not.toContain('activity.cart_added')
+      });
+
+      it("maps both supported purchase actions to purchase completed", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("order.placed")
+        await Hellotext.track("product.purchased")
+
+        expect([...Hellotext.activities]).toEqual(['activity.purchase_completed'])
       });
 
       it("includes UTM parameters in the request body", async () => {

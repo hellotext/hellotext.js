@@ -18,8 +18,19 @@ import {
 
 import { NotInitializedError } from './errors'
 
+const ACTIVITY_RULE_FIELDS = {
+  'product.viewed': 'activity.product_viewed',
+  'cart.added': 'activity.cart_added',
+  'order.placed': 'activity.purchase_completed',
+  'product.purchased': 'activity.purchase_completed',
+  'form.completed': 'activity.form_completed',
+}
+
 class Hellotext {
   static eventEmitter = new Event()
+  // Runtime-only evidence for the current visit. It is intentionally not persisted or
+  // hydrated from customer history, so anonymous and identified visitors behave alike.
+  static activities = new Set()
   static forms
   static business
   static popup
@@ -208,7 +219,7 @@ class Hellotext {
 
     delete body.headers
 
-    return await API.events.create({
+    const response = await API.events.create({
       headers,
       body,
       // Track is the SDK's unload-sensitive analytics path. Keepalive belongs
@@ -217,6 +228,18 @@ class Hellotext {
       // stronger request/response or interaction contracts.
       keepalive: keepaliveFor(body),
     })
+
+    if (response.succeeded) this.recordActivity(action)
+
+    return response
+  }
+
+  static recordActivity(action) {
+    const field = ACTIVITY_RULE_FIELDS[action]
+    if (!field) return
+
+    this.activities.add(field)
+    this.eventEmitter.dispatch('activity:occurred', { action, field })
   }
 
   /**

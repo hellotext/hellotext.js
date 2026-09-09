@@ -48,6 +48,7 @@ describe('PopupController display rules', () => {
 
   beforeEach(() => {
     window.history.replaceState({}, '', '/')
+    Hellotext.activities.clear()
     jest.spyOn(Hellotext.eventEmitter, 'dispatch').mockImplementation(() => {})
   })
 
@@ -146,6 +147,34 @@ describe('PopupController display rules', () => {
 
       expect(controller.displayed).toBe(true)
       expect(controller.measurementTimer).toBeUndefined()
+    })
+  })
+
+  describe('current-visit activity', () => {
+    it('re-evaluates when a matching tracked activity occurs', () => {
+      Hellotext.eventEmitter.dispatch.mockRestore()
+      const { element } = buildController({
+        lanes: [lane(['activity.product_viewed', 'occurred', []])],
+      })
+
+      controller.connect()
+      expect(element.hidden).toBe(true)
+
+      Hellotext.recordActivity('product.viewed')
+
+      expect(element.hidden).toBe(false)
+      expect(controller.onActivity).toBeUndefined()
+    })
+
+    it('does not match an unrelated activity from the same visit', () => {
+      const { element } = buildController({
+        lanes: [lane(['activity.cart_added', 'occurred', []])],
+      })
+
+      Hellotext.activities.add('activity.product_viewed')
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
     })
   })
 

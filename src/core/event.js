@@ -12,6 +12,7 @@ export default class Event {
     'alert:shown',
     'alert:dismissed',
     'alert:accepted',
+    'activity:occurred',
     'webchat:mounted',
     'webchat:opened',
     'webchat:closed',
