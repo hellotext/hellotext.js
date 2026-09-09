@@ -378,6 +378,15 @@ describe('MessageController', () => {
       expect(Hellotext.track).not.toHaveBeenCalled()
     })
 
+    it('records the cart activity for popup rules', () => {
+      const recordActivity = jest.spyOn(Hellotext, 'recordActivity').mockImplementation(() => {})
+
+      controller.addToCart({ currentTarget: mockButton })
+
+      expect(recordActivity).toHaveBeenCalledWith('cart.added')
+      recordActivity.mockRestore()
+    })
+
     it('saves the message UTM before dispatching the cart addition', () => {
       const originalPage = Hellotext.page
       const save = jest.fn()

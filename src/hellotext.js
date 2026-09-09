@@ -28,9 +28,11 @@ const ACTIVITY_RULE_FIELDS = {
 
 class Hellotext {
   static eventEmitter = new Event()
-  // Runtime-only evidence for the current visit. It is intentionally not persisted or
-  // hydrated from customer history, so anonymous and identified visitors behave alike.
   static activities = new Set()
+  static pageViews = 1
+  static visitorType = 'new'
+  static visitBusinessId
+  static lastPageUrl
   static forms
   static business
   static popup
@@ -61,6 +63,7 @@ class Hellotext {
 
     Configuration.assign({ push: {}, ...config })
     Session.initialize(this.page)
+    this.initializeVisitSignals(business)
 
     this.forms = new FormCollection()
 
@@ -239,7 +242,83 @@ class Hellotext {
     if (!field) return
 
     this.activities.add(field)
+    this.writeStorage(
+      window.sessionStorage,
+      this.visitStorageKey('activities'),
+      JSON.stringify([...this.activities]),
+    )
     this.eventEmitter.dispatch('activity:occurred', { action, field })
+  }
+
+  static initializeVisitSignals(businessId) {
+    const businessChanged = this.visitBusinessId !== businessId
+    this.visitBusinessId = businessId
+
+    if (businessChanged) {
+      this.activities = new Set(this.readStoredActivities())
+      const storedVisitorType = this.readStorage(
+        window.sessionStorage,
+        this.visitStorageKey('visitor-type'),
+      )
+      this.visitorType = ['new', 'returning'].includes(storedVisitorType)
+        ? storedVisitorType
+        : undefined
+
+      if (!this.visitorType) {
+        this.visitorType = this.readStorage(window.localStorage, this.visitStorageKey('seen'))
+          ? 'returning'
+          : 'new'
+        this.writeStorage(
+          window.sessionStorage,
+          this.visitStorageKey('visitor-type'),
+          this.visitorType,
+        )
+        this.writeStorage(window.localStorage, this.visitStorageKey('seen'), '1')
+      }
+    }
+
+    if (businessChanged || this.lastPageUrl !== window.location.href) this.recordPageView()
+  }
+
+  static recordPageView() {
+    const key = this.visitStorageKey('page-views')
+    const stored = Number(this.readStorage(window.sessionStorage, key))
+    this.pageViews = Number.isInteger(stored) && stored >= 0 ? stored + 1 : 1
+    this.lastPageUrl = window.location.href
+    this.writeStorage(window.sessionStorage, key, String(this.pageViews))
+  }
+
+  static readStoredActivities() {
+    try {
+      const stored = JSON.parse(
+        this.readStorage(window.sessionStorage, this.visitStorageKey('activities')) || '[]',
+      )
+      return Array.isArray(stored)
+        ? stored.filter(field => Object.values(ACTIVITY_RULE_FIELDS).includes(field))
+        : []
+    } catch (_) {
+      return []
+    }
+  }
+
+  static visitStorageKey(name) {
+    return `hellotext:business:${this.visitBusinessId}:${name}`
+  }
+
+  static readStorage(storage, key) {
+    try {
+      return storage?.getItem(key)
+    } catch (_) {
+      return null
+    }
+  }
+
+  static writeStorage(storage, key, value) {
+    try {
+      storage?.setItem(key, value)
+    } catch (_) {
+      // Storage may be unavailable in privacy-restricted browser contexts.
+    }
   }
 
   /**

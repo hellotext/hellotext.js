@@ -41,6 +41,42 @@ afterEach(() => {
   document.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove())
 });
 
+describe('popup visit signals', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    window.sessionStorage.clear()
+    Hellotext.activities = new Set()
+    Hellotext.visitBusinessId = undefined
+    Hellotext.lastPageUrl = undefined
+  })
+
+  it('keeps activities and page counts across page loads in the same visit', () => {
+    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.recordActivity('product.viewed')
+
+    Hellotext.activities = new Set()
+    Hellotext.visitBusinessId = undefined
+    Hellotext.lastPageUrl = undefined
+    Hellotext.initializeVisitSignals('business-id')
+
+    expect(Hellotext.pageViews).toBe(2)
+    expect(Hellotext.visitorType).toBe('new')
+    expect(Hellotext.activities).toContain('activity.product_viewed')
+  })
+
+  it('recognizes a visitor after a new browser session starts', () => {
+    Hellotext.initializeVisitSignals('business-id')
+
+    window.sessionStorage.clear()
+    Hellotext.visitBusinessId = undefined
+    Hellotext.lastPageUrl = undefined
+    Hellotext.initializeVisitSignals('business-id')
+
+    expect(Hellotext.visitorType).toBe('returning')
+    expect(Hellotext.pageViews).toBe(1)
+  })
+})
+
 describe("when trying to call methods before initializing the class", () => {
   it("raises an error when Hellotext.track is called",  () => {
     expect(Hellotext.track("page.viewed")).rejects.toThrowError()

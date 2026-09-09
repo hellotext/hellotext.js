@@ -14,17 +14,36 @@
  */
 const NEGATIVE_OPERATORS = ['does_not_contain', 'is_not']
 
-const THRESHOLD_FIELDS = ['session.scroll_depth', 'session.time_on_page']
-const STRING_FIELDS = ['page.url', 'page.path', 'page.title', 'session.referrer']
+const THRESHOLD_FIELDS = ['session.scroll_depth', 'session.time_on_page', 'session.page_views']
+const STRING_FIELDS = [
+  'page.url',
+  'page.path',
+  'page.title',
+  'session.referrer',
+  'session.language',
+  'session.visitor_type',
+  'session.browser',
+  'session.utm_source',
+  'session.utm_medium',
+  'session.utm_campaign',
+]
 const EVENT_FIELDS = [
   'activity.product_viewed',
   'activity.cart_added',
   'activity.purchase_completed',
   'activity.form_completed',
 ]
+// Text-typed fields whose values come from a fixed list. Kept in step with
+// Popup::DisplayRules::Catalog on the Rails side.
+const CLOSED_STRING_VALUES = {
+  'session.language': ['en', 'es', 'pt', 'fr', 'nl', 'ht'],
+  'session.visitor_type': ['new', 'returning'],
+  'session.browser': ['chrome', 'safari', 'firefox', 'edge'],
+}
 const THRESHOLD_RANGES = {
   'session.scroll_depth': [1, 100],
   'session.time_on_page': [1, 3600],
+  'session.page_views': [1, 1000],
 }
 const MAX_STRING_VALUE_LENGTH = 512
 const STRING_OPERATORS = [
@@ -118,6 +137,20 @@ export class PopupDisplayRules {
         return context.scrollDepth
       case 'session.time_on_page':
         return context.timeOnPage
+      case 'session.page_views':
+        return context.pageViews
+      case 'session.language':
+        return context.language
+      case 'session.visitor_type':
+        return context.visitorType
+      case 'session.browser':
+        return context.browser
+      case 'session.utm_source':
+        return context.utm?.source
+      case 'session.utm_medium':
+        return context.utm?.medium
+      case 'session.utm_campaign':
+        return context.utm?.campaign
       default:
         return undefined
     }
@@ -146,7 +179,7 @@ export class PopupDisplayRules {
       return condition.operator === 'occurred' && condition.values.length === 0
     }
 
-    return (
+    const validStrings =
       STRING_FIELDS.includes(condition.field) &&
       STRING_OPERATORS.includes(condition.operator) &&
       condition.values.length > 0 &&
@@ -156,7 +189,15 @@ export class PopupDisplayRules {
           value.trim().length > 0 &&
           value.length <= MAX_STRING_VALUE_LENGTH,
       )
-    )
+
+    if (!validStrings) return false
+
+    // Closed sets are checked here as well as on the server. A value outside the set could
+    // only come from a tampered payload, and an unknown one must not ride along into an
+    // `is not` and quietly widen who the popup reaches.
+    const allowed = CLOSED_STRING_VALUES[condition.field]
+
+    return !allowed || condition.values.every(value => allowed.includes(value))
   }
 
   thresholdMatches(condition, actual) {

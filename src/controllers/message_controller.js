@@ -55,6 +55,7 @@ export default class extends Controller {
 
     if (this.hasUtmValue) Hellotext.page.utm.save(this.utmValue)
 
+    Hellotext.recordActivity('cart.added')
     Hellotext.eventEmitter.dispatch('cart.added', {
       object_parameters: {
         items: [

@@ -93,6 +93,8 @@ export default class extends Controller {
     device: String,
     hasBubble: Boolean,
     id: String,
+    frequency: String,
+    frequencyDays: Number,
     rules: Object,
   }
 
@@ -119,6 +121,9 @@ export default class extends Controller {
    */
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
+
+    if (!this.frequencyAllowsDisplay()) return
+
     this.watchNavigation()
     this.watchActivities()
     this.evaluateDisplay()
@@ -199,6 +204,7 @@ export default class extends Controller {
       if (!this.navigationEvaluationForced && location === this.lastLocation) return
 
       this.navigationEvaluationForced = false
+      if (location !== this.lastLocation) Hellotext.recordPageView()
       this.lastLocation = location
       this.connectedAt = Date.now()
       this.evaluateDisplay()
@@ -411,7 +417,12 @@ export default class extends Controller {
    * @returns {void}
    */
   evaluateDisplay() {
-    if (this.dismissed || this.displayed || !this.matchesDevice()) {
+    if (
+      this.dismissed ||
+      this.displayed ||
+      !this.matchesDevice() ||
+      !this.frequencyAllowsDisplay()
+    ) {
       this.element.hidden = true
       return
     }
@@ -425,6 +436,7 @@ export default class extends Controller {
     // enough: a visitor who never scrolls far enough never sees it, and must not be
     // recorded as having been shown.
     this.displayed = true
+    this.recordDisplay()
     this.stopWatchingMeasurements()
     this.stopWatchingNavigation()
     this.stopWatchingActivities()
@@ -439,8 +451,86 @@ export default class extends Controller {
       referrer: document.referrer || undefined,
       scrollDepth: this.scrollDepth(),
       timeOnPage: Math.floor((Date.now() - this.connectedAt) / 1000),
+      pageViews: Hellotext.pageViews,
+      language: this.browserLanguage(),
+      visitorType: Hellotext.visitorType,
+      browser: this.browserName(),
+      utm: Hellotext.page?.utmParams || {},
       activities: Hellotext.activities,
     }
+  }
+
+  /**
+   * Names the browser, or nothing when it is not one of the four the catalog offers.
+   *
+   * User-Agent Client Hints answer this without parsing when they exist. Where they do not
+   * — Safari and Firefox — the user agent string is the only source, and its order matters:
+   * Edge claims to be Chrome, and Chrome claims to be Safari. Testing from the most
+   * specific claim to the least is what keeps each from answering for the others.
+   *
+   * An unrecognised browser reports nothing rather than a guess, so `is` never matches on a
+   * mistake and `is not` never excludes on one.
+   */
+  browserName() {
+    const brands = window.navigator.userAgentData?.brands
+    if (Array.isArray(brands)) {
+      const brand = brands.map(({ brand }) => brand?.toLowerCase() || '')
+      if (brand.some(name => name.includes('edge'))) return 'edge'
+      if (brand.some(name => name.includes('chrome') || name.includes('chromium'))) return 'chrome'
+    }
+
+    const agent = window.navigator.userAgent?.toLowerCase() || ''
+    if (/edg[ea]?\//.test(agent)) return 'edge'
+    if (agent.includes('firefox/') || agent.includes('fxios/')) return 'firefox'
+    if (agent.includes('chrome/') || agent.includes('crios/')) return 'chrome'
+    if (agent.includes('safari/')) return 'safari'
+
+    return undefined
+  }
+
+  browserLanguage() {
+    const language = window.navigator.languages?.[0] || window.navigator.language
+
+    return language?.split('-')[0]?.toLowerCase()
+  }
+
+  frequencyAllowsDisplay() {
+    const frequency = this.frequencyValue || 'always'
+    const key = this.frequencyStorageKey
+
+    if (frequency === 'always') return true
+    if (frequency === 'once_per_session') return !this.storageValue(window.sessionStorage, key)
+
+    const shownAt = Number(this.storageValue(window.localStorage, key))
+    if (frequency === 'once_per_visitor') return !shownAt
+    if (frequency !== 'every_n_days' || !this.hasFrequencyDaysValue) return false
+
+    return !shownAt || Date.now() - shownAt >= this.frequencyDaysValue * 86_400_000
+  }
+
+  recordDisplay() {
+    const frequency = this.frequencyValue || 'always'
+    if (frequency === 'always') return
+
+    const storage = frequency === 'once_per_session' ? window.sessionStorage : window.localStorage
+
+    try {
+      storage.setItem(this.frequencyStorageKey, String(Date.now()))
+    } catch (_) {
+      // Frequency limits fail open when the browser blocks storage.
+    }
+  }
+
+  storageValue(storage, key) {
+    try {
+      return storage.getItem(key)
+    } catch (_) {
+      return null
+    }
+  }
+
+  get frequencyStorageKey() {
+    return `hellotext:popup:${this.idValue}:shown`
   }
 
   /**

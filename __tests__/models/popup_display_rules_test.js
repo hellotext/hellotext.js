@@ -93,6 +93,15 @@ describe('PopupDisplayRules', () => {
       expect(definition.matches(page({ scrollDepth: 20 }))).toBe(false)
     })
 
+    it('matches the number of pages viewed in the current visit', () => {
+      expect(rules([['session.page_views', 'at_least', 3]]).matches(page({ pageViews: 3 }))).toBe(
+        true,
+      )
+      expect(rules([['session.page_views', 'at_least', 3]]).matches(page({ pageViews: 2 }))).toBe(
+        false,
+      )
+    })
+
     it('does not match before a measurement exists', () => {
       expect(rules([['session.time_on_page', 'at_least', 5]]).matches(page())).toBe(false)
     })
@@ -103,6 +112,55 @@ describe('PopupDisplayRules', () => {
       expect(rules([['page.path', 'contains', '/sale']]).needsMeasurements).toBe(false)
       expect(new PopupDisplayRules({ lanes: [] }).needsMeasurements).toBe(false)
     })
+  })
+
+  it('matches browser language, visitor type and persisted UTM values', () => {
+    const context = page({
+      language: 'es',
+      visitorType: 'returning',
+      utm: { source: 'instagram', medium: 'social', campaign: 'summer' },
+    })
+
+    expect(rules([['session.language', 'is', 'es']]).matches(context)).toBe(true)
+    expect(rules([['session.visitor_type', 'is', 'returning']]).matches(context)).toBe(true)
+    expect(rules([['session.utm_source', 'contains', 'insta']]).matches(context)).toBe(true)
+    expect(rules([['session.utm_medium', 'is', 'social']]).matches(context)).toBe(true)
+    expect(rules([['session.utm_campaign', 'ends_with', 'mer']]).matches(context)).toBe(true)
+  })
+
+  it('rejects visitor types outside the browser contract', () => {
+    expect(
+      rules([['session.visitor_type', 'is', 'sometimes']]).matches(
+        page({ visitorType: 'sometimes' }),
+      ),
+    ).toBe(false)
+  })
+
+  it('rejects languages outside the Americas browser-language catalog', () => {
+    expect(rules([['session.language', 'is', 'de']]).matches(page({ language: 'de' }))).toBe(
+      false,
+    )
+  })
+
+  it('matches the browser and excludes it', () => {
+    const context = page({ browser: 'safari' })
+
+    expect(rules([['session.browser', 'is', 'safari']]).matches(context)).toBe(true)
+    expect(rules([['session.browser', 'is', 'chrome']]).matches(context)).toBe(false)
+    expect(rules([['session.browser', 'is_not', 'chrome']]).matches(context)).toBe(true)
+  })
+
+  // A browser the runtime could not name reports nothing. `is` must not match on that, and
+  // `is not` must, the way every other missing value behaves.
+  it('treats an unnamed browser as a missing value', () => {
+    expect(rules([['session.browser', 'is', 'chrome']]).matches(page({}))).toBe(false)
+    expect(rules([['session.browser', 'is_not', 'chrome']]).matches(page({}))).toBe(true)
+  })
+
+  it('rejects a browser outside the closed set', () => {
+    expect(
+      rules([['session.browser', 'is', 'netscape']]).matches(page({ browser: 'netscape' })),
+    ).toBe(false)
   })
 
   describe('activity conditions', () => {
