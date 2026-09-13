@@ -23,7 +23,7 @@ describe('PopupDisplayRules', () => {
     expect(new PopupDisplayRules({ lanes: {} }).matches(page())).toBe(false)
   })
 
-  it('requires every condition inside one lane', () => {
+  it('requires every distinct field inside one lane', () => {
     const definition = rules([
       ['page.path', 'contains', '/sale'],
       ['page.title', 'contains', 'shoes'],
@@ -31,6 +31,67 @@ describe('PopupDisplayRules', () => {
 
     expect(definition.matches(page({ path: '/sale/shoes', title: 'Running shoes' }))).toBe(true)
     expect(definition.matches(page({ path: '/sale/shoes', title: 'Running hats' }))).toBe(false)
+  })
+
+  it('treats positive conditions for the same field as alternatives', () => {
+    const definition = rules([
+      ['page.path', 'is', '/return-policy'],
+      ['page.path', 'contains', '/products/'],
+    ])
+
+    expect(definition.matches(page({ path: '/return-policy' }))).toBe(true)
+    expect(definition.matches(page({ path: '/products/574-core' }))).toBe(true)
+    expect(definition.matches(page({ path: '/blog' }))).toBe(false)
+  })
+
+  it('requires all exclusions for the same field', () => {
+    const definition = rules([
+      ['page.path', 'does_not_contain', '/checkout'],
+      ['page.path', 'is_not', '/cart'],
+    ])
+
+    expect(definition.matches(page({ path: '/products/574-core' }))).toBe(true)
+    expect(definition.matches(page({ path: '/checkout' }))).toBe(false)
+    expect(definition.matches(page({ path: '/cart' }))).toBe(false)
+  })
+
+  it('combines positive alternatives and exclusions with other fields', () => {
+    const definition = rules([
+      ['page.path', 'is', '/return-policy'],
+      ['page.path', 'contains', '/products/'],
+      ['page.path', 'does_not_contain', '/checkout'],
+      ['page.title', 'contains', 'shoes'],
+    ])
+
+    expect(definition.matches(page({ path: '/products/574-core', title: 'Running shoes' }))).toBe(true)
+    expect(definition.matches(page({ path: '/products/checkout', title: 'Running shoes' }))).toBe(false)
+    expect(definition.matches(page({ path: '/products/574-core', title: 'Coats' }))).toBe(false)
+  })
+
+  // Every field authored as includable and excludable rows reads the same way, not just
+  // Page URL: before this, the same rule on any other text field required both halves at
+  // once and could never match.
+  it('reads every list-valued field as alternatives plus exclusions', () => {
+    const definition = rules([
+      ['page.title', 'is', 'Sale'],
+      ['page.title', 'contains', 'shoes'],
+    ])
+
+    expect(definition.matches(page({ title: 'Sale' }))).toBe(true)
+    expect(definition.matches(page({ title: 'Running shoes' }))).toBe(true)
+    expect(definition.matches(page({ title: 'Coats' }))).toBe(false)
+  })
+
+  // A threshold holds one number, so repeated conditions are requirements rather than
+  // alternatives — treating them as alternatives would quietly widen who sees the popup.
+  it('keeps fields that hold no list as ordinary AND conditions', () => {
+    const definition = rules([
+      ['session.scroll_depth', 'at_least', 50],
+      ['session.scroll_depth', 'at_least', 80],
+    ])
+
+    expect(definition.matches(page({ scrollDepth: 90 }))).toBe(true)
+    expect(definition.matches(page({ scrollDepth: 60 }))).toBe(false)
   })
 
   it('matches when any lane matches', () => {
@@ -56,14 +117,25 @@ describe('PopupDisplayRules', () => {
     ).toBe(true)
   })
 
-  it('supports the prefix and suffix operators', () => {
-    expect(rules([['page.path', 'starts_with', '/sa']]).matches(page({ path: '/sale' }))).toBe(
-      true,
-    )
-    expect(rules([['page.path', 'ends_with', 'le']]).matches(page({ path: '/sale' }))).toBe(
-      true,
-    )
-    expect(rules([['page.path', 'is', '/sale']]).matches(page({ path: '/sale' }))).toBe(true)
+  // Prefix and suffix matching left the catalog: neither has a negative twin, so a row
+  // carrying one could never be flipped to an exclusion in the editor.
+  it('rejects removed fields and the operators that lost their twin', () => {
+    expect(rules([['page.url', 'contains', 'shop.test']]).matches(page())).toBe(false)
+
+    for (const field of ['page.path', 'page.title', 'session.referrer']) {
+      const value = field === 'page.path' ? '/sale' : 'Sale'
+      const context = field === 'page.path' ? { path: '/sale' } : { [field.split('.')[1]]: 'Sale' }
+
+      expect(rules([[field, 'starts_with', value.slice(0, 2)]]).matches(page(context))).toBe(false)
+      expect(rules([[field, 'ends_with', value.slice(-2)]]).matches(page(context))).toBe(false)
+    }
+  })
+
+  // A closed set matches a whole value or none of it, so a substring operator on one is a
+  // condition the server would never have saved.
+  it('rejects substring operators on closed sets', () => {
+    expect(rules([['session.browser', 'contains', 'chr']]).matches(page({ browser: 'chrome' }))).toBe(false)
+    expect(rules([['session.language', 'contains', 'e']]).matches(page({ language: 'es' }))).toBe(false)
   })
 
   describe('negative operators', () => {
@@ -106,6 +178,53 @@ describe('PopupDisplayRules', () => {
       expect(rules([['session.time_on_page', 'at_least', 5]]).matches(page())).toBe(false)
     })
 
+    // Mirrors spec/models/popup/display_rules/page_evaluator_spec.rb so the two copies of
+    // this comparison cannot drift.
+    it('compares a measurement from either side', () => {
+      const expectations = {
+        at_least: { 50: true, 49: false, 51: true },
+        at_most: { 50: true, 49: true, 51: false },
+        greater_than: { 50: false, 49: false, 51: true },
+        less_than: { 50: false, 49: true, 51: false },
+      }
+
+      Object.entries(expectations).forEach(([operator, cases]) => {
+        const definition = rules([['session.scroll_depth', operator, 50]])
+
+        Object.entries(cases).forEach(([actual, expected]) => {
+          expect(definition.matches(page({ scrollDepth: Number(actual) }))).toBe(expected)
+        })
+      })
+    })
+
+    // A range is two conditions, not a two-valued one: the lane already ANDs repeated
+    // conditions on a threshold.
+    it('reads a pair of bounds in one lane as a range', () => {
+      const definition = rules([
+        ['session.scroll_depth', 'at_least', 25],
+        ['session.scroll_depth', 'at_most', 75],
+      ])
+
+      expect(definition.matches(page({ scrollDepth: 50 }))).toBe(true)
+      expect(definition.matches(page({ scrollDepth: 25 }))).toBe(true)
+      expect(definition.matches(page({ scrollDepth: 75 }))).toBe(true)
+      expect(definition.matches(page({ scrollDepth: 24 }))).toBe(false)
+      expect(definition.matches(page({ scrollDepth: 76 }))).toBe(false)
+    })
+
+    // The downward comparisons are the ones an absent measurement could wrongly satisfy:
+    // zero is "at most 2", but nothing has been counted yet.
+    it('does not satisfy a downward comparison before anything is measured', () => {
+      expect(rules([['session.page_views', 'at_most', 2]]).matches(page())).toBe(false)
+      expect(rules([['session.page_views', 'less_than', 2]]).matches(page())).toBe(false)
+    })
+
+    it('refuses a comparison the catalog does not offer', () => {
+      expect(rules([['session.scroll_depth', 'between', 50]]).matches(page({ scrollDepth: 60 }))).toBe(
+        false,
+      )
+    })
+
     it('reports whether the runtime has to keep re-checking', () => {
       expect(rules([['session.scroll_depth', 'at_least', 50]]).needsMeasurements).toBe(true)
       expect(rules([['session.time_on_page', 'at_least', 5]]).needsMeasurements).toBe(true)
@@ -125,7 +244,7 @@ describe('PopupDisplayRules', () => {
     expect(rules([['session.visitor_type', 'is', 'returning']]).matches(context)).toBe(true)
     expect(rules([['session.utm_source', 'contains', 'insta']]).matches(context)).toBe(true)
     expect(rules([['session.utm_medium', 'is', 'social']]).matches(context)).toBe(true)
-    expect(rules([['session.utm_campaign', 'ends_with', 'mer']]).matches(context)).toBe(true)
+    expect(rules([['session.utm_campaign', 'contains', 'mer']]).matches(context)).toBe(true)
   })
 
   it('rejects visitor types outside the browser contract', () => {

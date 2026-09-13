@@ -1,10 +1,10 @@
 /**
  * Evaluates the page-scoped display rules the server hands to the browser.
  *
- * The payload is `{ lanes: [[condition, ...], ...] }`: lanes are OR'd, conditions inside a
- * lane are AND'd. Only lanes that already survived server-side evaluation are sent, and
- * every visitor condition has been stripped, so this can treat the payload as the whole
- * remaining question.
+ * The payload is `{ lanes: [[condition, ...], ...] }`: lanes are OR'd and their conditions
+ * are AND'd. Page URL is the one exception: repeated conditions for that field form a group
+ * whose positive matches are alternatives and whose exclusions are cumulative. Only lanes
+ * that already survived server-side evaluation are sent.
  *
  * No lanes means the popup may display: either it has no rules, or every rule was already
  * satisfied on the server.
@@ -15,8 +15,11 @@
 const NEGATIVE_OPERATORS = ['does_not_contain', 'is_not']
 
 const THRESHOLD_FIELDS = ['session.scroll_depth', 'session.time_on_page', 'session.page_views']
+// A measurement is compared from either side. Kept in step with
+// Popup::DisplayRules::Catalog::THRESHOLD_OPERATORS — `between` is absent on both sides
+// because a lane ANDs repeated conditions, so `at_least 25` beside `at_most 75` is it.
+const THRESHOLD_OPERATORS = ['at_least', 'at_most', 'greater_than', 'less_than']
 const STRING_FIELDS = [
-  'page.url',
   'page.path',
   'page.title',
   'session.referrer',
@@ -46,14 +49,11 @@ const THRESHOLD_RANGES = {
   'session.page_views': [1, 1000],
 }
 const MAX_STRING_VALUE_LENGTH = 512
-const STRING_OPERATORS = [
-  'contains',
-  'does_not_contain',
-  'is',
-  'is_not',
-  'starts_with',
-  'ends_with',
-]
+// Every operator a list-valued field offers comes in a positive/negative pair, so any
+// authored row can be reversed. Kept in step with Popup::DisplayRules::Catalog on the
+// Rails side, where `starts_with` and `ends_with` were dropped for lacking a twin.
+const TEXT_OPERATORS = ['contains', 'does_not_contain', 'is', 'is_not']
+const ENTITY_OPERATORS = ['is', 'is_not']
 
 export class PopupDisplayRules {
   constructor(payload) {
@@ -99,8 +99,44 @@ export class PopupDisplayRules {
     if (!this.valid) return false
     if (this.empty) return true
 
-    return this.lanes.some(lane =>
-      lane.every(condition => this.conditionMatches(condition, context)),
+    return this.lanes.some(lane => this.laneMatches(lane, context))
+  }
+
+  laneMatches(lane, context) {
+    const groups = new Map()
+
+    lane.forEach(condition => {
+      const conditions = groups.get(condition?.field) || []
+      conditions.push(condition)
+      groups.set(condition?.field, conditions)
+    })
+
+    return [...groups.entries()].every(([field, conditions]) =>
+      this.fieldGroupMatches(field, conditions, context),
+    )
+  }
+
+  // A list-valued field is authored one row at a time, so it can carry several sibling
+  // conditions at once: the values included are alternatives and the ones excluded are
+  // cumulative. Thresholds and events hold a single condition each and stay a flat AND.
+  // `STRING_FIELDS` is this side's copy of the catalog's list-valued types — country is
+  // visitor-scoped and never reaches the browser.
+  fieldGroupMatches(field, conditions, context) {
+    if (!STRING_FIELDS.includes(field)) {
+      return conditions.every(condition => this.conditionMatches(condition, context))
+    }
+
+    const positives = conditions.filter(
+      condition => !NEGATIVE_OPERATORS.includes(condition?.operator),
+    )
+    const negatives = conditions.filter(condition =>
+      NEGATIVE_OPERATORS.includes(condition?.operator),
+    )
+
+    return (
+      (positives.length === 0 ||
+        positives.some(condition => this.conditionMatches(condition, context))) &&
+      negatives.every(condition => this.conditionMatches(condition, context))
     )
   }
 
@@ -125,8 +161,6 @@ export class PopupDisplayRules {
 
   actualValue(field, context) {
     switch (field) {
-      case 'page.url':
-        return context.url
       case 'page.path':
         return context.path
       case 'page.title':
@@ -166,7 +200,7 @@ export class PopupDisplayRules {
       const [minimum, maximum] = THRESHOLD_RANGES[condition.field]
 
       return (
-        condition.operator === 'at_least' &&
+        THRESHOLD_OPERATORS.includes(condition.operator) &&
         condition.values.length === 1 &&
         (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) &&
         Number.isInteger(numericValue) &&
@@ -179,9 +213,13 @@ export class PopupDisplayRules {
       return condition.operator === 'occurred' && condition.values.length === 0
     }
 
+    // A closed set matches a whole value or none of it, so it only offers the exact pair.
+    // Mirrors the catalog's ENTITY_OPERATORS on the Rails side: accepting `contains` here
+    // would evaluate a condition the server would have refused to save.
+    const operators = CLOSED_STRING_VALUES[condition.field] ? ENTITY_OPERATORS : TEXT_OPERATORS
     const validStrings =
       STRING_FIELDS.includes(condition.field) &&
-      STRING_OPERATORS.includes(condition.operator) &&
+      operators.includes(condition.operator) &&
       condition.values.length > 0 &&
       condition.values.every(
         value =>
@@ -200,10 +238,29 @@ export class PopupDisplayRules {
     return !allowed || condition.values.every(value => allowed.includes(value))
   }
 
+  /**
+   * A measurement that has not been reported yet fails every comparison, including the
+   * ones that point downwards: "pages viewed is at most 2" must not hold before the
+   * runtime has counted a single page.
+   */
   thresholdMatches(condition, actual) {
     if (actual === undefined || actual === null || actual === '') return false
 
-    return Number(actual) >= Number(condition.values[0])
+    const value = Number(actual)
+    const expected = Number(condition.values[0])
+
+    switch (condition.operator) {
+      case 'at_least':
+        return value >= expected
+      case 'at_most':
+        return value <= expected
+      case 'greater_than':
+        return value > expected
+      case 'less_than':
+        return value < expected
+      default:
+        return false
+    }
   }
 
   /**
