@@ -46,6 +46,23 @@ describe('UTM', () => {
     jest.useRealTimers()
   })
 
+  describe('paramsFrom', () => {
+    it('reads every campaign parameter a query string carries', () => {
+      expect(
+        UTM.paramsFrom('?utm_source=google&utm_medium=cpc&utm_campaign=spring&utm_term=shoes&utm_content=ad1'),
+      ).toEqual({ source: 'google', medium: 'cpc', campaign: 'spring', term: 'shoes', content: 'ad1' })
+    })
+
+    it('keeps a lone parameter the persisted attribution would ignore', () => {
+      expect(UTM.paramsFrom('?utm_campaign=spring')).toEqual({ campaign: 'spring' })
+    })
+
+    it('leaves out absent and blank parameters', () => {
+      expect(UTM.paramsFrom('?utm_source=&page=2')).toEqual({})
+      expect(UTM.paramsFrom('')).toEqual({})
+    })
+  })
+
   describe('constructor', () => {
     it('stores UTM parameters in cookies when utm_source and utm_medium are present', () => {
       window.location.search = '?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1'
