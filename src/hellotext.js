@@ -27,6 +27,7 @@ class Hellotext {
   static whatsapp
   static push
   static alert
+  static initializationVersion = 0
 
   /**
    * initialize the module.
@@ -34,6 +35,10 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config = {}) {
+    const initializationVersion = ++this.initializationVersion
+    this.popup?.unmount?.()
+    this.popup = undefined
+
     this.alert?.dispose()
     this.alert = null
     this.push?.dispose()
@@ -112,16 +117,31 @@ class Hellotext {
     }
 
     if (popupConfig && popupConfig.id) {
-      Configuration.popup.assign(popupConfig)
+      const resolvedPopupConfig = { container: 'body', device: 'auto', ...popupConfig }
+      Configuration.popup.assign(resolvedPopupConfig)
       widgetLoads.push(
-        Popup.load(popupConfig.id).then(popup => {
-          if (this.business === businessContext) this.popup = popup
+        Popup.load(resolvedPopupConfig.id, {
+          container: resolvedPopupConfig.container,
+          shouldMount: () => {
+            return (
+              this.business === businessContext &&
+              this.initializationVersion === initializationVersion
+            )
+          },
+        }).then(popup => {
+          if (
+            this.business === businessContext &&
+            this.initializationVersion === initializationVersion
+          ) {
+            this.popup = popup
+          }
         }),
       )
     }
 
     await Promise.all(widgetLoads)
-    if (this.business !== businessContext) return
+    if (this.business !== businessContext || this.initializationVersion !== initializationVersion)
+      return
 
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()

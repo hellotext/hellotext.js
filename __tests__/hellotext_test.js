@@ -305,7 +305,10 @@ describe("when initializing business metadata", () => {
 
     await Hellotext.initialize('xy76ks')
 
-    expect(loadPopup).toHaveBeenCalledWith('dashboard-popup')
+    expect(loadPopup).toHaveBeenCalledWith(
+      'dashboard-popup',
+      expect.objectContaining({ container: 'body', shouldMount: expect.any(Function) }),
+    )
     expect(Hellotext.popup).toEqual(popup)
   })
 
@@ -319,7 +322,10 @@ describe("when initializing business metadata", () => {
       },
     })
 
-    expect(loadPopup).toHaveBeenCalledWith('dashboard-popup')
+    expect(loadPopup).toHaveBeenCalledWith(
+      'dashboard-popup',
+      expect.objectContaining({ container: '#popup-container', shouldMount: expect.any(Function) }),
+    )
     expect(Configuration.popup.container).toEqual('#popup-container')
     expect(Configuration.popup.device).toEqual('desktop')
   })
@@ -329,7 +335,10 @@ describe("when initializing business metadata", () => {
 
     await Hellotext.initialize('xy76ks', { popup: { id: 'explicit-popup' } })
 
-    expect(loadPopup).toHaveBeenCalledWith('explicit-popup')
+    expect(loadPopup).toHaveBeenCalledWith(
+      'explicit-popup',
+      expect.objectContaining({ container: 'body', shouldMount: expect.any(Function) }),
+    )
   })
 
   it("skips popup loading when popup is false", async () => {
@@ -338,6 +347,17 @@ describe("when initializing business metadata", () => {
     await Hellotext.initialize('xy76ks', { popup: false })
 
     expect(loadPopup).not.toHaveBeenCalled()
+  })
+
+  it('unmounts the previous popup when a later initialization disables it', async () => {
+    const unmount = jest.fn()
+    Hellotext.popup = { unmount }
+    mockBusinessFetch(defaultBusiness())
+
+    await Hellotext.initialize('xy76ks', { popup: false })
+
+    expect(unmount).toHaveBeenCalledTimes(1)
+    expect(Hellotext.popup).toBeUndefined()
   })
 
   it("does not break initialization when business fetch rejects", async () => {

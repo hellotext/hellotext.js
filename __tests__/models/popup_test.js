@@ -80,4 +80,25 @@ describe('Popup', () => {
       })
     })
   })
+
+  it('does not mount after a newer initialization supersedes the request', async () => {
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+
+    const popup = await Popup.load('popup-id', { shouldMount: () => false })
+
+    expect(document.querySelector('#popup-container article')).toBeNull()
+    expect(popup.mounted).toBe(false)
+  })
+
+  it('unmounts its rendered surface', async () => {
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+
+    const popup = await Popup.load('popup-id')
+    popup.unmount()
+
+    expect(document.querySelector('#popup-container article')).toBeNull()
+    expect(popup.mounted).toBe(false)
+  })
 })
