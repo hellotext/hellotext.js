@@ -1,7 +1,7 @@
 import Hellotext from "../src/hellotext";
 import API from "../src/api";
 import { Configuration } from "../src/core";
-import { Popup, Push, Session, Webchat, WhatsAppWidget } from "../src/models";
+import { Business, Popup, Push, Session, Webchat, WhatsAppWidget } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
