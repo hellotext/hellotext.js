@@ -95,11 +95,11 @@ See [Forms](/docs/forms.md) for collection, mounting, and completion details.
 
 ### Popups
 
-| Event           | When it fires                                                      | Callback payload      |
-| --------------- | ------------------------------------------------------------------ | --------------------- |
-| `popup:mounted` | A popup is mounted, before its initial display state is evaluated. | The popup controller. |
-| `popup:opened`  | A popup dialog becomes visible.                                    | The popup controller. |
-| `popup:closed`  | A popup is dismissed.                                              | The popup controller. |
+| Event           | When it fires                                                      | Callback payload |
+| --------------- | ------------------------------------------------------------------ | ---------------- |
+| `popup:mounted` | A popup is mounted, before its initial display state is evaluated. | None.            |
+| `popup:opened`  | A popup dialog becomes visible.                                    | None.            |
+| `popup:closed`  | A popup is dismissed.                                              | None.            |
 
 See [Popups](/docs/popups.md) for configuration and display behaviour.
 

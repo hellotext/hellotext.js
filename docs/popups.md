@@ -79,7 +79,7 @@ Device targeting is evaluated when the popup controller connects. Resizing the w
 
 Configure the popup's layout, colors, typography, content, and bubble in the dashboard. The JavaScript configuration accepts `id`, `container`, and `device`.
 
-Hellotext.js automatically loads the popup stylesheet supplied with the public business configuration. This applies to both package imports and the script-tag bundle; no separate popup CSS import is needed. The `styles/index.css` file documented in the main README provides generic form styles.
+Hellotext.js automatically loads the popup stylesheet supplied with the public business configuration. This applies to both package imports and the script-tag bundle; no separate popup CSS import is needed.
 
 ### Behaviour
 
