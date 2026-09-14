@@ -62,6 +62,8 @@ import Hellotext from '../hellotext'
  * - globalError: Submission errors that cannot be shown beside an input.
  * - resendButton: Delivery resend action and its localized countdown label.
  * - changeDestinationButton: Action that returns to the delivered-to identity field.
+ * - deliveryCopy: Completion headline and description shown when a delivery is queued.
+ * - noDeliveryCopy: Server-rendered completion copy shown when no delivery is required.
  *
  * Values:
  * - capture: Capture metadata supplied by the server and included in submissions.
@@ -80,6 +82,8 @@ export default class extends Controller {
     'globalError',
     'resendButton',
     'changeDestinationButton',
+    'deliveryCopy',
+    'noDeliveryCopy',
   ]
 
   static values = {
@@ -372,8 +376,10 @@ export default class extends Controller {
    * @returns {void}
    */
   configureCompletionActions() {
-    if (this.submissionDeliveryStatus === 'not_required') {
-      this.renderNoDeliveryCopy()
+    const deliveryRequired = this.submissionDeliveryStatus !== 'not_required'
+    this.revealCompletionCopy(deliveryRequired)
+
+    if (!deliveryRequired) {
       this.completedTarget.querySelector('[data-delivery-actions]')?.setAttribute('hidden', '')
       return
     }
@@ -588,28 +594,25 @@ export default class extends Controller {
   }
 
   /**
-   * Use server-provided thank-you copy when capture succeeds without any delivery.
-   * Construct text nodes so these labels are not interpreted as rich HTML.
+   * Reveal the completion copy that matches the delivery outcome. The server renders both
+   * variants and owns their markup; the controller only chooses which one is visible, so
+   * no completion structure is built here and interpolated text nodes are never replaced.
    *
+   * @param {boolean} deliveryRequired - Whether the submission queued a delivery.
    * @returns {void}
    */
-  renderNoDeliveryCopy() {
-    const headline = this.completedTarget.querySelector('.hellotext--popup__completion-headline')
-    const description = this.completedTarget.querySelector(
-      '.hellotext--popup__completion-description',
-    )
-
-    if (headline && this.completedTarget.dataset.notRequiredHeadline) {
-      headline.innerHTML = ''
-      const title = document.createElement('h4')
-      const strong = document.createElement('strong')
-      strong.textContent = this.completedTarget.dataset.notRequiredHeadline
-      title.appendChild(strong)
-      headline.appendChild(title)
+  revealCompletionCopy(deliveryRequired) {
+    if (this.hasDeliveryCopyTarget) {
+      this.deliveryCopyTargets.forEach(element => {
+        element.hidden = !deliveryRequired
+      })
     }
 
-    if (description)
-      description.textContent = this.completedTarget.dataset.notRequiredDescription || ''
+    if (this.hasNoDeliveryCopyTarget) {
+      this.noDeliveryCopyTargets.forEach(element => {
+        element.hidden = deliveryRequired
+      })
+    }
   }
 
   /**

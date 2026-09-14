@@ -495,28 +495,86 @@ describe('PopupController', () => {
     )
   })
 
-  it('shows contact-only completion copy and no delivery actions when delivery is not required', () => {
-    const { completed, emailInput, resendButton, changeDestinationButton } = buildController({ hasBubble: false })
-    const headline = document.createElement('header')
-    const description = document.createElement('div')
+  // The server renders both completion variants as targets; the controller only chooses
+  // which one is visible. This mirrors that markup.
+  const renderCompletionCopy = completed => {
+    const deliveryHeadline = document.createElement('header')
+    const deliveryDescription = document.createElement('div')
+    const noDeliveryHeadline = document.createElement('header')
+    const noDeliveryDescription = document.createElement('div')
     const actions = document.createElement('footer')
 
-    emailInput.value = 'customer@example.com'
-    headline.className = 'hellotext--popup__completion-headline'
-    description.className = 'hellotext--popup__completion-description'
+    deliveryHeadline.className = 'hellotext--popup__completion-headline'
+    deliveryHeadline.innerHTML = '<h4><strong>Your code is on its way</strong></h4>'
+    deliveryDescription.className = 'hellotext--popup__completion-description'
+    deliveryDescription.textContent = 'We sent it to {destination}.'
+    noDeliveryHeadline.className = 'hellotext--popup__completion-headline'
+    noDeliveryHeadline.hidden = true
+    noDeliveryHeadline.innerHTML = '<h4><strong>Thanks for signing up</strong></h4>'
+    noDeliveryDescription.className = 'hellotext--popup__completion-description'
+    noDeliveryDescription.hidden = true
+    noDeliveryDescription.textContent = 'Your details were saved.'
     actions.dataset.deliveryActions = ''
-    completed.dataset.notRequiredHeadline = 'Thanks for signing up'
-    completed.dataset.notRequiredDescription = 'Your details were saved.'
-    completed.append(headline, description, actions)
+    completed.append(deliveryHeadline, deliveryDescription, noDeliveryHeadline, noDeliveryDescription, actions)
+
+    Object.defineProperties(controller, {
+      deliveryCopyTargets: { value: [deliveryHeadline, deliveryDescription], configurable: true },
+      noDeliveryCopyTargets: { value: [noDeliveryHeadline, noDeliveryDescription], configurable: true },
+      hasDeliveryCopyTarget: { value: true, configurable: true },
+      hasNoDeliveryCopyTarget: { value: true, configurable: true },
+    })
+
+    return { deliveryHeadline, deliveryDescription, noDeliveryHeadline, noDeliveryDescription, actions }
+  }
+
+  it('reveals the server-rendered no-delivery copy and hides delivery actions when delivery is not required', () => {
+    const { completed, emailInput, resendButton, changeDestinationButton } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+
+    emailInput.value = 'customer@example.com'
     controller.submissionDeliveryStatus = 'not_required'
 
     controller.showCompleted()
 
-    expect(headline.textContent).toBe('Thanks for signing up')
-    expect(description.textContent).toBe('Your details were saved.')
-    expect(actions.hidden).toBe(true)
+    expect(copy.noDeliveryHeadline.hidden).toBe(false)
+    expect(copy.noDeliveryDescription.hidden).toBe(false)
+    expect(copy.deliveryHeadline.hidden).toBe(true)
+    expect(copy.deliveryDescription.hidden).toBe(true)
+    expect(copy.actions.hidden).toBe(true)
     expect(resendButton.hidden).toBe(true)
     expect(changeDestinationButton.hidden).toBe(true)
+  })
+
+  it('leaves the server markup untouched when revealing the no-delivery copy', () => {
+    const { completed, emailInput } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+
+    emailInput.value = 'customer@example.com'
+    controller.submissionDeliveryStatus = 'not_required'
+
+    controller.showCompleted()
+
+    expect(copy.noDeliveryHeadline.innerHTML).toBe('<h4><strong>Thanks for signing up</strong></h4>')
+    expect(copy.deliveryHeadline.innerHTML).toBe('<h4><strong>Your code is on its way</strong></h4>')
+    expect(copy.noDeliveryDescription.textContent).toBe('Your details were saved.')
+    expect(copy.deliveryDescription.textContent).toBe('We sent it to customer@example.com.')
+    expect(completed.querySelectorAll('h4')).toHaveLength(2)
+  })
+
+  it('keeps the delivery copy visible and interpolated when a delivery is queued', () => {
+    const { completed, emailInput } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+
+    emailInput.value = 'customer@example.com'
+    controller.submissionDeliveryStatus = 'queued'
+
+    controller.showCompleted()
+
+    expect(copy.deliveryHeadline.hidden).toBe(false)
+    expect(copy.deliveryDescription.hidden).toBe(false)
+    expect(copy.deliveryDescription.textContent).toContain('customer@example.com')
+    expect(copy.noDeliveryHeadline.hidden).toBe(true)
+    expect(copy.noDeliveryDescription.hidden).toBe(true)
   })
 
   it('validates the last step before submitting', async () => {
