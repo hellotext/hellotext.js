@@ -312,6 +312,59 @@ describe("when initializing business metadata", () => {
     expect(Hellotext.popup).toEqual(popup)
   })
 
+  it('does not load a popup when the dashboard has no popup id', async () => {
+    mockBusinessFetch(defaultBusiness({ popup: {} }))
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(loadPopup).not.toHaveBeenCalled()
+    expect(Hellotext.popup).toBeUndefined()
+  })
+
+  it('starts webchat, WhatsApp, and popup loading without waiting for another surface', async () => {
+    let resolveWebchat
+    let resolveWhatsApp
+    let resolvePopup
+
+    loadWebchat.mockImplementation(
+      () => new Promise(resolve => {
+        resolveWebchat = resolve
+      }),
+    )
+    loadWhatsAppWidget.mockImplementation(
+      () => new Promise(resolve => {
+        resolveWhatsApp = resolve
+      }),
+    )
+    loadPopup.mockImplementation(
+      () => new Promise(resolve => {
+        resolvePopup = resolve
+      }),
+    )
+    mockBusinessFetch(
+      defaultBusiness({
+        webchat: { id: 'dashboard-webchat' },
+        whatsapp: { id: 'dashboard-whatsapp' },
+        popup: { id: 'dashboard-popup' },
+      }),
+    )
+
+    const initialized = Hellotext.initialize('xy76ks')
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat')
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith('dashboard-whatsapp')
+    expect(loadPopup).toHaveBeenCalledWith(
+      'dashboard-popup',
+      expect.objectContaining({ container: 'body', shouldMount: expect.any(Function) }),
+    )
+
+    resolveWebchat({})
+    resolveWhatsApp({})
+    resolvePopup({})
+    await initialized
+  })
+
   it("uses the dashboard popup id with explicit local options", async () => {
     mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
 
