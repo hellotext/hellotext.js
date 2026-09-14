@@ -39,7 +39,7 @@ const EVENT_FIELDS = [
 // Text-typed fields whose values come from a fixed list. Kept in step with
 // Popup::DisplayRules::Catalog on the Rails side.
 const CLOSED_STRING_VALUES = {
-  'session.language': ['en', 'es', 'pt', 'fr', 'nl', 'ht'],
+  'session.language': ['en', 'es', 'pt', 'fr', 'nl'],
   'session.visitor_type': ['new', 'returning'],
   'session.browser': ['chrome', 'safari', 'firefox', 'edge'],
 }
