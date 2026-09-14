@@ -3,6 +3,7 @@ import { Controller } from '@hotwired/stimulus'
 import PopupsAPI from '../api/popups'
 import Hellotext from '../hellotext'
 import { PopupDisplayRules } from '../models/popup_display_rules'
+import { UTM } from '../models/utm'
 
 /**
  * An input rendered by the popup's server-side field components.
@@ -455,9 +456,26 @@ export default class extends Controller {
       language: this.browserLanguage(),
       visitorType: Hellotext.visitorType,
       browser: this.browserName(),
-      utm: Hellotext.page?.utmParams || {},
+      utm: this.currentUtmParams(),
       activities: Hellotext.activities,
     }
+  }
+
+  /**
+   * The campaign behind the page the visitor is on now. A URL carrying source, medium or
+   * campaign answers for itself: persisted attribution only stores a complete source and
+   * medium pair, while a rule may target any one of the three. Reading the URL at each
+   * evaluation also keeps a SPA route that adds UTM parameters in step.
+   *
+   * The URL's parameters replace the stored ones rather than merging with them, so a rule
+   * never pairs the source of one campaign with the name of another. Without any in the
+   * URL, the last persisted touch still applies.
+   */
+  currentUtmParams() {
+    const current = UTM.paramsFrom(window.location.search)
+    const carriesCampaign = ['source', 'medium', 'campaign'].some(key => current[key])
+
+    return carriesCampaign ? current : Hellotext.page?.utmParams || {}
   }
 
   /**

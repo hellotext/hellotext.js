@@ -134,6 +134,84 @@ describe('PopupController', () => {
     document.body.innerHTML = ''
   })
 
+  // Persisted attribution keeps only a complete source and medium pair, but a rule may target
+  // any of the three campaign parameters. The URL the visitor is on answers for itself.
+  describe('UTM rules', () => {
+    const utmRule = (field, value) => ({
+      lanes: [[{ type: 'condition', field, operator: 'is', values: [value] }]],
+    })
+    const flushTimers = () => new Promise(resolve => setTimeout(resolve, 0))
+    let originalPage
+
+    beforeEach(() => {
+      originalPage = Hellotext.page
+      Hellotext.page = { utmParams: {} }
+    })
+
+    afterEach(() => {
+      controller?.disconnect()
+      Hellotext.page = originalPage
+      window.history.replaceState({}, '', '/')
+    })
+
+    it('matches a campaign the URL carries without a source or medium', () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=spring')
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_campaign', 'spring')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('falls back to the persisted touch when the URL carries none', () => {
+      window.history.replaceState({}, '', '/landing')
+      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'google')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('lets the URL replace the persisted touch rather than merge with it', () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=spring')
+      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'google')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
+    })
+
+    it('ignores parameters that name no campaign', () => {
+      window.history.replaceState({}, '', '/landing?utm_term=shoes')
+      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'google')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('re-reads the URL after a SPA route adds a campaign', async () => {
+      window.history.replaceState({}, '', '/landing')
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'newsletter')
+
+      controller.connect()
+      expect(element.hidden).toBe(true)
+
+      window.history.pushState({}, '', '/offer?utm_source=newsletter')
+      await flushTimers()
+
+      expect(element.hidden).toBe(false)
+    })
+  })
+
   it('shows the bubble first and opens the dialog when clicked', () => {
     const { element, bubble, dialog } = buildController()
 
