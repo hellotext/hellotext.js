@@ -2,11 +2,13 @@ import { Configuration, Event } from './core'
 
 import API, { Response, keepaliveFor } from './api'
 import {
+  Alert,
   Business,
   Fingerprint,
   FormCollection,
   Page,
   Popup,
+  Push,
   Query,
   Session,
   User,
@@ -23,6 +25,8 @@ class Hellotext {
   static popup
   static webchat
   static whatsapp
+  static push
+  static alert
 
   /**
    * initialize the module.
@@ -30,62 +34,94 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config = {}) {
-    this.business = new Business(business)
+    this.alert?.dispose()
+    this.alert = null
+    this.push?.dispose()
+    this.push = null
+
+    const businessContext = new Business(business)
+    this.business = businessContext
     this.page = new Page()
 
-    Configuration.assign(config)
+    Configuration.assign({ push: {}, ...config })
     Session.initialize(this.page)
 
     this.forms = new FormCollection()
 
     this.query = new Query()
 
-    const businessData = await this.business.hydrate()
+    const businessData = await businessContext.hydrate()
+    if (this.business !== businessContext) return
 
-    const popupConfig = this.deepMergePlainObjects(businessData?.popup, config.popup)
-    const webchatConfig = this.mergeWebchatConfig(businessData?.webchat, config.webchat)
-    const whatsappConfig = this.mergeWhatsAppConfig(businessData?.whatsapp, config.whatsappWidget)
+    if (config.push !== false && businessData?.push?.public_key && Push.supported) {
+      this.push = new Push(businessData.push)
+
+      this.push.initialize().catch(error => {
+        console.warn('Hellotext Push initialization failed:', error)
+      })
+
+      if (businessData.alert?.html) {
+        this.alert = new Alert(businessData.alert, businessContext, this.push)
+      }
+    }
+
+    const popupConfig =
+      config.popup === false
+        ? false
+        : this.deepMergePlainObjects((businessData && businessData.popup) || {}, config.popup || {})
+
+    const webchatConfig =
+      config.webchat === false
+        ? false
+        : this.mergeWebchatConfig(
+            (businessData && businessData.webchat) || {},
+            config.webchat || {},
+          )
+    const whatsappConfig =
+      config.whatsappWidget === false
+        ? false
+        : this.mergeWhatsAppConfig(
+            (businessData && businessData.whatsapp) || {},
+            config.whatsappWidget || {},
+          )
 
     const hasExplicitBehaviourOverride =
       config.webchat &&
       config.webchat !== false &&
       Object.prototype.hasOwnProperty.call(config.webchat, 'behaviour')
-
     Configuration.webchat.behaviourOverride = hasExplicitBehaviourOverride
 
     const widgetLoads = []
 
-    if (config.webchat !== false && webchatConfig.id) {
+    if (webchatConfig && webchatConfig.id) {
       Configuration.webchat.assign(webchatConfig)
-
       widgetLoads.push(
         Webchat.load(webchatConfig.id).then(webchat => {
-          this.webchat = webchat
+          if (this.business === businessContext) this.webchat = webchat
         }),
       )
     }
 
-    if (config.whatsappWidget !== false && whatsappConfig.id) {
+    if (whatsappConfig && whatsappConfig.id) {
       Configuration.whatsapp.assign(whatsappConfig)
-
       widgetLoads.push(
         WhatsAppWidget.load(whatsappConfig.id).then(whatsapp => {
-          this.whatsapp = whatsapp
+          if (this.business === businessContext) this.whatsapp = whatsapp
         }),
       )
     }
 
-    if (config.popup !== false && popupConfig.id) {
+    if (popupConfig && popupConfig.id) {
       Configuration.popup.assign(popupConfig)
-
       widgetLoads.push(
         Popup.load(popupConfig.id).then(popup => {
-          this.popup = popup
+          if (this.business === businessContext) this.popup = popup
         }),
       )
     }
 
     await Promise.all(widgetLoads)
+    if (this.business !== businessContext) return
 
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()
@@ -103,7 +139,7 @@ class Hellotext {
   static deepMergePlainObjects(base, override) {
     const result = { ...base }
 
-    Object.entries(override || {}).forEach(([key, value]) => {
+    Object.entries(override).forEach(([key, value]) => {
       if (this.isPlainObject(value) && this.isPlainObject(result[key])) {
         result[key] = this.deepMergePlainObjects(result[key], value)
       } else {

@@ -167,8 +167,7 @@ If these elements were not defined, Hellotext would render the button then the n
 ### Customizing the Form's styles
 
 Generated form elements have minimum styles to make them display correctly. No colors, borders or padding are applied.
-You can style the form elements to match your brand guidelines. Hellotext.js ships with a few lines of CSS to apply layout on the components.
-See `styles/index.css` for the default styles applied to the form elements.
+Hellotext loads the default form styles automatically when the library initializes. You can override these styles in your website's CSS to match your brand guidelines.
 
 ### White Labels
 

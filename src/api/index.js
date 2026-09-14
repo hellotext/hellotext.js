@@ -6,6 +6,8 @@ import PopupsAPI from './popups'
 import WebchatsAPI from './webchats'
 import WhatsAppWidgetsAPI from './whatsapp_widgets'
 import AcksAPI from './acks'
+import PushIdentitiesAPI from './push/identities'
+import PushAlertsAPI from './push/alerts'
 
 // Browsers keep `fetch(..., { keepalive: true })` requests alive during page
 // unload/navigation, which is exactly the failure mode for analytics events
@@ -47,6 +49,10 @@ export default class API {
     return PopupsAPI
   }
 
+  static get popups() {
+    return PopupsAPI
+  }
+
   static get webchats() {
     return WebchatsAPI
   }
@@ -61,6 +67,14 @@ export default class API {
 
   static get acks() {
     return AcksAPI
+  }
+
+  static get pushAlerts() {
+    return PushAlertsAPI
+  }
+
+  static get pushIdentities() {
+    return PushIdentitiesAPI
   }
 }
 

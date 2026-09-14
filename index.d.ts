@@ -8,6 +8,7 @@ export interface HellotextConfig {
   popup?: false | HellotextPopupConfig
   webchat?: false | HellotextWebchatConfig
   whatsappWidget?: false | HellotextWhatsAppWidgetConfig
+  push?: false | HellotextPushConfig
   session?: string
   autoGenerateSession?: boolean
 }
@@ -74,6 +75,34 @@ export interface HellotextPopupConfig {
   device?: 'auto' | 'mobile' | 'desktop'
 }
 
+export interface HellotextPushConfig {
+  serviceWorkerUrl?: string | null
+  channelId?: string | null
+}
+
+export interface HellotextPush {
+  readonly ready: Promise<void>
+  readonly subscribed: boolean
+  subscribe(): Promise<Response | void>
+  unsubscribe(): Promise<Response | null | void>
+}
+
+export type HellotextAlertSection = 'homepage' | 'product_collection' | 'product_details'
+
+export interface HellotextAlertShowOptions {
+  force?: boolean
+  title?: string
+  description?: string
+  primaryAction?: string
+  secondaryAction?: string
+}
+
+export interface HellotextAlert {
+  readonly ready: Promise<boolean>
+  show(section: HellotextAlertSection, options?: HellotextAlertShowOptions): Promise<boolean>
+  hide(): void
+}
+
 export interface HellotextBusinessCountry {
   code?: string
   prefix?: string
@@ -89,6 +118,8 @@ export interface HellotextBusinessData {
   webchat?: HellotextWebchatConfig | null
   whatsapp?: HellotextWhatsAppWidgetConfig | null
   popup?: HellotextPopupConfig | null
+  push?: { public_key: string } | null
+  alert?: { html: string } | null
   whitelist?: string | string[] | null
   subscription?: string | null
   [key: string]: any
@@ -151,6 +182,8 @@ declare class Hellotext {
   static popup: any
   static webchat: any
   static whatsapp: any
+  static push: HellotextPush | null
+  static alert: HellotextAlert | null
 }
 
 export declare class User {
@@ -169,9 +202,3 @@ export declare class Cookies {
 }
 
 export default Hellotext
-
-// Declare the CSS module
-declare module '@hellotext/hellotext/styles/index.css' {
-  const styles: string
-  export default styles
-}

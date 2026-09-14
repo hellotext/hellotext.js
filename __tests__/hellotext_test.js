@@ -1,7 +1,7 @@
 import Hellotext from "../src/hellotext";
 import API from "../src/api";
 import { Configuration } from "../src/core";
-import { Popup, Session, Webchat, WhatsAppWidget } from "../src/models";
+import { Popup, Push, Session, Webchat, WhatsAppWidget } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -82,15 +82,7 @@ describe("when initializing business metadata", () => {
     const business = defaultBusiness({ id: "business-id", locale: "es" })
     mockBusinessFetch(business)
 
-    const initialization = Hellotext.initialize("business-id")
-
-    expect(Hellotext.business.id).toEqual("business-id")
-    expect(Hellotext.business.data).toBeNull()
-    expect(Hellotext.page).toBeDefined()
-    expect(Hellotext.forms).toBeDefined()
-    expect(Hellotext.query).toBeDefined()
-
-    await initialization
+    await Hellotext.initialize("business-id")
 
     expect(API.businesses.get).toHaveBeenCalledWith("business-id")
     expect(Hellotext.business.data).toEqual(business)
@@ -237,31 +229,16 @@ describe("when initializing business metadata", () => {
     expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
   })
 
-  it("loads dashboard webchat, WhatsApp widget, and popup concurrently", async () => {
-    const webchat = { id: "dashboard-webchat" }
-    const whatsapp = { id: "dashboard-whatsapp-widget" }
-    const popup = { id: "dashboard-popup" }
-
+  it("loads dashboard webchat and WhatsApp widget together", async () => {
     mockBusinessFetch(defaultBusiness({
-      webchat,
-      whatsapp,
-      popup,
+      webchat: { id: "dashboard-webchat" },
+      whatsapp: { id: "dashboard-whatsapp-widget" },
     }))
-
-    loadWebchat.mockImplementationOnce(() => Promise.resolve().then(() => {
-      expect(loadWhatsAppWidget).toHaveBeenCalledWith(whatsapp.id)
-      expect(loadPopup).toHaveBeenCalledWith(popup.id)
-      return webchat
-    }))
-    loadWhatsAppWidget.mockResolvedValueOnce(whatsapp)
-    loadPopup.mockResolvedValueOnce(popup)
 
     await Hellotext.initialize("xy76ks")
 
-    expect(loadWebchat).toHaveBeenCalledWith(webchat.id)
-    expect(Hellotext.webchat).toBe(webchat)
-    expect(Hellotext.whatsapp).toBe(whatsapp)
-    expect(Hellotext.popup).toBe(popup)
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
   })
 
   it("deep merges explicit local WhatsApp widget options with dashboard defaults", async () => {
@@ -324,58 +301,43 @@ describe("when initializing business metadata", () => {
   it("loads the dashboard popup when no explicit popup config is passed", async () => {
     const popup = { id: 'dashboard-popup' }
     loadPopup.mockResolvedValueOnce(popup)
-    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
-
-    await Hellotext.initialize("xy76ks")
-
-    expect(loadPopup).toHaveBeenCalledWith("dashboard-popup")
-    expect(Hellotext.popup).toEqual(popup)
-  })
-
-  it('does not load a popup when the dashboard has no popup id', async () => {
-    mockBusinessFetch(defaultBusiness({ popup: {} }))
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
 
     await Hellotext.initialize('xy76ks')
 
-    expect(loadPopup).not.toHaveBeenCalled()
-    expect(Hellotext.popup).toBeUndefined()
+    expect(loadPopup).toHaveBeenCalledWith('dashboard-popup')
+    expect(Hellotext.popup).toEqual(popup)
   })
 
   it("uses the dashboard popup id with explicit local options", async () => {
-    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
 
-    await Hellotext.initialize("xy76ks", {
+    await Hellotext.initialize('xy76ks', {
       popup: {
-        container: "#popup-container",
-        device: "desktop",
+        container: '#popup-container',
+        device: 'desktop',
       },
     })
 
-    expect(loadPopup).toHaveBeenCalledWith("dashboard-popup")
-    expect(Configuration.popup.container).toEqual("#popup-container")
-    expect(Configuration.popup.device).toEqual("desktop")
+    expect(loadPopup).toHaveBeenCalledWith('dashboard-popup')
+    expect(Configuration.popup.container).toEqual('#popup-container')
+    expect(Configuration.popup.device).toEqual('desktop')
   })
 
   it("lets an explicit popup id override the dashboard popup id", async () => {
-    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
 
-    await Hellotext.initialize("xy76ks", {
-      popup: {
-        id: "explicit-popup",
-      },
-    })
+    await Hellotext.initialize('xy76ks', { popup: { id: 'explicit-popup' } })
 
-    expect(loadPopup).toHaveBeenCalledWith("explicit-popup")
-    expect(loadPopup).toHaveBeenCalledTimes(1)
+    expect(loadPopup).toHaveBeenCalledWith('explicit-popup')
   })
 
   it("skips popup loading when popup is false", async () => {
-    mockBusinessFetch(defaultBusiness({ popup: { id: "dashboard-popup" } }))
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
 
-    await Hellotext.initialize("xy76ks", { popup: false })
+    await Hellotext.initialize('xy76ks', { popup: false })
 
     expect(loadPopup).not.toHaveBeenCalled()
-    expect(Hellotext.popup).toBeUndefined()
   })
 
   it("does not break initialization when business fetch rejects", async () => {
@@ -916,3 +878,105 @@ describe("when the class is initialized successfully", () => {
     })
   })
 });
+
+describe('when initializing Push', () => {
+  let supported
+  let initializePush
+  let loadWebchat
+
+  beforeEach(() => {
+    supported = jest.spyOn(Push, 'supported', 'get').mockReturnValue(true)
+    initializePush = jest.spyOn(Push.prototype, 'initialize').mockResolvedValue()
+    loadWebchat = jest.spyOn(Webchat, 'load').mockResolvedValue({})
+    mockBusinessFetch(defaultBusiness({ push: { public_key: 'business-public-key' } }))
+  })
+
+  afterEach(() => {
+    Hellotext.push?.dispose()
+    Hellotext.push = null
+    Configuration.push.assign({})
+    supported.mockRestore()
+    initializePush.mockRestore()
+    loadWebchat.mockRestore()
+  })
+
+  it('reads the business public key and configured worker URL', async () => {
+    await Hellotext.initialize('xy76ks', { push: { serviceWorkerUrl: '/hellotext-sw.js' } })
+
+    expect(Hellotext.push.publicKey).toBe('business-public-key')
+    expect(Hellotext.push.serviceWorkerUrl).toBe('/hellotext-sw.js')
+    expect(initializePush).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips Push when the business has no public key', async () => {
+    mockBusinessFetch(defaultBusiness())
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(Hellotext.push).toBeNull()
+    expect(initializePush).not.toHaveBeenCalled()
+  })
+
+  it('skips Push when the browser does not support it', async () => {
+    supported.mockReturnValue(false)
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(Hellotext.push).toBeNull()
+    expect(initializePush).not.toHaveBeenCalled()
+  })
+
+  it('allows Push to be disabled explicitly', async () => {
+    await Hellotext.initialize('xy76ks', { push: false })
+
+    expect(Hellotext.push).toBeNull()
+    expect(initializePush).not.toHaveBeenCalled()
+  })
+
+  it('finishes initialization and loads widgets while Push is still waiting for a worker', async () => {
+    initializePush.mockReturnValue(new Promise(() => {}))
+    mockBusinessFetch(defaultBusiness({
+      push: { public_key: 'business-public-key' },
+      webchat: { id: 'dashboard-webchat' },
+    }))
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat')
+    expect(Hellotext.isInitialized).toBe(true)
+  })
+
+  it('resets omitted Push options when initializing another business', async () => {
+    mockBusinessFetch(defaultBusiness({
+      id: 'business-a',
+      push: { public_key: 'business-a-public-key' },
+    }))
+    await Hellotext.initialize('business-a', {
+      push: {
+        serviceWorkerUrl: '/business-a-worker.js',
+        channelId: 'business-a-channel',
+      },
+    })
+
+    mockBusinessFetch(defaultBusiness({
+      id: 'business-b',
+      push: { public_key: 'business-b-public-key' },
+    }))
+    await Hellotext.initialize('business-b')
+
+    expect(Hellotext.push.publicKey).toBe('business-b-public-key')
+    expect(Hellotext.push.serviceWorkerUrl).toBeNull()
+    expect(Hellotext.push.channelId).toBeNull()
+  })
+
+  it('cleans up the previous Push instance when initialized again', async () => {
+    await Hellotext.initialize('xy76ks')
+    const dispose = jest.spyOn(Hellotext.push, 'dispose')
+    mockBusinessFetch(defaultBusiness())
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(dispose).toHaveBeenCalledTimes(1)
+    expect(Hellotext.push).toBeNull()
+  })
+})

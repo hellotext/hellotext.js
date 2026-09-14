@@ -29,6 +29,8 @@ const stylesheetLoadTimeout = 10000
  * @property {{id: String}|null} [popup] - Dashboard popup defaults.
  * @property {BusinessWebchat|null} [webchat] - Dashboard webchat defaults.
  * @property {{id: String}|null} [whatsapp] - Dashboard WhatsApp widget defaults.
+ * @property {{public_key: String}|null} [push] - Push public key.
+ * @property {{html: String}|null} [alert] - Smart Alert HTML.
  * @property {String|Array<String>} [whitelist] - Domain whitelist configuration.
  * @property {String} [subscription] - Current business subscription tier.
  */
