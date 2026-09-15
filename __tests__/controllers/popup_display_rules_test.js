@@ -72,7 +72,7 @@ describe('PopupController display rules', () => {
   })
 
   it('displays when the page matches a lane', () => {
-    const { element } = buildController({ lanes: [lane(['page.path', 'contains', '/'])] })
+    const { element } = buildController({ lanes: [lane(['page.path', 'is', '/'])] })
 
     controller.connect()
 

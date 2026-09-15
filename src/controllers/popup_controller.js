@@ -448,6 +448,7 @@ export default class extends Controller {
     return {
       url: window.location.href,
       path: window.location.pathname,
+      hash: window.location.hash,
       title: document.title,
       referrer: document.referrer || undefined,
       scrollDepth: this.scrollDepth(),

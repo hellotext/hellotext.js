@@ -12,6 +12,8 @@
  * This mirrors Popup::DisplayRules::PageEvaluator on the Rails side. Keep the two in step
  * — the shared cases are covered by both suites.
  */
+import { PagePath } from './page_path'
+
 const NEGATIVE_OPERATORS = ['does_not_contain', 'is_not']
 
 const THRESHOLD_FIELDS = ['session.scroll_depth', 'session.time_on_page', 'session.page_views']
@@ -156,13 +158,18 @@ export class PopupDisplayRules {
       return this.thresholdMatches(condition, actual)
     }
 
+    if (condition.field === 'page.path') return this.pathMatches(condition, actual, context)
+
     return this.stringMatches(condition, actual)
   }
 
   actualValue(field, context) {
     switch (field) {
+      // The hash rides along because a hash-routed site keeps its real route after `#/`.
       case 'page.path':
-        return context.path
+        return context.path === undefined || context.path === null
+          ? context.path
+          : `${context.path}${context.hash ?? ''}`
       case 'page.title':
         return context.title
       case 'session.referrer':
@@ -279,6 +286,39 @@ export class PopupDisplayRules {
     )
 
     return negative ? !hit : hit
+  }
+
+  /**
+   * Page URL compares canonical paths on both sides, so a value saved as `/sale` still
+   * matches a visitor on `/sale/`, `/SALE` or `/#/sale`, and one pasted with its domain
+   * still names the page. A value that reduces to nothing would match every page: the
+   * server refuses to save one, and a payload carrying it anyway fails closed instead of
+   * reaching everyone.
+   */
+  pathMatches(condition, actual, context) {
+    const negative = NEGATIVE_OPERATORS.includes(condition.operator)
+
+    if (actual === undefined || actual === null) return negative
+
+    const mode = PagePath.modeFor(condition.operator)
+    const hosts = this.hostsFrom(context)
+    const expected = condition.values.map(value => PagePath.canonical(value, { mode, hosts }))
+    if (expected.includes('')) return false
+
+    const path = PagePath.canonical(actual)
+    const hit = expected.some(value =>
+      mode === PagePath.CONTAINS ? path.includes(value) : path === value,
+    )
+
+    return negative ? !hit : hit
+  }
+
+  hostsFrom(context) {
+    try {
+      return [new URL(context.url).hostname]
+    } catch (_) {
+      return []
+    }
   }
 
   compare(operator, actual, expected) {

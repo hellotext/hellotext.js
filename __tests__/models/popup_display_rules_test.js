@@ -44,6 +44,53 @@ describe('PopupDisplayRules', () => {
     expect(definition.matches(page({ path: '/blog' }))).toBe(false)
   })
 
+  describe('Page URL spellings', () => {
+    it('matches a saved path however the site spells the page', () => {
+      const definition = rules([['page.path', 'is', '/sale']])
+
+      expect(definition.matches(page({ path: '/sale/' }))).toBe(true)
+      expect(definition.matches(page({ path: '/SALE' }))).toBe(true)
+      expect(definition.matches(page({ path: '/sale/index.html' }))).toBe(true)
+      expect(definition.matches(page({ path: '/sales' }))).toBe(false)
+    })
+
+    it('matches an accented path the browser reports percent-encoded', () => {
+      expect(rules([['page.path', 'is', '/café']]).matches(page({ path: '/caf%C3%A9' }))).toBe(
+        true,
+      )
+    })
+
+    it('reads the route of a hash-routed site and ignores an in-page anchor', () => {
+      const definition = rules([['page.path', 'is', '/products/42']])
+
+      expect(definition.matches(page({ path: '/', hash: '#/products/42' }))).toBe(true)
+      expect(definition.matches(page({ path: '/', hash: '#!/products/42' }))).toBe(true)
+      expect(definition.matches(page({ path: '/products/42', hash: '#reviews' }))).toBe(true)
+      expect(definition.matches(page({ path: '/', hash: '#top' }))).toBe(false)
+    })
+
+    it("drops the page's own host from a value that still carries it", () => {
+      const definition = rules([['page.path', 'is', 'shop.test/sale']])
+
+      expect(definition.matches(page({ url: 'https://shop.test/sale', path: '/sale' }))).toBe(true)
+    })
+
+    it('keeps a trailing slash typed into contains as the pages under that path', () => {
+      const definition = rules([['page.path', 'contains', '/blog/']])
+
+      expect(definition.matches(page({ path: '/blog/first-post' }))).toBe(true)
+      expect(definition.matches(page({ path: '/blog' }))).toBe(false)
+      expect(definition.matches(page({ path: '/blog-news' }))).toBe(false)
+    })
+
+    it('fails closed on a fragment that would match every page', () => {
+      expect(rules([['page.path', 'contains', '/']]).matches(page({ path: '/sale' }))).toBe(false)
+      expect(rules([['page.path', 'does_not_contain', '/']]).matches(page({ path: '/sale' }))).toBe(
+        false,
+      )
+    })
+  })
+
   it('requires all exclusions for the same field', () => {
     const definition = rules([
       ['page.path', 'does_not_contain', '/checkout'],
