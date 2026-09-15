@@ -5,6 +5,7 @@
 import PopupController from '../../src/controllers/popup_controller'
 import PopupsAPI from '../../src/api/popups'
 import Hellotext from '../../src/hellotext'
+import { Cookies } from '../../src/models/cookies'
 
 describe('PopupController', () => {
   let controller
@@ -164,6 +165,28 @@ describe('PopupController', () => {
       expect(element.hidden).toBe(false)
     })
 
+    it('normalizes source and medium, but preserves campaign capitalization', () => {
+      window.history.replaceState({}, '', '/landing?utm_source=Google&utm_medium=Paid_Social&utm_campaign=Spring')
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'google')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({
+        source: 'google',
+        medium: 'paid_social',
+        campaign: 'Spring',
+      })
+
+      controller.disconnect()
+      const exactCampaign = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_campaign', 'spring')
+      controller.connect()
+
+      expect(exactCampaign.element.hidden).toBe(true)
+    })
+
     it('falls back to the persisted touch when the URL carries none', () => {
       window.history.replaceState({}, '', '/landing')
       Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
@@ -195,6 +218,37 @@ describe('PopupController', () => {
       controller.connect()
 
       expect(element.hidden).toBe(false)
+    })
+
+    it('falls back when UTM values are blank, and never reads UTM parameters from a hash route', () => {
+      Hellotext.page = { utmParams: { source: 'Google', medium: 'CPC' } }
+      window.history.replaceState({}, '', '/landing?utm_campaign=%20')
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'google')
+
+      controller.connect()
+      expect(element.hidden).toBe(false)
+
+      controller.disconnect()
+      window.history.replaceState({}, '', '/#/landing?utm_campaign=spring')
+      const hashRoute = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'google')
+      controller.connect()
+
+      expect(hashRoute.element.hidden).toBe(false)
+    })
+
+    it('uses the first duplicate UTM parameter without changing persisted attribution', () => {
+      const set = jest.spyOn(Cookies, 'set')
+      window.history.replaceState({}, '', '/landing?utm_source=First&utm_source=Second')
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'first')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ source: 'first' })
+      expect(set).not.toHaveBeenCalled()
     })
 
     it('re-reads the URL after a SPA route adds a campaign', async () => {

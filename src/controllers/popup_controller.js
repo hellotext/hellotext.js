@@ -462,10 +462,25 @@ export default class extends Controller {
    * URL, the last persisted touch still applies.
    */
   currentUtmParams() {
-    const current = UTM.paramsFrom(window.location.search)
-    const carriesCampaign = ['source', 'medium', 'campaign'].some(key => current[key])
+    const current = this.popupUtmParams(UTM.paramsFrom(window.location.search))
 
-    return carriesCampaign ? current : Hellotext.page?.utmParams || {}
+    return Object.keys(current).length > 0
+      ? current
+      : this.popupUtmParams(Hellotext.page?.utmParams)
+  }
+
+  // Popup targeting treats acquisition source and medium as identifiers, but campaign names
+  // remain exact marketing labels. This projection is intentionally separate from UTM.save:
+  // changing persisted attribution here would affect sessions and reporting beyond popups.
+  popupUtmParams(params) {
+    return Object.fromEntries(
+      Object.entries(params || {}).flatMap(([key, value]) => {
+        if (!['source', 'medium', 'campaign'].includes(key) || typeof value !== 'string') return []
+        if (value.trim() === '') return []
+
+        return [[key, key === 'campaign' ? value : value.trim().toLowerCase()]]
+      }),
+    )
   }
 
   /**

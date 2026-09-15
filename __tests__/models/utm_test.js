@@ -61,6 +61,10 @@ describe('UTM', () => {
       expect(UTM.paramsFrom('?utm_source=&page=2')).toEqual({})
       expect(UTM.paramsFrom('')).toEqual({})
     })
+
+    it('uses the first value when a campaign parameter is repeated', () => {
+      expect(UTM.paramsFrom('?utm_source=first&utm_source=second')).toEqual({ source: 'first' })
+    })
   })
 
   describe('constructor', () => {

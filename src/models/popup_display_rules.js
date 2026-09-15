@@ -280,9 +280,11 @@ export class PopupDisplayRules {
 
     if (actual === undefined || actual === null) return negative
 
-    const value = String(actual).toLowerCase()
+    const normalize =
+      condition.field === 'session.utm_campaign' ? String : value => String(value).toLowerCase()
+    const value = normalize(actual)
     const hit = condition.values.some(expected =>
-      this.compare(condition.operator, value, String(expected).toLowerCase()),
+      this.compare(condition.operator, value, normalize(expected)),
     )
 
     return negative ? !hit : hit
