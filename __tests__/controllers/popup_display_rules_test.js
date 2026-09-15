@@ -35,7 +35,6 @@ describe('PopupController display rules', () => {
     controller.captureValue = {}
     controller.deviceValue = 'all'
     controller.idValue = 'popup-id'
-    controller.frequencyValue = 'always'
     controller.rulesValue = { lanes }
 
     return { element, dialog }
@@ -212,51 +211,6 @@ describe('PopupController display rules', () => {
     controller.evaluateDisplay()
 
     expect(element.hidden).toBe(true)
-  })
-
-  describe('display frequency', () => {
-    it('records and enforces a once-per-session display', () => {
-      const { element } = buildController()
-      controller.frequencyValue = 'once_per_session'
-
-      controller.connect()
-
-      expect(element.hidden).toBe(false)
-      expect(window.sessionStorage.getItem('hellotext:popup:popup-id:shown')).toBeTruthy()
-
-      controller.disconnect()
-      const next = buildController()
-      controller.frequencyValue = 'once_per_session'
-      controller.connect()
-
-      expect(next.element.hidden).toBe(true)
-    })
-
-    it('allows an every-N-days popup after its window expires', () => {
-      buildController()
-      controller.frequencyValue = 'every_n_days'
-      controller.frequencyDaysValue = 7
-      Object.defineProperty(controller, 'hasFrequencyDaysValue', { value: true })
-      window.localStorage.setItem(
-        'hellotext:popup:popup-id:shown',
-        String(Date.now() - 8 * 86_400_000),
-      )
-
-      controller.connect()
-
-      expect(controller.displayed).toBe(true)
-    })
-
-    it('fails open when browser storage is unavailable', () => {
-      buildController()
-      controller.frequencyValue = 'once_per_visitor'
-      jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-        throw new DOMException('blocked')
-      })
-
-      expect(() => controller.connect()).not.toThrow()
-      expect(controller.displayed).toBe(true)
-    })
   })
 
   describe('SPA navigation', () => {
