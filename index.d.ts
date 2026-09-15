@@ -109,11 +109,18 @@ export interface HellotextBusinessCountry {
   [key: string]: any
 }
 
+export interface HellotextBusinessTranslations {
+  white_label: { powered_by: string }
+  errors: { parameter_not_unique: string; blank: string }
+  forms: { phone: string; email: string; phone_and_email: string; none: string }
+}
+
 export interface HellotextBusinessData {
   id?: string
   country?: HellotextBusinessCountry | string
   features?: Record<string, any>
   locale?: string
+  locales?: { en: HellotextBusinessTranslations; es: HellotextBusinessTranslations }
   style_url?: string
   webchat?: HellotextWebchatConfig | null
   whatsapp?: HellotextWhatsAppWidgetConfig | null
@@ -131,7 +138,7 @@ export interface HellotextBusiness {
   readonly subscription: string | null | undefined
   readonly country: HellotextBusinessCountry | string | undefined
   readonly enabledWhitelist: boolean
-  readonly locale: any
+  readonly locale: HellotextBusinessTranslations | undefined
   readonly features: Record<string, any> | null | undefined
   hydrate(): Promise<HellotextBusinessData | null>
   setData(data: HellotextBusinessData): void
