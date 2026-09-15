@@ -4,7 +4,10 @@
 
 import Hellotext from '../../src/hellotext'
 import API from '../../src/api'
-import { Form, FormCollection } from '../../src/models'
+import { Business, Form, FormCollection } from '../../src/models'
+import { Locale } from '../../src/core/configuration/locale'
+import { LogoBuilder } from '../../src/builders/logo_builder'
+import locales from '../../test/fixtures/business_locales'
 
 const business = {
   whitelist: 'enabled',
@@ -37,6 +40,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  Locale.identifier = undefined
   jest.clearAllMocks()
   jest.restoreAllMocks()
 })
@@ -187,6 +191,21 @@ describe('add', () => {
     const forms = new FormCollection()
     forms.add(form)
     expect(forms.length).toEqual(1)
+  })
+
+  it.each(['en', 'es'])('loads %s translations from embedded business data after hydration fails', async language => {
+    Locale.identifier = language
+    Hellotext.business = new Business('M01az53K')
+    API.businesses.get = jest.fn().mockRejectedValue(new Error('network error'))
+    await Hellotext.business.hydrate()
+    const forms = new FormCollection()
+
+    forms.add({ ...form, business: { ...form.business, locales } })
+
+    expect(LogoBuilder.build().querySelector('small').textContent).toBe(locales[language].white_label.powered_by)
+    expect(Hellotext.business.locale.errors).toEqual(locales[language].errors)
+    expect(Hellotext.business.locale.forms[forms.getById(form.id).localeAuthKey]).toBe(locales[language].forms.none)
+    forms.mutationObserver.disconnect()
   })
 
   it('does not add a form that is already in the forms array', () => {

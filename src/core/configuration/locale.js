@@ -35,15 +35,15 @@ class Locale {
   }
 
   static get #fromHtmlLangProperty() {
-    return document?.documentElement?.lang
+    return typeof document !== 'undefined' ? document.documentElement?.lang : undefined
   }
 
   static get #fromMetaTag() {
-    return document?.querySelector('meta[name="locale"]')?.content
+    return typeof document !== 'undefined' ? document.querySelector('meta[name="locale"]')?.content : undefined
   }
 
   static get #fromBrowserLanguage() {
-    return navigator?.language?.split('-')[0] // Extract primary language
+    return typeof navigator !== 'undefined' ? navigator.language?.split('-')[0] : undefined
   }
 }
 

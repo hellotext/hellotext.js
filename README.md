@@ -55,6 +55,7 @@ Follow these guides to set up tracking, forms, chat widgets, popups, and Push no
 - [Understanding Sessions](/docs/sessions.md)
 - [Tracking Events](/docs/tracking.md)
 - [Forms](/docs/forms.md)
+- [Locales](/docs/locales.md)
 - [Popups](/docs/popups.md)
 - [Webchat](/docs/webchat.md)
 - [WhatsApp widget](/docs/whatsapp.md)

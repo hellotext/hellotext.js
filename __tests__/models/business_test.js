@@ -4,6 +4,8 @@
 
 import { Business } from '../../src/models'
 import API from '../../src/api'
+import { Locale } from '../../src/core/configuration/locale'
+import locales from '../../test/fixtures/business_locales'
 
 describe('Business', () => {
   let business
@@ -18,9 +20,13 @@ describe('Business', () => {
 
   beforeEach(() => {
     business = new Business('test-business-123')
+    Locale.identifier = undefined
+    document.documentElement.lang = ''
   })
 
   afterEach(() => {
+    Locale.identifier = undefined
+    document.documentElement.lang = ''
     jest.clearAllMocks()
     document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
       link.dispatchEvent(new Event('error'))
@@ -45,6 +51,7 @@ describe('Business', () => {
       country: 'US',
       whitelist: 'disabled',
       locale: 'es',
+      locales,
       features: { analytics: true },
       webchat: { id: 'dashboard-webchat' }
     }
@@ -60,6 +67,37 @@ describe('Business', () => {
       expect(API.businesses.get).toHaveBeenCalledWith('test-business-123')
       expect(result).toEqual(mockData)
       expect(business.data).toEqual(mockData)
+    })
+
+    it.each(['en', 'es'])('uses the configured %s dictionary from the response', async language => {
+      Locale.identifier = language
+      const translations = {
+        ...locales,
+        [language]: { ...locales[language], errors: { ...locales[language].errors, blank: 'Server update' } }
+      }
+      API.businesses.get = jest.fn().mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ ...mockData, locales: translations })
+      })
+
+      await business.hydrate()
+
+      expect(business.locale).toBe(translations[language])
+      expect(business.locale.errors.blank).toBe('Server update')
+      expect(business.locale.white_label).toEqual(locales[language].white_label)
+      expect(business.locale.forms).toEqual(locales[language].forms)
+    })
+
+    it('uses the detected regional language instead of the business default', async () => {
+      document.documentElement.lang = 'es-MX'
+      API.businesses.get = jest.fn().mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ ...mockData, locale: 'en' })
+      })
+
+      await business.hydrate()
+
+      expect(business.locale).toBe(locales.es)
     })
 
     it('returns null when the business request rejects', async () => {
@@ -155,6 +193,7 @@ describe('Business', () => {
         country: 'US',
         whitelist: ['example.com'],
         locale: 'en',
+        locales,
         features: { analytics: true, whitelabel: false }
       })
     })
@@ -186,15 +225,15 @@ describe('Business', () => {
       })
 
       it('returns the Spanish locale object for "es"', () => {
-        business.setData({ locale: 'es' })
+        business.setData({ locale: 'es', locales })
         const result = business.locale
         expect(result).toBeDefined()
         // The locale object should exist (even if we don't test all Spanish translations)
       })
 
-      it('returns undefined for unsupported locale', () => {
-        business.setData({ locale: 'fr' })
-        expect(business.locale).toBeUndefined()
+      it('returns server English for an unsupported locale', () => {
+        business.setData({ locale: 'fr', locales })
+        expect(business.locale).toBe(locales.en)
       })
     })
 
@@ -221,6 +260,30 @@ describe('Business', () => {
     })
   })
 
+  describe('setLocale', () => {
+    it.each([
+      ['es', 'es'],
+      ['ES-mx', 'es'],
+      ['en-US', 'en'],
+      ['fr', 'en'],
+      ['constructor', 'en']
+    ])('selects %s from the server dictionaries', (requested, selected) => {
+      business.setData({ locale: 'en', locales })
+
+      business.setLocale(requested)
+
+      expect(business.locale).toBe(locales[selected])
+      expect(business.data.locale).toBe(selected)
+    })
+
+    it('does not provide bundled translations when the response omits locales', () => {
+      business.setData({ locale: 'es' })
+      business.setLocale('es')
+
+      expect(business.locale).toBeUndefined()
+    })
+  })
+
   describe('getters when data is null', () => {
     it('throws error when accessing subscription without data', () => {
       expect(() => business.subscription).toThrow()
@@ -238,8 +301,8 @@ describe('Business', () => {
       expect(() => business.enabledWhitelist).toThrow()
     })
 
-    it('throws error when accessing locale without data', () => {
-      expect(() => business.locale).toThrow()
+    it('has no translations before business data is loaded', () => {
+      expect(business.locale).toBeUndefined()
     })
   })
 
@@ -264,7 +327,7 @@ describe('Business', () => {
       expect(business.subscription).toBeNull()
       expect(business.country).toBeNull()
       expect(business.features).toBeNull()
-      expect(business.locale).toBeUndefined() // locales[null] returns undefined
+      expect(business.locale).toBeUndefined()
     })
 
     it('preserves existing DOM link tags when adding new stylesheet', () => {
