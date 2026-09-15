@@ -69,10 +69,18 @@ describe('PopupDisplayRules', () => {
       expect(definition.matches(page({ path: '/', hash: '#top' }))).toBe(false)
     })
 
-    it("drops the page's own host from a value that still carries it", () => {
-      const definition = rules([['page.path', 'is', 'shop.test/sale']])
+    it('uses the path from a full URL and fails closed for an ambiguous bare domain', () => {
+      const definition = rules([['page.path', 'is', 'https://shop.test/sale']])
 
       expect(definition.matches(page({ url: 'https://shop.test/sale', path: '/sale' }))).toBe(true)
+      expect(rules([['page.path', 'is', 'shop.test/sale']]).matches(page({ path: '/sale' }))).toBe(false)
+    })
+
+    it('does not turn an encoded slash into a path separator', () => {
+      const definition = rules([['page.path', 'is', '/a%2Fb']])
+
+      expect(definition.matches(page({ path: '/a%2Fb' }))).toBe(true)
+      expect(definition.matches(page({ path: '/a/b' }))).toBe(false)
     })
 
     it('keeps a trailing slash typed into contains as the pages under that path', () => {

@@ -21,10 +21,12 @@ const EXACT = 'exact'
 const CONTAINS = 'contains'
 const CONTAINS_OPERATORS = ['contains', 'does_not_contain']
 
-const ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]*/i
-const SCHEME_RELATIVE_ORIGIN = /^\/\/[^/?#]*/
-const LEADING_HOST = /^[^/?#]+/
+const WEB_ORIGIN = /^https?:\/\/[^/?#]+/i
+const SCHEME_RELATIVE_ORIGIN = /^\/\/[^/?#]+/
+const SCHEME = /^[a-z][a-z0-9+.-]*:/i
+const BARE_HOST_WITH_PATH = /^(?:(?:[a-z0-9-]+\.)+[a-z]{2,}|localhost)(?::\d+)?\//i
 const ENCODED_RUN = /(?:%[0-9a-f]{2})+/gi
+const RESERVED_ESCAPE = /%(?:21|23|24|25|26|27|28|29|2a|2b|2c|2f|3a|3b|3d|3f|40|5b|5d)/i
 const INDEX_FILE = /(^|\/)index\.(?:html?|php)$/
 
 export class PagePath {
@@ -35,11 +37,12 @@ export class PagePath {
     return CONTAINS_OPERATORS.includes(operator) ? CONTAINS : EXACT
   }
 
-  static canonical(value, { mode = EXACT, hosts = [] } = {}) {
+  static canonical(value, { mode = EXACT } = {}) {
     let path = String(value ?? '').trim()
     if (path === '') return ''
 
-    path = this.withoutOrigin(path, hosts)
+    path = this.withoutOrigin(path)
+    if (path === null) return ''
     path = this.routePath(path)
     path = this.decoded(path)
     // Lowercasing can produce decomposed sequences, so NFC runs after it. The final sigma is
@@ -62,24 +65,14 @@ export class PagePath {
     return this.resolved(path)
   }
 
-  static host(value) {
-    return String(value ?? '')
-      .trim()
-      .toLowerCase()
-      .replace(/:\d*$/, '')
-      .replace(/^www\./, '')
-  }
-
-  // A scheme or `//` is always an origin. A bare leading segment only is when it names one
-  // of the merchant's own hosts: `sitemap.xml` looks just like a domain.
-  static withoutOrigin(path, hosts) {
-    if (ORIGIN.test(path)) return path.replace(ORIGIN, '')
+  // Only HTTP(S) values name pages the popup can observe. A bare domain with a path is
+  // rejected instead of depending on the suggestion-host limit to decide its meaning.
+  static withoutOrigin(path) {
+    if (WEB_ORIGIN.test(path)) return path.replace(WEB_ORIGIN, '')
     if (SCHEME_RELATIVE_ORIGIN.test(path)) return path.replace(SCHEME_RELATIVE_ORIGIN, '')
+    if (SCHEME.test(path) || BARE_HOST_WITH_PATH.test(path)) return null
 
-    const leading = path.match(LEADING_HOST)?.[0]
-    const known = [].concat(hosts ?? []).map(host => this.host(host))
-
-    return leading && known.includes(this.host(leading)) ? path.slice(leading.length) : path
+    return path
   }
 
   // Hash-routed sites keep their real route after `#/` or `#!/`. Any other fragment is an
@@ -97,15 +90,39 @@ export class PagePath {
     return route ? `${base}/${route.split('?')[0]}` : base
   }
 
-  // Runs of escapes are decoded together so a multi-byte character survives. A run that is
-  // not valid UTF-8 stays exactly as written rather than failing the whole path.
+  // Decode readable characters but keep every reserved URL delimiter escaped. In particular,
+  // `%2F` is not `/`: decoding it would turn one path segment into two.
   static decoded(path) {
     return path.replace(ENCODED_RUN, run => {
-      try {
-        return decodeURIComponent(run)
-      } catch (_) {
-        return run
+      const escapes = run.match(/%[0-9a-f]{2}/gi) ?? []
+      const groups = []
+      let group = []
+      const flush = () => {
+        if (group.length > 0) groups.push(group.join(''))
+        group = []
       }
+
+      escapes.forEach(escape => {
+        if (RESERVED_ESCAPE.test(escape)) {
+          flush()
+          groups.push(escape)
+        } else {
+          group.push(escape)
+        }
+      })
+      flush()
+
+      return groups
+        .map(group => {
+          if (RESERVED_ESCAPE.test(group)) return group
+
+          try {
+            return decodeURIComponent(group)
+          } catch (_) {
+            return group
+          }
+        })
+        .join('')
     })
   }
 

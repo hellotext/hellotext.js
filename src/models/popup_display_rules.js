@@ -301,8 +301,7 @@ export class PopupDisplayRules {
     if (actual === undefined || actual === null) return negative
 
     const mode = PagePath.modeFor(condition.operator)
-    const hosts = this.hostsFrom(context)
-    const expected = condition.values.map(value => PagePath.canonical(value, { mode, hosts }))
+    const expected = condition.values.map(value => PagePath.canonical(value, { mode }))
     if (expected.includes('')) return false
 
     const path = PagePath.canonical(actual)
@@ -311,14 +310,6 @@ export class PopupDisplayRules {
     )
 
     return negative ? !hit : hit
-  }
-
-  hostsFrom(context) {
-    try {
-      return [new URL(context.url).hostname]
-    } catch (_) {
-      return []
-    }
   }
 
   compare(operator, actual, expected) {
