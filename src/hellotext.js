@@ -7,6 +7,7 @@ import {
   Fingerprint,
   FormCollection,
   Page,
+  Popup,
   Push,
   Query,
   Session,
@@ -21,10 +22,12 @@ class Hellotext {
   static eventEmitter = new Event()
   static forms
   static business
+  static popup
   static webchat
   static whatsapp
   static push
   static alert
+  static initializationVersion = 0
 
   /**
    * initialize the module.
@@ -32,6 +35,10 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config = {}) {
+    const initializationVersion = ++this.initializationVersion
+    this.popup?.unmount?.()
+    this.popup = undefined
+
     this.alert?.dispose()
     this.alert = null
     this.push?.dispose()
@@ -63,6 +70,11 @@ class Hellotext {
       }
     }
 
+    const popupConfig =
+      config.popup === false
+        ? false
+        : this.deepMergePlainObjects((businessData && businessData.popup) || {}, config.popup || {})
+
     const webchatConfig =
       config.webchat === false
         ? false
@@ -84,15 +96,52 @@ class Hellotext {
       Object.prototype.hasOwnProperty.call(config.webchat, 'behaviour')
     Configuration.webchat.behaviourOverride = hasExplicitBehaviourOverride
 
+    const widgetLoads = []
+
     if (webchatConfig && webchatConfig.id) {
       Configuration.webchat.assign(webchatConfig)
-      this.webchat = await Webchat.load(webchatConfig.id)
+      widgetLoads.push(
+        Webchat.load(webchatConfig.id).then(webchat => {
+          if (this.business === businessContext) this.webchat = webchat
+        }),
+      )
     }
 
     if (whatsappConfig && whatsappConfig.id) {
       Configuration.whatsapp.assign(whatsappConfig)
-      this.whatsapp = await WhatsAppWidget.load(whatsappConfig.id)
+      widgetLoads.push(
+        WhatsAppWidget.load(whatsappConfig.id).then(whatsapp => {
+          if (this.business === businessContext) this.whatsapp = whatsapp
+        }),
+      )
     }
+
+    if (popupConfig && popupConfig.id) {
+      const resolvedPopupConfig = { container: 'body', device: 'auto', ...popupConfig }
+      Configuration.popup.assign(resolvedPopupConfig)
+      widgetLoads.push(
+        Popup.load(resolvedPopupConfig.id, {
+          container: resolvedPopupConfig.container,
+          shouldMount: () => {
+            return (
+              this.business === businessContext &&
+              this.initializationVersion === initializationVersion
+            )
+          },
+        }).then(popup => {
+          if (
+            this.business === businessContext &&
+            this.initializationVersion === initializationVersion
+          ) {
+            this.popup = popup
+          }
+        }),
+      )
+    }
+
+    await Promise.all(widgetLoads)
+    if (this.business !== businessContext || this.initializationVersion !== initializationVersion)
+      return
 
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()

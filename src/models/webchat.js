@@ -24,7 +24,7 @@ class Webchat {
   async render() {
     this.applyBehaviourOverride()
 
-    if (!await this.stylesheetLoaded) {
+    if (!(await this.stylesheetLoaded)) {
       console.warn('Hellotext webchat was not mounted because its stylesheet failed to load.')
       return false
     }

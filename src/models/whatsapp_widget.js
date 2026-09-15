@@ -7,7 +7,7 @@ class WhatsAppWidget {
   static async load(id) {
     const widget = new WhatsAppWidget({
       id,
-      html: await API.whatsappWidgets.get(id)
+      html: await API.whatsappWidgets.get(id),
     })
 
     widget.rendered = widget.render()
@@ -26,12 +26,16 @@ class WhatsAppWidget {
 
     const container = this.containerToAppendTo
     if (!container) {
-      console.warn(`Hellotext WhatsApp widget was not mounted because the container ${Configuration.whatsapp.container} was not found.`)
+      console.warn(
+        `Hellotext WhatsApp widget was not mounted because the container ${Configuration.whatsapp.container} was not found.`,
+      )
       return false
     }
 
-    if (!await this.stylesheetLoaded) {
-      console.warn('Hellotext WhatsApp widget was not mounted because its stylesheet failed to load.')
+    if (!(await this.stylesheetLoaded)) {
+      console.warn(
+        'Hellotext WhatsApp widget was not mounted because its stylesheet failed to load.',
+      )
       return false
     }
 

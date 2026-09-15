@@ -9,6 +9,12 @@ describe(".valid", function () {
     expect(Event.valid("cart.added")).toEqual(true)
   });
 
+  it("is true for popup lifecycle events", () => {
+    expect(Event.valid("popup:mounted")).toEqual(true)
+    expect(Event.valid("popup:opened")).toEqual(true)
+    expect(Event.valid("popup:closed")).toEqual(true)
+  });
+
   it("is false when event name is not defined", () =>  {
     expect(Event.valid("undefined-event")).toEqual(false)
   });
