@@ -48,6 +48,8 @@ describe('popup visit signals', () => {
     Hellotext.activities = new Set()
     Hellotext.visitBusinessId = undefined
     Hellotext.lastPageUrl = undefined
+    Hellotext.lastPageRoute = undefined
+    Hellotext.visitStartedAt = undefined
   })
 
   it('keeps activities and page counts across page loads in the same visit', () => {
@@ -57,6 +59,7 @@ describe('popup visit signals', () => {
     Hellotext.activities = new Set()
     Hellotext.visitBusinessId = undefined
     Hellotext.lastPageUrl = undefined
+    Hellotext.lastPageRoute = undefined
     Hellotext.initializeVisitSignals('business-id')
 
     expect(Hellotext.pageViews).toBe(2)
@@ -68,6 +71,40 @@ describe('popup visit signals', () => {
     Hellotext.initializeVisitSignals('business-id')
 
     expect(Hellotext.pageStartedAt).toBe(window.performance.timeOrigin)
+    expect(Hellotext.visitStartedAt).toBe(window.performance.timeOrigin)
+  })
+
+  it('does not count query changes or ordinary anchors as new pages', () => {
+    window.history.replaceState({}, '', '/products?utm_source=email#details')
+    Hellotext.initializeVisitSignals('business-id')
+
+    window.history.replaceState({}, '', '/products?color=blue#reviews')
+    Hellotext.initializeVisitSignals('business-id')
+
+    expect(Hellotext.pageViews).toBe(1)
+  })
+
+  it('counts a changed hash route but ignores its query parameters', () => {
+    window.history.replaceState({}, '', '/#/products?color=red')
+    Hellotext.initializeVisitSignals('business-id')
+
+    window.history.replaceState({}, '', '/#/products?color=blue')
+    Hellotext.initializeVisitSignals('business-id')
+    expect(Hellotext.pageViews).toBe(1)
+
+    window.history.replaceState({}, '', '/#/checkout')
+    Hellotext.initializeVisitSignals('business-id')
+    expect(Hellotext.pageViews).toBe(2)
+  })
+
+  it('treats hashbang and plain hash routes as the same page', () => {
+    window.history.replaceState({}, '', '/#!/products')
+    Hellotext.initializeVisitSignals('business-id')
+
+    window.history.replaceState({}, '', '/#/products')
+    Hellotext.initializeVisitSignals('business-id')
+
+    expect(Hellotext.pageViews).toBe(1)
   })
 
   it('starts timing at initialization when an SPA changed routes before the SDK loaded', () => {
@@ -97,6 +134,7 @@ describe('popup visit signals', () => {
     window.sessionStorage.clear()
     Hellotext.visitBusinessId = undefined
     Hellotext.lastPageUrl = undefined
+    Hellotext.lastPageRoute = undefined
     Hellotext.initializeVisitSignals('business-id')
 
     expect(Hellotext.visitorType).toBe('returning')
@@ -554,6 +592,35 @@ describe("when the class is initialized successfully", () => {
         resolve({ json: jest.fn().mockResolvedValue({ received: 'success' }), status: 200 })
 
         await tracked
+
+        expect(Hellotext.activities).not.toContain('activity.product_viewed')
+      })
+
+      it('accepts a Unix-seconds activity from an earlier page in the current visit', async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({ received: 'success' }),
+          status: 200,
+        })
+        Hellotext.visitStartedAt = Date.parse('2026-09-16T12:00:00Z')
+        Hellotext.pageStartedAt = Date.parse('2026-09-16T12:05:00Z')
+
+        await Hellotext.track('product.viewed', {
+          tracked_at: Date.parse('2026-09-16T12:02:00Z') / 1000,
+        })
+
+        expect(Hellotext.activities).toContain('activity.product_viewed')
+      })
+
+      it('rejects an accepted activity timestamped before the current visit', async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({ received: 'success' }),
+          status: 200,
+        })
+        Hellotext.visitStartedAt = Date.parse('2026-09-16T12:00:00Z')
+
+        await Hellotext.track('product.viewed', {
+          tracked_at: Date.parse('2026-09-16T11:59:00Z') / 1000,
+        })
 
         expect(Hellotext.activities).not.toContain('activity.product_viewed')
       })

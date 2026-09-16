@@ -39,7 +39,9 @@ class Hellotext {
   static visitorType = 'new'
   static visitBusinessId
   static lastPageUrl
+  static lastPageRoute
   static pageStartedAt
+  static visitStartedAt
   static forms
   static business
   static popup
@@ -72,6 +74,7 @@ class Hellotext {
     Session.initialize(this.page)
     this.initializeVisitSignals(business)
 
+    this.forms?.mutationObserver?.disconnect()
     this.forms = new FormCollection()
 
     this.query = new Query()
@@ -80,12 +83,11 @@ class Hellotext {
     if (this.business !== businessContext) return
 
     let stagedPush = null
-    let stagedAlert = null
+    let stagedAlertData = null
 
     if (config.push !== false && businessData?.push?.public_key && Push.supported) {
       stagedPush = new Push(businessData.push)
-      if (businessData.alert?.html)
-        stagedAlert = new Alert(businessData.alert, businessContext, stagedPush)
+      if (businessData.alert?.html) stagedAlertData = businessData.alert
     }
 
     const popupConfig =
@@ -162,7 +164,7 @@ class Hellotext {
       return
 
     this.push = stagedPush
-    this.alert = stagedAlert
+    this.alert = stagedAlertData ? new Alert(stagedAlertData, businessContext, stagedPush) : null
     this.push?.initialize().catch(error => {
       console.warn('Hellotext Push initialization failed:', error)
     })
@@ -245,13 +247,13 @@ class Hellotext {
       keepalive: keepaliveFor(body),
     })
 
-    const trackedAt = params.tracked_at ? new Date(params.tracked_at) : null
+    const trackedAt = this.trackedAtMilliseconds(params.tracked_at)
     if (
       response.succeeded &&
       this.business === business &&
       this.session === session &&
       this.visitBusinessId === visitBusinessId &&
-      (!trackedAt || (Number.isFinite(trackedAt.getTime()) && trackedAt >= this.pageStartedAt))
+      (trackedAt === null || trackedAt >= this.visitStartedAt)
     )
       this.recordActivity(action)
 
@@ -271,6 +273,20 @@ class Hellotext {
     this.eventEmitter.dispatch('activity:occurred', { action, field })
   }
 
+  static trackedAtMilliseconds(value) {
+    if (value === undefined || value === null || value === '') return null
+
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) return Number.NaN
+
+      // Public tracking timestamps use Unix seconds. Accept millisecond values as well so
+      // integrations that already pass Date#getTime() do not get silently rejected.
+      return value < 1_000_000_000_000 ? value * 1000 : value
+    }
+
+    return new Date(value).getTime()
+  }
+
   static initializeVisitSignals(businessId) {
     const businessChanged = this.visitBusinessId !== businessId
     this.visitBusinessId = businessId
@@ -278,6 +294,7 @@ class Hellotext {
     if (businessChanged) {
       this.pageViews = 0
       this.lastPageUrl = undefined
+      this.lastPageRoute = undefined
       this.activities = new Set(this.readStoredActivities())
       this.visitCampaign = this.readStoredVisitCampaign()
       const storedVisitorType = this.readStorage(
@@ -295,11 +312,24 @@ class Hellotext {
         this.writeStorage('sessionStorage', this.visitStorageKey('visitor-type'), this.visitorType)
         this.writeStorage('localStorage', this.visitStorageKey('seen'), '1')
       }
+
+      const storedVisitStartedAt = Number(
+        this.readStorage('sessionStorage', this.visitStorageKey('started-at')),
+      )
+      this.visitStartedAt =
+        Number.isFinite(storedVisitStartedAt) && storedVisitStartedAt > 0
+          ? storedVisitStartedAt
+          : this.initialPageStartedAt()
+      this.writeStorage(
+        'sessionStorage',
+        this.visitStorageKey('started-at'),
+        String(this.visitStartedAt),
+      )
     }
 
     this.rememberVisitCampaign(UTM.paramsFrom(window.location.search))
 
-    if (businessChanged || this.lastPageUrl !== window.location.href) this.recordPageView()
+    if (businessChanged || this.lastPageRoute !== this.pageRoute()) this.recordPageView()
   }
 
   /**
@@ -349,6 +379,7 @@ class Hellotext {
     const firstPageInDocument = !this.lastPageUrl
     this.pageViews = Number.isInteger(stored) && stored > 0 ? stored + 1 : this.pageViews + 1
     this.lastPageUrl = window.location.href
+    this.lastPageRoute = this.pageRoute()
     this.pageStartedAt = firstPageInDocument ? this.initialPageStartedAt() : Date.now()
     this.writeStorage('sessionStorage', key, String(this.pageViews))
   }
@@ -356,15 +387,18 @@ class Hellotext {
   static initialPageStartedAt() {
     const navigationUrl = window.performance?.getEntriesByType?.('navigation')?.[0]?.name
     if (navigationUrl) {
-      const route = value => {
-        const url = new URL(value)
-        return `${url.pathname}${url.hash.match(/^#!?\/.*$/)?.[0] || ''}`
-      }
-
-      if (route(navigationUrl) !== route(window.location.href)) return Date.now()
+      if (this.pageRoute(navigationUrl) !== this.pageRoute()) return Date.now()
     }
 
     return window.performance?.timeOrigin || Date.now()
+  }
+
+  static pageRoute(value = window.location.href) {
+    const currentUrl = window.location?.href || document.location?.href || 'http://localhost/'
+    const url = new URL(value || currentUrl, currentUrl)
+    const hashRoute = url.hash.match(/^#!?\/[^?]*/)?.[0]
+
+    return `${url.pathname}${hashRoute?.replace(/^#!/, '#') || ''}`
   }
 
   static readStoredActivities() {
