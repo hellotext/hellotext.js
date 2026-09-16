@@ -88,6 +88,16 @@ describe('PopupController display rules', () => {
     expect(element.hidden).toBe(true)
   })
 
+  it('fails a lane containing a malformed sibling beside a matching positive rule', () => {
+    const conditions = lane(['page.path', 'contains', '/'])
+    conditions.push({ field: 'page.path', operator: 'unknown', values: ['/products'] })
+    const { element } = buildController({ lanes: [conditions] })
+
+    controller.connect()
+
+    expect(element.hidden).toBe(true)
+  })
+
   // The server strips visitor conditions once it has decided them, so a surviving lane can
   // arrive empty and the popup should display.
   it('displays when the server already satisfied every condition in a lane', () => {

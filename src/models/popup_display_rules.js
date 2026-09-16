@@ -108,6 +108,8 @@ export class PopupDisplayRules {
   }
 
   laneMatches(lane, context) {
+    if (!lane.every(condition => this.validCondition(condition))) return false
+
     const groups = new Map()
 
     lane.forEach(condition => {

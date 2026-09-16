@@ -212,10 +212,7 @@ export default class extends Controller {
   }
 
   pageRoute() {
-    const url = new URL(window.location.href)
-    const hashRoute = url.hash.match(/^#!?\/.*$/)
-
-    return hashRoute ? `${url.pathname}${hashRoute[0]}` : url.pathname
+    return Hellotext.pageRoute()
   }
 
   stopWatchingNavigation() {
@@ -644,6 +641,7 @@ export default class extends Controller {
    */
   identityValue(input) {
     const value = this.inputValue(input).trim()
+    if (!value) return ''
     if (input.dataset.popupFieldKind !== 'phone' || value.startsWith('+')) return value
 
     const prefix = input.dataset.popupPhonePrefix
@@ -1013,7 +1011,7 @@ export default class extends Controller {
     })
 
     const stepIndex = this.stepTargets.findIndex(step =>
-      invalidInputs.some(input => step.contains(input)),
+      invalidInputs.some(input => this.inputsForStep(step).includes(input)),
     )
     if (stepIndex >= 0) this.showStep(stepIndex)
 

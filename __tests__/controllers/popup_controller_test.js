@@ -513,6 +513,28 @@ describe('PopupController', () => {
     expect(emailInput.validationMessage).toBe('Email is already in use.')
   })
 
+  it('returns to the step associated with a rejected field outside its layout wrapper', async () => {
+    const { emailInput, phoneInput, stepOne, stepTwo } = buildController({ hasBubble: false })
+    stepOne.removeChild(emailInput)
+    controller.element.appendChild(emailInput)
+    PopupsAPI.submit.mockResolvedValueOnce({
+      failed: true,
+      json: jest.fn().mockResolvedValue({
+        errors: [{ parameter: 'email', description: 'Email is already in use.' }],
+      }),
+    })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    phoneInput.value = '+15551234567'
+    controller.showStep(1)
+    await controller.submit()
+
+    expect(controller.stepIndex).toBe(0)
+    expect(stepOne.hidden).toBe(false)
+    expect(stepTwo.hidden).toBe(true)
+  })
+
   it('shows a one-minute resend cooldown and the change action for the submitted identity', async () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-08-24T12:00:00Z'))
@@ -699,6 +721,24 @@ describe('PopupController', () => {
           steps: expect.arrayContaining([
             expect.objectContaining({ fields: expect.objectContaining({ phone: '+584126625353' }) }),
           ]),
+        }),
+      }),
+    )
+  })
+
+  it('keeps an empty optional phone blank when it has a country prefix', () => {
+    const { emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    phoneInput.required = false
+    phoneInput.dataset.popupPhonePrefix = '+58'
+    phoneInput.value = ''
+    emailInput.value = 'customer@example.com'
+
+    expect(controller.submissionPayload()).toEqual(
+      expect.objectContaining({
+        phone: '',
+        metadata: expect.objectContaining({
+          fields: expect.objectContaining({ phone: '' }),
         }),
       }),
     )
