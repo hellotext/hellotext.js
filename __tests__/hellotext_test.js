@@ -64,6 +64,33 @@ describe('popup visit signals', () => {
     expect(Hellotext.activities).toContain('activity.product_viewed')
   })
 
+  it('measures the first page from the document start', () => {
+    Hellotext.initializeVisitSignals('business-id')
+
+    expect(Hellotext.pageStartedAt).toBe(window.performance.timeOrigin)
+  })
+
+  it('starts timing at initialization when an SPA changed routes before the SDK loaded', () => {
+    const getEntriesByType = window.performance.getEntriesByType
+    Object.defineProperty(window.performance, 'getEntriesByType', {
+      configurable: true,
+      value: jest.fn().mockReturnValue([{ name: 'http://localhost/' }]),
+    })
+    const now = jest.spyOn(Date, 'now').mockReturnValue(1234)
+    window.history.replaceState({}, '', '/products')
+
+    Hellotext.initializeVisitSignals('business-id')
+
+    expect(Hellotext.pageStartedAt).toBe(1234)
+
+    Object.defineProperty(window.performance, 'getEntriesByType', {
+      configurable: true,
+      value: getEntriesByType,
+    })
+    now.mockRestore()
+    window.history.replaceState({}, '', '/')
+  })
+
   it('recognizes a visitor after a new browser session starts', () => {
     Hellotext.initializeVisitSignals('business-id')
 

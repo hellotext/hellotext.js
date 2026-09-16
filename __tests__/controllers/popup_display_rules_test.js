@@ -305,6 +305,18 @@ describe('PopupController display rules', () => {
   })
 
   describe('SPA navigation', () => {
+    it('keeps counting routes when the popup has no navigation rules', () => {
+      jest.useFakeTimers()
+      const recordPageView = jest.spyOn(Hellotext, 'recordPageView')
+      buildController()
+
+      controller.connect()
+      window.history.pushState({}, '', '/next')
+      jest.runOnlyPendingTimers()
+
+      expect(recordPageView).toHaveBeenCalledTimes(1)
+    })
+
     it('re-evaluates page rules after pushState', () => {
       jest.useFakeTimers()
       const { element } = buildController({ lanes: [lane(['page.path', 'contains', '/sale'])] })

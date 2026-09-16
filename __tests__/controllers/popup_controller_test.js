@@ -260,7 +260,7 @@ describe('PopupController', () => {
       expect(element.hidden).toBe(false)
 
       controller.disconnect()
-      window.history.replaceState({}, '', '/#/landing?utm_campaign=spring')
+      window.history.replaceState({}, '', '/?affiliate=1#/landing?utm_campaign=spring')
       const hashRoute = connectWith(utmRule('session.utm_source', 'google'))
 
       expect(hashRoute.element.hidden).toBe(true)
@@ -287,6 +287,18 @@ describe('PopupController', () => {
       await flushTimers()
 
       expect(element.hidden).toBe(false)
+    })
+  })
+
+  describe('browser detection', () => {
+    it.each([
+      ['Opera', 'Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0'],
+      ['Samsung Internet', 'Mozilla/5.0 Chrome/120.0.0.0 Mobile Safari/537.36 SamsungBrowser/23.0'],
+    ])('does not classify %s as Chrome', (_browser, userAgent) => {
+      jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(userAgent)
+      buildController()
+
+      expect(controller.browserName()).toBeUndefined()
     })
   })
 

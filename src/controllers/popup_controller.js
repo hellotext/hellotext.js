@@ -155,7 +155,7 @@ export default class extends Controller {
    * overwritten during cleanup.
    */
   watchNavigation() {
-    if (!this.rules.needsNavigation || this.onNavigation) return
+    if (this.onNavigation) return
 
     this.lastRoute = this.pageRoute()
     this.onNavigation = () => this.scheduleNavigationEvaluation()
@@ -478,7 +478,11 @@ export default class extends Controller {
    */
   currentUtmParams() {
     const hashSearch = window.location.hash.match(/^#!?\/[^?]*\?(.*)$/)?.[1]
-    const current = this.popupUtmParams(UTM.paramsFrom(window.location.search || hashSearch))
+    const hashCampaign = this.popupUtmParams(UTM.paramsFrom(hashSearch))
+    const current =
+      Object.keys(hashCampaign).length > 0
+        ? hashCampaign
+        : this.popupUtmParams(UTM.paramsFrom(window.location.search))
 
     if (Object.keys(current).length > 0) {
       Hellotext.rememberVisitCampaign(current)
@@ -523,6 +527,8 @@ export default class extends Controller {
 
     const agent = window.navigator.userAgent?.toLowerCase() || ''
     if (/edg([ea]|ios)?\//.test(agent)) return 'edge'
+    if (agent.includes('opr/') || agent.includes('opera/') || agent.includes('samsungbrowser/'))
+      return undefined
     if (agent.includes('firefox/') || agent.includes('fxios/')) return 'firefox'
     if (agent.includes('chrome/') || agent.includes('crios/')) return 'chrome'
     if (agent.includes('safari/')) return 'safari'
