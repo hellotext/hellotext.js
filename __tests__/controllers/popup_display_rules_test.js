@@ -180,12 +180,102 @@ describe('PopupController display rules', () => {
     })
   })
 
-  it('builds rule context from visit signals and persisted campaign attribution', () => {
+  // The campaign a visit arrives with has to survive the rest of that visit: a popup that
+  // waits for scroll or time is almost never decided on the landing page itself.
+  describe('campaign this visit arrived with', () => {
+    const utmRules = (...conditions) => [lane(...conditions)]
+
+    beforeEach(() => {
+      Hellotext.visitCampaign = {}
+      Hellotext.visitBusinessId = 'business-1'
+    })
+
+    it('keeps the landing campaign after the site navigates past it', () => {
+      window.history.replaceState({}, '', '/?utm_campaign=spring')
+      Hellotext.initializeVisitSignals('business-1')
+      window.history.replaceState({}, '', '/products/42')
+
+      const { element } = buildController({
+        lanes: utmRules(['session.utm_campaign', 'is', 'spring']),
+      })
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+    })
+
+    // `hello_utm` only ever holds a complete source and medium pair, and it outlives the
+    // visit by years. A campaign-only landing must not fall back onto it.
+    it('never falls back to the campaign persisted for the browser', () => {
+      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+      window.history.replaceState({}, '', '/?utm_campaign=spring')
+      Hellotext.initializeVisitSignals('business-1')
+      window.history.replaceState({}, '', '/products/42')
+
+      const { element } = buildController({
+        lanes: utmRules(['session.utm_source', 'is', 'google']),
+      })
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
+      expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
+      Hellotext.page = undefined
+    })
+
+    it('replaces the remembered campaign when a later URL carries its own', () => {
+      window.history.replaceState({}, '', '/?utm_source=instagram&utm_medium=social')
+      Hellotext.initializeVisitSignals('business-1')
+      buildController()
+      window.history.replaceState({}, '', '/?utm_campaign=spring')
+
+      expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
+
+      window.history.replaceState({}, '', '/products/42')
+      expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
+    })
+
+    it('does not inherit a campaign from another visit or another business', () => {
+      window.history.replaceState({}, '', '/?utm_campaign=spring')
+      Hellotext.initializeVisitSignals('business-1')
+
+      // A new tab starts with empty session storage, and a second business keeps its own.
+      window.sessionStorage.clear()
+      window.history.replaceState({}, '', '/products/42')
+      Hellotext.visitBusinessId = undefined
+      Hellotext.initializeVisitSignals('business-2')
+
+      buildController()
+      expect(controller.pageContext().utm).toEqual({})
+    })
+
+    it('reads the URL and stays quiet when session storage is unavailable', () => {
+      jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('denied')
+      })
+      window.history.replaceState({}, '', '/?utm_campaign=spring')
+      Hellotext.initializeVisitSignals('business-1')
+
+      buildController()
+      expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
+    })
+
+    it('does not touch persisted attribution while a popup is evaluated', () => {
+      const previous = document.cookie
+      window.history.replaceState({}, '', '/?utm_campaign=spring')
+      Hellotext.initializeVisitSignals('business-1')
+
+      buildController()
+      controller.connect()
+      controller.pageContext()
+
+      expect(document.cookie).toBe(previous)
+    })
+  })
+
+  it('builds rule context from visit signals and the campaign this visit arrived with', () => {
     buildController()
-    const previousPage = Hellotext.page
     Hellotext.pageViews = 4
     Hellotext.visitorType = 'returning'
-    Hellotext.page = { utmParams: { source: 'instagram', medium: 'social' } }
+    Hellotext.visitCampaign = { source: 'instagram', medium: 'social' }
     Object.defineProperty(window.navigator, 'languages', {
       value: ['es-VE'],
       configurable: true,
@@ -200,7 +290,6 @@ describe('PopupController display rules', () => {
         utm: { source: 'instagram', medium: 'social' },
       }),
     )
-    Hellotext.page = previousPage
   })
 
   it('does not display again after the visitor dismisses it', () => {

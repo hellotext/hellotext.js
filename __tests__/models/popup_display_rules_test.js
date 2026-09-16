@@ -99,6 +99,33 @@ describe('PopupDisplayRules', () => {
     })
   })
 
+  // Campaign values are written into links by people and by ad platforms, so the rule cannot
+  // depend on how either one capitalized the value or wrote its spaces.
+  describe('campaign spellings', () => {
+    const visit = utm => page({ utm })
+
+    it('ignores capitalization in every campaign field', () => {
+      expect(
+        rules([['session.utm_campaign', 'is', 'black friday']]).matches(
+          visit({ campaign: 'Black Friday' }),
+        ),
+      ).toBe(true)
+      expect(
+        rules([['session.utm_source', 'is', 'Instagram']]).matches(visit({ source: 'instagram' })),
+      ).toBe(true)
+    })
+
+    it('reads a + in a link as the space it stands for', () => {
+      const definition = rules([['session.utm_campaign', 'is', 'black friday']])
+
+      expect(definition.matches(visit({ campaign: 'Black+Friday' }))).toBe(true)
+      expect(rules([['session.utm_campaign', 'is', 'black+friday']]).matches(
+        visit({ campaign: 'black friday' }),
+      )).toBe(true)
+      expect(definition.matches(visit({ campaign: 'cyber+monday' }))).toBe(false)
+    })
+  })
+
   it('requires all exclusions for the same field', () => {
     const definition = rules([
       ['page.path', 'does_not_contain', '/checkout'],

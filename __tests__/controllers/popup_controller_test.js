@@ -135,8 +135,9 @@ describe('PopupController', () => {
     document.body.innerHTML = ''
   })
 
-  // Persisted attribution keeps only a complete source and medium pair, but a rule may target
-  // any of the three campaign parameters. The URL the visitor is on answers for itself.
+  // A rule may target any of the three campaign parameters. The URL the visitor is on answers
+  // for itself, and what it carried is remembered for the rest of the visit — persisted
+  // attribution, which outlives the visit by years, is never the fallback.
   describe('UTM rules', () => {
     const utmRule = (field, value) => ({
       lanes: [[{ type: 'condition', field, operator: 'is', values: [value] }]],
@@ -146,12 +147,17 @@ describe('PopupController', () => {
 
     beforeEach(() => {
       originalPage = Hellotext.page
-      Hellotext.page = { utmParams: {} }
+      // Set, and expected to stay unread: this is the attribution the browser persisted.
+      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+      Hellotext.visitBusinessId = 'business-1'
+      Hellotext.visitCampaign = {}
+      window.sessionStorage.clear()
     })
 
     afterEach(() => {
       controller?.disconnect()
       Hellotext.page = originalPage
+      Hellotext.visitCampaign = {}
       window.history.replaceState({}, '', '/')
     })
 
@@ -165,7 +171,7 @@ describe('PopupController', () => {
       expect(element.hidden).toBe(false)
     })
 
-    it('normalizes source and medium, but preserves campaign capitalization', () => {
+    it('ignores capitalization while keeping each value as the link wrote it', () => {
       window.history.replaceState({}, '', '/landing?utm_source=Google&utm_medium=Paid_Social&utm_campaign=Spring')
       const { element } = buildController({ hasBubble: false })
       controller.rulesValue = utmRule('session.utm_source', 'google')
@@ -174,44 +180,58 @@ describe('PopupController', () => {
 
       expect(element.hidden).toBe(false)
       expect(controller.pageContext().utm).toEqual({
-        source: 'google',
-        medium: 'paid_social',
+        source: 'Google',
+        medium: 'Paid_Social',
         campaign: 'Spring',
       })
 
       controller.disconnect()
-      const exactCampaign = buildController({ hasBubble: false })
+      const campaign = buildController({ hasBubble: false })
       controller.rulesValue = utmRule('session.utm_campaign', 'spring')
       controller.connect()
 
-      expect(exactCampaign.element.hidden).toBe(true)
+      expect(campaign.element.hidden).toBe(false)
     })
 
-    it('falls back to the persisted touch when the URL carries none', () => {
-      window.history.replaceState({}, '', '/landing')
-      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+    it('keeps the campaign this visit arrived with once the URL drops it', () => {
+      Hellotext.rememberVisitCampaign({ campaign: 'spring' })
+      window.history.replaceState({}, '', '/products/42')
       const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'google')
+      controller.rulesValue = utmRule('session.utm_campaign', 'spring')
 
       controller.connect()
 
       expect(element.hidden).toBe(false)
     })
 
-    it('lets the URL replace the persisted touch rather than merge with it', () => {
-      window.history.replaceState({}, '', '/landing?utm_campaign=spring')
-      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+    // `hello_utm` records only a complete source and medium pair and survives for years, so
+    // an old campaign must never decide a popup for a visit that arrived some other way.
+    it('never falls back to the attribution persisted for the browser', () => {
+      window.history.replaceState({}, '', '/landing')
       const { element } = buildController({ hasBubble: false })
       controller.rulesValue = utmRule('session.utm_source', 'google')
 
       controller.connect()
 
       expect(element.hidden).toBe(true)
+      expect(controller.pageContext().utm).toEqual({})
+    })
+
+    it('lets the URL replace the remembered campaign rather than merge with it', () => {
+      Hellotext.rememberVisitCampaign({ source: 'google', medium: 'cpc' })
+      window.history.replaceState({}, '', '/landing?utm_campaign=spring')
+      const { element } = buildController({ hasBubble: false })
+      controller.rulesValue = utmRule('session.utm_source', 'google')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
+      expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
     })
 
     it('ignores parameters that name no campaign', () => {
+      Hellotext.rememberVisitCampaign({ source: 'google', medium: 'cpc' })
       window.history.replaceState({}, '', '/landing?utm_term=shoes')
-      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
       const { element } = buildController({ hasBubble: false })
       controller.rulesValue = utmRule('session.utm_source', 'google')
 
@@ -221,7 +241,7 @@ describe('PopupController', () => {
     })
 
     it('falls back when UTM values are blank, and never reads UTM parameters from a hash route', () => {
-      Hellotext.page = { utmParams: { source: 'Google', medium: 'CPC' } }
+      Hellotext.rememberVisitCampaign({ source: 'Google', medium: 'CPC' })
       window.history.replaceState({}, '', '/landing?utm_campaign=%20')
       const { element } = buildController({ hasBubble: false })
       controller.rulesValue = utmRule('session.utm_source', 'google')
@@ -247,7 +267,7 @@ describe('PopupController', () => {
       controller.connect()
 
       expect(element.hidden).toBe(false)
-      expect(controller.pageContext().utm).toEqual({ source: 'first' })
+      expect(controller.pageContext().utm).toEqual({ source: 'First' })
       expect(set).not.toHaveBeenCalled()
     })
 

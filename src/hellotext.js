@@ -12,11 +12,16 @@ import {
   Query,
   Session,
   User,
+  UTM,
   Webchat,
   WhatsAppWidget,
 } from './models'
 
 import { NotInitializedError } from './errors'
+
+// The campaign parameters display rules can target. `utm_term` and `utm_content` are not
+// among them, so a link carrying only those does not stand for a campaign here.
+const CAMPAIGN_RULE_KEYS = ['source', 'medium', 'campaign']
 
 const ACTIVITY_RULE_FIELDS = {
   'product.viewed': 'activity.product_viewed',
@@ -30,6 +35,7 @@ class Hellotext {
   static eventEmitter = new Event()
   static activities = new Set()
   static pageViews = 1
+  static visitCampaign = {}
   static visitorType = 'new'
   static visitBusinessId
   static lastPageUrl
@@ -256,6 +262,7 @@ class Hellotext {
 
     if (businessChanged) {
       this.activities = new Set(this.readStoredActivities())
+      this.visitCampaign = this.readStoredVisitCampaign()
       const storedVisitorType = this.readStorage(
         window.sessionStorage,
         this.visitStorageKey('visitor-type'),
@@ -277,7 +284,54 @@ class Hellotext {
       }
     }
 
+    this.rememberVisitCampaign(UTM.paramsFrom(window.location.search))
+
     if (businessChanged || this.lastPageUrl !== window.location.href) this.recordPageView()
+  }
+
+  /**
+   * Remembers the campaign this visit arrived with, for as long as the tab lives — the same
+   * span as the other visit signals.
+   *
+   * Display rules read it when the URL no longer carries the parameters, which is the common
+   * case: the visitor moves past the landing page, or the site strips them from the URL once
+   * its analytics have read them. Persisted attribution answers a different question and is
+   * left alone: `hello_utm` still records only a complete source and medium pair, and still
+   * outlives the visit.
+   */
+  static rememberVisitCampaign(params) {
+    const campaign = Object.fromEntries(
+      CAMPAIGN_RULE_KEYS.flatMap(key => {
+        const value = typeof params?.[key] === 'string' ? params[key].trim() : ''
+
+        return value === '' ? [] : [[key, value]]
+      }),
+    )
+    if (Object.keys(campaign).length === 0) return
+
+    this.visitCampaign = campaign
+    this.writeStorage(
+      window.sessionStorage,
+      this.visitStorageKey('campaign'),
+      JSON.stringify(campaign),
+    )
+  }
+
+  static readStoredVisitCampaign() {
+    try {
+      const stored = JSON.parse(
+        this.readStorage(window.sessionStorage, this.visitStorageKey('campaign')) || '{}',
+      )
+      if (stored === null || typeof stored !== 'object' || Array.isArray(stored)) return {}
+
+      return Object.fromEntries(
+        Object.entries(stored).filter(
+          ([key, value]) => CAMPAIGN_RULE_KEYS.includes(key) && typeof value === 'string',
+        ),
+      )
+    } catch (_) {
+      return {}
+    }
   }
 
   static recordPageView() {

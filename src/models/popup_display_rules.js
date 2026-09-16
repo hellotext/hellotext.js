@@ -32,6 +32,8 @@ const STRING_FIELDS = [
   'session.utm_medium',
   'session.utm_campaign',
 ]
+// The three campaign parameters, which are compared with query-string spelling in mind.
+const CAMPAIGN_FIELDS = ['session.utm_source', 'session.utm_medium', 'session.utm_campaign']
 const EVENT_FIELDS = [
   'activity.product_viewed',
   'activity.cart_added',
@@ -280,8 +282,12 @@ export class PopupDisplayRules {
 
     if (actual === undefined || actual === null) return negative
 
-    const normalize =
-      condition.field === 'session.utm_campaign' ? String : value => String(value).toLowerCase()
+    // Campaign parameters travel through query strings, where a space is written as `+` and
+    // capitalization is whatever the link builder used. Both sides are read the same way so
+    // `Black+Friday` in a link matches `black friday` in the rule.
+    const normalize = CAMPAIGN_FIELDS.includes(condition.field)
+      ? value => String(value).replace(/\+/g, ' ').trim().toLowerCase()
+      : value => String(value).toLowerCase()
     const value = normalize(actual)
     const hit = condition.values.some(expected =>
       this.compare(condition.operator, value, normalize(expected)),
