@@ -177,6 +177,7 @@ describe("when initializing business metadata", () => {
     Configuration.whatsapp.number = null
     Configuration.whatsapp.body = null
     Hellotext.popup = undefined
+    Hellotext.identificationPending = false
   })
 
   it("fetches public business data by default and stores it", async () => {
@@ -187,6 +188,32 @@ describe("when initializing business metadata", () => {
 
     expect(API.businesses.get).toHaveBeenCalledWith("business-id")
     expect(Hellotext.business.data).toEqual(business)
+  })
+
+  it('cancels pending identification when the same business starts a new session', async () => {
+    Session.session = 'old-session'
+    Hellotext.visitBusinessId = 'xy76ks'
+    Hellotext.identificationPending = true
+    const cancel = jest.spyOn(Hellotext, 'cancelIdentificationPolling')
+
+    await Hellotext.initialize('xy76ks', { session: 'new-session', popup: false })
+
+    expect(Hellotext.identificationPending).toBe(false)
+    expect(cancel).toHaveBeenCalled()
+  })
+
+  it('keeps pending identification current when the same visit is reinitialized', async () => {
+    Session.session = 'same-session'
+    Hellotext.visitBusinessId = 'xy76ks'
+    Hellotext.identificationVersion = 7
+    Hellotext.identificationPending = true
+    const cancel = jest.spyOn(Hellotext, 'cancelIdentificationPolling')
+
+    await Hellotext.initialize('xy76ks', { session: 'same-session', popup: false })
+
+    expect(Hellotext.identificationPending).toBe(true)
+    expect(Hellotext.identificationCurrent(7, 'xy76ks', 'same-session')).toBe(true)
+    expect(cancel).not.toHaveBeenCalled()
   })
 
   it("loads the dashboard webchat when no explicit webchat config is passed", async () => {
@@ -943,6 +970,128 @@ describe("when the class is initialized successfully", () => {
       expect(getCookieValue("hello_user_id")).toEqual("user_456")
       expect(getCookieValue("hello_user_source")).toEqual("woocommerce")
       expect(getCookieValue("hello_user_identification_hash")).toMatch(/^v1:/)
+    })
+
+    it('keeps the popup hidden and defers the fingerprint until identification completes', async () => {
+      jest.useFakeTimers()
+      const popup = { unmount: jest.fn() }
+      const loadedPopup = { unmount: jest.fn() }
+      Hellotext.popup = popup
+      Hellotext.popupRuntime = {
+        config: { id: 'popup-id', container: 'body' },
+        businessContext: Hellotext.business,
+        initializationVersion: Hellotext.initializationVersion,
+      }
+      const loadPopup = jest.spyOn(Popup, 'load').mockResolvedValue(loadedPopup)
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ identification_receipt: 'receipt-1' }),
+          status: 200,
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ status: 'pending' }),
+          status: 202,
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ status: 'completed' }),
+          status: 200,
+          ok: true,
+        })
+
+      await Hellotext.identify('user_pending', { source: 'shopify' })
+      await Promise.resolve()
+
+      expect(popup.unmount).toHaveBeenCalled()
+      expect(getCookieValue('hello_user_identification_hash')).toBeUndefined()
+      expect(Popup.load).not.toHaveBeenCalled()
+
+      jest.advanceTimersByTime(100)
+      await Hellotext.identificationCompletion
+
+      expect(getCookieValue('hello_user_identification_hash')).toMatch(/^v1:/)
+      expect(Popup.load).toHaveBeenCalledWith(
+        'popup-id',
+        expect.objectContaining({ container: 'body' }),
+      )
+      expect(Hellotext.popup).toBe(loadedPopup)
+      loadPopup.mockRestore()
+      Hellotext.popupRuntime = undefined
+      Hellotext.popup = undefined
+      jest.useRealTimers()
+    })
+
+    it('cancels stale receipt polling when a newer identification wins', async () => {
+      jest.useFakeTimers()
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ identification_receipt: 'receipt-1' }),
+          status: 200,
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ status: 'pending' }),
+          status: 202,
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ identification_receipt: 'receipt-2' }),
+          status: 200,
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ status: 'completed' }),
+          status: 200,
+          ok: true,
+        })
+
+      await Hellotext.identify('first-user', { source: 'shopify' })
+      await Promise.resolve()
+      await Hellotext.identify('second-user', { source: 'shopify' })
+      await Hellotext.identificationCompletion
+      jest.runOnlyPendingTimers()
+
+      expect(getCookieValue('hello_user_id')).toBe('second-user')
+      expect(global.fetch).toHaveBeenCalledTimes(4)
+      jest.useRealTimers()
+    })
+
+    it('restores anonymous popup evaluation when identification fails terminally', async () => {
+      const loadedPopup = { unmount: jest.fn() }
+      Hellotext.popupRuntime = {
+        config: { id: 'popup-id', container: 'body' },
+        businessContext: Hellotext.business,
+        initializationVersion: Hellotext.initializationVersion,
+      }
+      const loadPopup = jest.spyOn(Popup, 'load').mockResolvedValue(loadedPopup)
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ identification_receipt: 'receipt-1' }),
+          status: 200,
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ status: 'failed' }),
+          status: 422,
+          ok: false,
+        })
+
+      await Hellotext.identify('failed-user', { source: 'shopify' })
+      await Hellotext.identificationCompletion
+
+      expect(Hellotext.identificationPending).toBe(false)
+      expect(getCookieValue('hello_user_identification_hash')).toBeUndefined()
+      expect(Popup.load).toHaveBeenCalledWith(
+        'popup-id',
+        expect.objectContaining({ container: 'body' }),
+      )
+      loadPopup.mockRestore()
+      Hellotext.popupRuntime = undefined
+      Hellotext.popup = undefined
     })
 
     it("does not set cookies when identification fails", async () => {

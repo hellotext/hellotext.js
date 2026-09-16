@@ -50,6 +50,12 @@ class Hellotext {
   static push
   static alert
   static initializationVersion = 0
+  static popupEvaluationVersion = 0
+  static identificationVersion = 0
+  static identificationPending = false
+  static identificationCompletion
+  static cancelIdentificationWait
+  static popupRuntime
 
   /**
    * initialize the module.
@@ -57,9 +63,13 @@ class Hellotext {
    * @param { Configuration } config
    */
   static async initialize(business, config = {}) {
+    const previousBusinessId = this.visitBusinessId
+    const previousSession = this.session
     const initializationVersion = ++this.initializationVersion
+    this.popupEvaluationVersion += 1
     this.popup?.unmount?.()
     this.popup = undefined
+    this.popupRuntime = undefined
 
     this.alert?.dispose()
     this.alert = null
@@ -72,6 +82,14 @@ class Hellotext {
 
     Configuration.assign({ push: {}, ...config })
     Session.initialize(this.page)
+    if (
+      this.identificationPending &&
+      (previousBusinessId !== business || previousSession !== this.session)
+    ) {
+      this.identificationVersion += 1
+      this.identificationPending = false
+      this.cancelIdentificationPolling()
+    }
     this.initializeVisitSignals(business)
 
     this.forms?.mutationObserver?.disconnect()
@@ -139,24 +157,8 @@ class Hellotext {
     if (popupConfig && popupConfig.id) {
       const resolvedPopupConfig = { container: 'body', device: 'auto', ...popupConfig }
       Configuration.popup.assign(resolvedPopupConfig)
-      widgetLoads.push(
-        Popup.load(resolvedPopupConfig.id, {
-          container: resolvedPopupConfig.container,
-          shouldMount: () => {
-            return (
-              this.business === businessContext &&
-              this.initializationVersion === initializationVersion
-            )
-          },
-        }).then(popup => {
-          if (
-            this.business === businessContext &&
-            this.initializationVersion === initializationVersion
-          ) {
-            this.popup = popup
-          }
-        }),
-      )
+      this.popupRuntime = { config: resolvedPopupConfig, businessContext, initializationVersion }
+      if (!this.identificationPending) widgetLoads.push(this.loadPopup(this.popupRuntime))
     }
 
     await Promise.all(widgetLoads)
@@ -194,6 +196,36 @@ class Hellotext {
     })
 
     return result
+  }
+
+  static async loadPopup(runtime = this.popupRuntime) {
+    if (!runtime || this.identificationPending) return null
+
+    const evaluationVersion = ++this.popupEvaluationVersion
+    const current = () => {
+      return (
+        this.popupRuntime === runtime &&
+        this.business === runtime.businessContext &&
+        this.initializationVersion === runtime.initializationVersion &&
+        this.popupEvaluationVersion === evaluationVersion &&
+        !this.identificationPending
+      )
+    }
+    const popup = await Popup.load(runtime.config.id, {
+      container: runtime.config.container,
+      shouldMount: current,
+    })
+
+    if (current()) this.popup = popup
+    return popup
+  }
+
+  static reloadPopup() {
+    this.popupEvaluationVersion += 1
+    this.popup?.unmount?.()
+    this.popup = undefined
+
+    return this.loadPopup()
   }
 
   static isPlainObject(value) {
@@ -467,16 +499,157 @@ class Hellotext {
       })
     }
 
-    const response = await API.identifications.create({
-      user_id: externalId,
-      ...options,
-    })
+    const identificationVersion = ++this.identificationVersion
+    const businessId = this.visitBusinessId
+    const session = this.session
+    this.identificationPending = true
+    this.cancelIdentificationPolling()
+    this.popupEvaluationVersion += 1
+    this.popup?.unmount?.()
+    this.popup = undefined
 
-    if (response.succeeded) {
-      User.remember(externalId, options.source, fingerprint)
+    let response
+    try {
+      response = await API.identifications.create({
+        user_id: externalId,
+        ...options,
+      })
+    } catch (error) {
+      if (this.identificationCurrent(identificationVersion, businessId, session)) {
+        this.identificationPending = false
+        this.reloadPopup()
+      }
+      throw error
     }
 
+    if (response.failed) {
+      if (this.identificationCurrent(identificationVersion, businessId, session)) {
+        this.identificationPending = false
+        this.reloadPopup()
+      }
+      return response
+    }
+
+    let receipt
+    try {
+      receipt = (await response.json())?.identification_receipt
+    } catch (_) {
+      // Older deployments returned an unreadable or empty success body.
+    }
+
+    if (!receipt) {
+      if (this.identificationCurrent(identificationVersion, businessId, session)) {
+        User.remember(externalId, options.source, fingerprint)
+        this.identificationPending = false
+        this.reloadPopup()
+      }
+      return response
+    }
+
+    this.identificationCompletion = this.finishIdentification({
+      receipt,
+      identificationVersion,
+      businessId,
+      session,
+      externalId,
+      source: options.source,
+      fingerprint,
+    }).catch(() => {})
+
     return response
+  }
+
+  static identificationCurrent(version, businessId, session) {
+    return (
+      this.identificationVersion === version &&
+      this.visitBusinessId === businessId &&
+      this.session === session
+    )
+  }
+
+  static async finishIdentification(details) {
+    const delays = [0, 100, 250, 500, 1000, 2000, 4000, 8000]
+
+    for (const delay of delays) {
+      if (
+        !this.identificationCurrent(
+          details.identificationVersion,
+          details.businessId,
+          details.session,
+        )
+      )
+        return
+      if (delay > 0 && !(await this.waitForIdentificationPoll(delay))) return
+      if (
+        !this.identificationCurrent(
+          details.identificationVersion,
+          details.businessId,
+          details.session,
+        )
+      )
+        return
+
+      let response
+      try {
+        response = await API.identifications.status(details.receipt)
+      } catch (_) {
+        continue
+      }
+
+      if (
+        !this.identificationCurrent(
+          details.identificationVersion,
+          details.businessId,
+          details.session,
+        )
+      )
+        return
+
+      if (response.data.status === 202) continue
+      if (!response.succeeded) {
+        if (response.data.status === 429 || response.data.status >= 500) continue
+        if (response.data.status === 422) {
+          this.identificationPending = false
+          this.cancelIdentificationPolling()
+          await this.reloadPopup()
+        }
+        return
+      }
+
+      if (
+        !this.identificationCurrent(
+          details.identificationVersion,
+          details.businessId,
+          details.session,
+        )
+      )
+        return
+
+      User.remember(details.externalId, details.source, details.fingerprint)
+      this.identificationPending = false
+      this.cancelIdentificationPolling()
+      await this.reloadPopup()
+      return
+    }
+  }
+
+  static waitForIdentificationPoll(delay) {
+    return new Promise(resolve => {
+      const timer = setTimeout(() => {
+        this.cancelIdentificationWait = undefined
+        resolve(true)
+      }, delay)
+
+      this.cancelIdentificationWait = () => {
+        clearTimeout(timer)
+        this.cancelIdentificationWait = undefined
+        resolve(false)
+      }
+    })
+  }
+
+  static cancelIdentificationPolling() {
+    this.cancelIdentificationWait?.()
   }
 
   /**
