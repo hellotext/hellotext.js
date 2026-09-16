@@ -121,6 +121,7 @@ export default class extends Controller {
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
 
+    this.deviceMatches = this.matchesDevice()
     this.watchNavigation()
     this.watchActivities()
     this.evaluateDisplay()
@@ -423,7 +424,7 @@ export default class extends Controller {
    * @returns {void}
    */
   evaluateDisplay() {
-    if (this.dismissed || !this.matchesDevice()) {
+    if (this.dismissed || !this.deviceMatches) {
       this.element.hidden = true
       return
     }
@@ -476,7 +477,8 @@ export default class extends Controller {
    * rule never pairs the source of one campaign with the name of another.
    */
   currentUtmParams() {
-    const current = this.popupUtmParams(UTM.paramsFrom(window.location.search))
+    const hashSearch = window.location.hash.match(/^#!?\/[^?]*\?(.*)$/)?.[1]
+    const current = this.popupUtmParams(UTM.paramsFrom(window.location.search || hashSearch))
 
     if (Object.keys(current).length > 0) {
       Hellotext.rememberVisitCampaign(current)

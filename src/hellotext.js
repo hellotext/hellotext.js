@@ -245,11 +245,13 @@ class Hellotext {
       keepalive: keepaliveFor(body),
     })
 
+    const trackedAt = params.tracked_at ? new Date(params.tracked_at) : null
     if (
       response.succeeded &&
       this.business === business &&
       this.session === session &&
-      this.visitBusinessId === visitBusinessId
+      this.visitBusinessId === visitBusinessId &&
+      (!trackedAt || (Number.isFinite(trackedAt.getTime()) && trackedAt >= this.pageStartedAt))
     )
       this.recordActivity(action)
 

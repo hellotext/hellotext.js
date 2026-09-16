@@ -252,7 +252,7 @@ describe('PopupController', () => {
       expect(element.hidden).toBe(false)
     })
 
-    it('falls back when UTM values are blank, and never reads UTM parameters from a hash route', () => {
+    it('falls back when UTM values are blank and reads campaign parameters from a hash route', () => {
       Hellotext.rememberVisitCampaign({ source: 'Google', medium: 'CPC' })
       window.history.replaceState({}, '', '/landing?utm_campaign=%20')
 
@@ -263,7 +263,7 @@ describe('PopupController', () => {
       window.history.replaceState({}, '', '/#/landing?utm_campaign=spring')
       const hashRoute = connectWith(utmRule('session.utm_source', 'google'))
 
-      expect(hashRoute.element.hidden).toBe(false)
+      expect(hashRoute.element.hidden).toBe(true)
     })
 
     it('uses the first duplicate UTM parameter without changing persisted attribution', () => {
