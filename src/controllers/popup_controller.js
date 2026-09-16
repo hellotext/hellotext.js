@@ -479,10 +479,8 @@ export default class extends Controller {
   currentUtmParams() {
     const hashSearch = window.location.hash.match(/^#!?\/[^?]*\?(.*)$/)?.[1]
     const hashCampaign = this.popupUtmParams(UTM.paramsFrom(hashSearch))
-    const current =
-      Object.keys(hashCampaign).length > 0
-        ? hashCampaign
-        : this.popupUtmParams(UTM.paramsFrom(window.location.search))
+    const queryCampaign = this.popupUtmParams(UTM.paramsFrom(window.location.search))
+    const current = Object.keys(queryCampaign).length > 0 ? queryCampaign : hashCampaign
 
     if (Object.keys(current).length > 0) {
       Hellotext.rememberVisitCampaign(current)

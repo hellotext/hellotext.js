@@ -266,6 +266,19 @@ describe('PopupController', () => {
       expect(hashRoute.element.hidden).toBe(true)
     })
 
+    it('prefers a document campaign over campaign parameters inside the hash route', () => {
+      window.history.replaceState(
+        {},
+        '',
+        '/?utm_source=paid#/landing?utm_campaign=spring',
+      )
+
+      const { element } = connectWith(utmRule('session.utm_source', 'paid'))
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ source: 'paid' })
+    })
+
     it('uses the first duplicate UTM parameter without changing persisted attribution', () => {
       const set = jest.spyOn(Cookies, 'set')
       window.history.replaceState({}, '', '/landing?utm_source=First&utm_source=Second')
