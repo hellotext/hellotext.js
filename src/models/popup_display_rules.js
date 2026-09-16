@@ -32,7 +32,8 @@ const STRING_FIELDS = [
   'session.utm_medium',
   'session.utm_campaign',
 ]
-// The three campaign parameters, which are compared with query-string spelling in mind.
+// The three campaign parameters are case-insensitive. URLSearchParams already decodes query
+// strings before they reach a rule, including a raw `+` as a space while preserving `%2B`.
 const CAMPAIGN_FIELDS = ['session.utm_source', 'session.utm_medium', 'session.utm_campaign']
 const EVENT_FIELDS = [
   'activity.product_viewed',
@@ -282,11 +283,10 @@ export class PopupDisplayRules {
 
     if (actual === undefined || actual === null) return negative
 
-    // Campaign parameters travel through query strings, where a space is written as `+` and
-    // capitalization is whatever the link builder used. Both sides are read the same way so
-    // `Black+Friday` in a link matches `black friday` in the rule.
+    // URLSearchParams has already decoded query-string spelling in the page context. Do not
+    // turn literal plus signs into spaces here: `%2B` is a meaningful campaign character.
     const normalize = CAMPAIGN_FIELDS.includes(condition.field)
-      ? value => String(value).replace(/\+/g, ' ').trim().toLowerCase()
+      ? value => String(value).trim().toLowerCase()
       : value => String(value).toLowerCase()
     const value = normalize(actual)
     const hit = condition.values.some(expected =>

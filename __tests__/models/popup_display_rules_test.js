@@ -99,8 +99,8 @@ describe('PopupDisplayRules', () => {
     })
   })
 
-  // Campaign values are written into links by people and by ad platforms, so the rule cannot
-  // depend on how either one capitalized the value or wrote its spaces.
+  // Campaign values are written into links by people and ad platforms, so rules cannot depend
+  // on capitalization. Query strings are decoded before they reach this evaluator.
   describe('campaign spellings', () => {
     const visit = utm => page({ utm })
 
@@ -115,14 +115,14 @@ describe('PopupDisplayRules', () => {
       ).toBe(true)
     })
 
-    it('reads a + in a link as the space it stands for', () => {
-      const definition = rules([['session.utm_campaign', 'is', 'black friday']])
+    it('preserves a literal plus sign after the URL has been decoded', () => {
+      const words = rules([['session.utm_campaign', 'is', 'black friday']])
+      const plus = rules([['session.utm_campaign', 'is', 'black+friday']])
 
-      expect(definition.matches(visit({ campaign: 'Black+Friday' }))).toBe(true)
-      expect(rules([['session.utm_campaign', 'is', 'black+friday']]).matches(
-        visit({ campaign: 'black friday' }),
-      )).toBe(true)
-      expect(definition.matches(visit({ campaign: 'cyber+monday' }))).toBe(false)
+      expect(words.matches(visit({ campaign: 'Black Friday' }))).toBe(true)
+      expect(plus.matches(visit({ campaign: 'Black+Friday' }))).toBe(true)
+      expect(words.matches(visit({ campaign: 'Black+Friday' }))).toBe(false)
+      expect(plus.matches(visit({ campaign: 'Black Friday' }))).toBe(false)
     })
   })
 

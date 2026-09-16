@@ -65,6 +65,13 @@ describe('UTM', () => {
     it('uses the first value when a campaign parameter is repeated', () => {
       expect(UTM.paramsFrom('?utm_source=first&utm_source=second')).toEqual({ source: 'first' })
     })
+
+    it('uses standard query-string decoding without losing literal plus signs', () => {
+      expect(UTM.paramsFrom('?utm_campaign=Black+Friday')).toEqual({ campaign: 'Black Friday' })
+      expect(UTM.paramsFrom('?utm_campaign=Black%20Friday')).toEqual({ campaign: 'Black Friday' })
+      expect(UTM.paramsFrom('?utm_campaign=Black%2BFriday')).toEqual({ campaign: 'Black+Friday' })
+      expect(UTM.paramsFrom('?utm_campaign=Black%252BFriday')).toEqual({ campaign: 'Black%2BFriday' })
+    })
   })
 
   describe('constructor', () => {

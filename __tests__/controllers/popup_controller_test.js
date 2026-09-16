@@ -199,6 +199,20 @@ describe('PopupController', () => {
       expect(campaign.element.hidden).toBe(false)
     })
 
+    it('keeps an encoded literal plus distinct from a space in campaign values', () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=Black%2BFriday')
+
+      const plus = connectWith(utmRule('session.utm_campaign', 'black+friday'))
+
+      expect(plus.element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ campaign: 'Black+Friday' })
+
+      controller.disconnect()
+      const words = connectWith(utmRule('session.utm_campaign', 'black friday'))
+
+      expect(words.element.hidden).toBe(true)
+    })
+
     it('keeps the campaign this visit arrived with once the URL drops it', () => {
       Hellotext.rememberVisitCampaign({ campaign: 'spring' })
       window.history.replaceState({}, '', '/products/42')
