@@ -373,6 +373,23 @@ describe('PopupController display rules', () => {
       },
     )
 
+    it('re-evaluates title rules after an asynchronous title update', async () => {
+      jest.useFakeTimers()
+      document.title = 'Home'
+      const { element } = buildController({ lanes: [lane(['page.title', 'contains', 'sale'])] })
+
+      controller.connect()
+      window.history.pushState({}, '', '/sale')
+      jest.runOnlyPendingTimers()
+      expect(element.hidden).toBe(true)
+
+      document.title = 'Sale'
+      await Promise.resolve()
+      jest.runOnlyPendingTimers()
+
+      expect(element.hidden).toBe(false)
+    })
+
     it('restores history methods and cancels pending navigation work on disconnect', () => {
       jest.useFakeTimers()
       const originalPushState = window.history.pushState
@@ -416,6 +433,7 @@ describe('PopupController display rules', () => {
       const { element } = buildController({ lanes: [lane(['session.time_on_page', 'at_least', 5])] })
 
       controller.connect()
+      controller.connectedAt = Date.now()
       jest.advanceTimersByTime(4000)
       window.history.pushState({}, '', '/sale')
       jest.runOnlyPendingTimers()
@@ -424,6 +442,20 @@ describe('PopupController display rules', () => {
       expect(element.hidden).toBe(true)
 
       jest.advanceTimersByTime(3000)
+      expect(element.hidden).toBe(false)
+    })
+
+    it('keeps time on page across same-route state updates', () => {
+      jest.useFakeTimers()
+      const { element } = buildController({ lanes: [lane(['session.time_on_page', 'at_least', 5])] })
+
+      controller.connect()
+      controller.connectedAt = Date.now()
+      jest.advanceTimersByTime(4000)
+      window.history.replaceState({}, '', '/?filter=available')
+      jest.runOnlyPendingTimers()
+      jest.advanceTimersByTime(1000)
+
       expect(element.hidden).toBe(false)
     })
   })

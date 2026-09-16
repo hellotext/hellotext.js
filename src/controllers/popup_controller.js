@@ -166,6 +166,15 @@ export default class extends Controller {
     window.addEventListener('turbo:load', this.onTurboNavigation)
     window.addEventListener('turbo:render', this.onTurboNavigation)
 
+    if (this.rules.needsTitle && document.head) {
+      this.titleObserver = new MutationObserver(() => this.scheduleNavigationEvaluation(true))
+      this.titleObserver.observe(document.head, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      })
+    }
+
     const originalPushState = window.history.pushState
     const originalReplaceState = window.history.replaceState
     let navigationActive = true
@@ -204,9 +213,11 @@ export default class extends Controller {
       if (!this.navigationEvaluationForced && route === this.lastRoute) return
 
       this.navigationEvaluationForced = false
-      if (route !== this.lastRoute) Hellotext.recordPageView()
+      if (route !== this.lastRoute) {
+        Hellotext.recordPageView()
+        this.connectedAt = Date.now()
+      }
       this.lastRoute = route
-      this.connectedAt = Date.now()
       if (!this.displayed) this.evaluateDisplay()
     })
   }
@@ -218,6 +229,8 @@ export default class extends Controller {
   stopWatchingNavigation() {
     this.stopNavigationWrapper?.()
     this.stopNavigationWrapper = undefined
+    this.titleObserver?.disconnect()
+    this.titleObserver = undefined
 
     if (this.onNavigation) {
       window.removeEventListener('popstate', this.onNavigation)

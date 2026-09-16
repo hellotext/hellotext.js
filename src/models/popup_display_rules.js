@@ -96,6 +96,10 @@ export class PopupDisplayRules {
     return this.lanes.some(lane => lane.some(condition => this.validCondition(condition)))
   }
 
+  get needsTitle() {
+    return this.lanes.some(lane => lane.some(condition => condition?.field === 'page.title'))
+  }
+
   get needsActivities() {
     return this.lanes.some(lane => lane.some(condition => EVENT_FIELDS.includes(condition?.field)))
   }
