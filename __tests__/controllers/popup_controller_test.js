@@ -467,6 +467,27 @@ describe('PopupController', () => {
     expect(controller.submitButtonTargets.every(button => !button.disabled)).toBe(true)
   })
 
+  it('returns to the step containing a field the server rejects', async () => {
+    const { emailInput, phoneInput, stepOne, stepTwo } = buildController({ hasBubble: false })
+    PopupsAPI.submit.mockResolvedValueOnce({
+      failed: true,
+      json: jest.fn().mockResolvedValue({
+        errors: [{ parameter: 'email', description: 'Email is already in use.' }],
+      }),
+    })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    phoneInput.value = '+15551234567'
+    await controller.submit()
+
+    expect(controller.stepIndex).toBe(0)
+    expect(stepOne.hidden).toBe(false)
+    expect(stepTwo.hidden).toBe(true)
+    expect(emailInput.validationMessage).toBe('Email is already in use.')
+  })
+
   it('shows a one-minute resend cooldown and the change action for the submitted identity', async () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-08-24T12:00:00Z'))
@@ -635,6 +656,26 @@ describe('PopupController', () => {
 
     expect(completed.querySelector('p').textContent).toBe(
       'We sent it to +584126625353 via phone. It may take a minute to arrive.',
+    )
+  })
+
+  it('submits a prefixed phone value in the identity and metadata fields', () => {
+    const { emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    emailInput.required = false
+    phoneInput.dataset.popupPhonePrefix = '+58'
+    phoneInput.value = '04126625353'
+
+    expect(controller.submissionPayload()).toEqual(
+      expect.objectContaining({
+        phone: '+584126625353',
+        metadata: expect.objectContaining({
+          fields: expect.objectContaining({ phone: '+584126625353' }),
+          steps: expect.arrayContaining([
+            expect.objectContaining({ fields: expect.objectContaining({ phone: '+584126625353' }) }),
+          ]),
+        }),
+      }),
     )
   })
 

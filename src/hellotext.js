@@ -39,6 +39,7 @@ class Hellotext {
   static visitorType = 'new'
   static visitBusinessId
   static lastPageUrl
+  static pageStartedAt
   static forms
   static business
   static popup
@@ -78,16 +79,13 @@ class Hellotext {
     const businessData = await businessContext.hydrate()
     if (this.business !== businessContext) return
 
+    let stagedPush = null
+    let stagedAlert = null
+
     if (config.push !== false && businessData?.push?.public_key && Push.supported) {
-      this.push = new Push(businessData.push)
-
-      this.push.initialize().catch(error => {
-        console.warn('Hellotext Push initialization failed:', error)
-      })
-
-      if (businessData.alert?.html) {
-        this.alert = new Alert(businessData.alert, businessContext, this.push)
-      }
+      stagedPush = new Push(businessData.push)
+      if (businessData.alert?.html)
+        stagedAlert = new Alert(businessData.alert, businessContext, stagedPush)
     }
 
     const popupConfig =
@@ -163,6 +161,12 @@ class Hellotext {
     if (this.business !== businessContext || this.initializationVersion !== initializationVersion)
       return
 
+    this.push = stagedPush
+    this.alert = stagedAlert
+    this.push?.initialize().catch(error => {
+      console.warn('Hellotext Push initialization failed:', error)
+    })
+
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()
     }
@@ -206,6 +210,9 @@ class Hellotext {
       throw new NotInitializedError()
     }
 
+    const business = this.business
+    const session = this.session
+    const visitBusinessId = this.visitBusinessId
     const headers = {
       ...((params && params.headers) || {}),
       ...this.headers,
@@ -219,7 +226,7 @@ class Hellotext {
     const pageInstance = params && params.url ? new Page(params.url) : this.page
 
     const body = {
-      session: this.session,
+      session,
       user_parameters,
       action,
       ...params,
@@ -238,7 +245,13 @@ class Hellotext {
       keepalive: keepaliveFor(body),
     })
 
-    if (response.succeeded) this.recordActivity(action)
+    if (
+      response.succeeded &&
+      this.business === business &&
+      this.session === session &&
+      this.visitBusinessId === visitBusinessId
+    )
+      this.recordActivity(action)
 
     return response
   }
@@ -249,7 +262,7 @@ class Hellotext {
 
     this.activities.add(field)
     this.writeStorage(
-      window.sessionStorage,
+      'sessionStorage',
       this.visitStorageKey('activities'),
       JSON.stringify([...this.activities]),
     )
@@ -261,10 +274,12 @@ class Hellotext {
     this.visitBusinessId = businessId
 
     if (businessChanged) {
+      this.pageViews = 0
+      this.lastPageUrl = undefined
       this.activities = new Set(this.readStoredActivities())
       this.visitCampaign = this.readStoredVisitCampaign()
       const storedVisitorType = this.readStorage(
-        window.sessionStorage,
+        'sessionStorage',
         this.visitStorageKey('visitor-type'),
       )
       this.visitorType = ['new', 'returning'].includes(storedVisitorType)
@@ -272,15 +287,11 @@ class Hellotext {
         : undefined
 
       if (!this.visitorType) {
-        this.visitorType = this.readStorage(window.localStorage, this.visitStorageKey('seen'))
+        this.visitorType = this.readStorage('localStorage', this.visitStorageKey('seen'))
           ? 'returning'
           : 'new'
-        this.writeStorage(
-          window.sessionStorage,
-          this.visitStorageKey('visitor-type'),
-          this.visitorType,
-        )
-        this.writeStorage(window.localStorage, this.visitStorageKey('seen'), '1')
+        this.writeStorage('sessionStorage', this.visitStorageKey('visitor-type'), this.visitorType)
+        this.writeStorage('localStorage', this.visitStorageKey('seen'), '1')
       }
     }
 
@@ -310,17 +321,13 @@ class Hellotext {
     if (Object.keys(campaign).length === 0) return
 
     this.visitCampaign = campaign
-    this.writeStorage(
-      window.sessionStorage,
-      this.visitStorageKey('campaign'),
-      JSON.stringify(campaign),
-    )
+    this.writeStorage('sessionStorage', this.visitStorageKey('campaign'), JSON.stringify(campaign))
   }
 
   static readStoredVisitCampaign() {
     try {
       const stored = JSON.parse(
-        this.readStorage(window.sessionStorage, this.visitStorageKey('campaign')) || '{}',
+        this.readStorage('sessionStorage', this.visitStorageKey('campaign')) || '{}',
       )
       if (stored === null || typeof stored !== 'object' || Array.isArray(stored)) return {}
 
@@ -336,16 +343,17 @@ class Hellotext {
 
   static recordPageView() {
     const key = this.visitStorageKey('page-views')
-    const stored = Number(this.readStorage(window.sessionStorage, key))
-    this.pageViews = Number.isInteger(stored) && stored >= 0 ? stored + 1 : 1
+    const stored = Number(this.readStorage('sessionStorage', key))
+    this.pageViews = Number.isInteger(stored) && stored > 0 ? stored + 1 : this.pageViews + 1
     this.lastPageUrl = window.location.href
-    this.writeStorage(window.sessionStorage, key, String(this.pageViews))
+    this.pageStartedAt = Date.now()
+    this.writeStorage('sessionStorage', key, String(this.pageViews))
   }
 
   static readStoredActivities() {
     try {
       const stored = JSON.parse(
-        this.readStorage(window.sessionStorage, this.visitStorageKey('activities')) || '[]',
+        this.readStorage('sessionStorage', this.visitStorageKey('activities')) || '[]',
       )
       return Array.isArray(stored)
         ? stored.filter(field => Object.values(ACTIVITY_RULE_FIELDS).includes(field))
@@ -359,17 +367,25 @@ class Hellotext {
     return `hellotext:business:${this.visitBusinessId}:${name}`
   }
 
-  static readStorage(storage, key) {
+  static storage(name) {
     try {
-      return storage?.getItem(key)
+      return window[name]
     } catch (_) {
       return null
     }
   }
 
-  static writeStorage(storage, key, value) {
+  static readStorage(name, key) {
     try {
-      storage?.setItem(key, value)
+      return this.storage(name)?.getItem(key)
+    } catch (_) {
+      return null
+    }
+  }
+
+  static writeStorage(name, key, value) {
+    try {
+      this.storage(name)?.setItem(key, value)
     } catch (_) {
       // Storage may be unavailable in privacy-restricted browser contexts.
     }

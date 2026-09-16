@@ -140,6 +140,8 @@ export default class extends Controller {
   }
 
   pageStartedAt() {
+    if (Number.isFinite(Hellotext.pageStartedAt)) return Hellotext.pageStartedAt
+
     const timeOrigin = window.performance?.timeOrigin
 
     return Number.isFinite(timeOrigin) && timeOrigin <= Date.now() ? timeOrigin : Date.now()
@@ -152,9 +154,9 @@ export default class extends Controller {
    * overwritten during cleanup.
    */
   watchNavigation() {
-    if (this.displayed || !this.rules.needsNavigation || this.onNavigation) return
+    if (!this.rules.needsNavigation || this.onNavigation) return
 
-    this.lastLocation = window.location.href
+    this.lastRoute = this.pageRoute()
     this.onNavigation = () => this.scheduleNavigationEvaluation()
     this.onTurboNavigation = () => this.scheduleNavigationEvaluation(true)
 
@@ -197,15 +199,22 @@ export default class extends Controller {
     this.navigationTimer = setTimeout(() => {
       this.navigationTimer = undefined
 
-      const location = window.location.href
-      if (!this.navigationEvaluationForced && location === this.lastLocation) return
+      const route = this.pageRoute()
+      if (!this.navigationEvaluationForced && route === this.lastRoute) return
 
       this.navigationEvaluationForced = false
-      if (location !== this.lastLocation) Hellotext.recordPageView()
-      this.lastLocation = location
+      if (route !== this.lastRoute) Hellotext.recordPageView()
+      this.lastRoute = route
       this.connectedAt = Date.now()
-      this.evaluateDisplay()
+      if (!this.displayed) this.evaluateDisplay()
     })
+  }
+
+  pageRoute() {
+    const url = new URL(window.location.href)
+    const hashRoute = url.hash.match(/^#!?\/.*$/)
+
+    return hashRoute ? `${url.pathname}${hashRoute[0]}` : url.pathname
   }
 
   stopWatchingNavigation() {
@@ -414,10 +423,12 @@ export default class extends Controller {
    * @returns {void}
    */
   evaluateDisplay() {
-    if (this.dismissed || this.displayed || !this.matchesDevice()) {
+    if (this.dismissed || !this.matchesDevice()) {
       this.element.hidden = true
       return
     }
+
+    if (this.displayed) return
 
     if (!this.rules.matches(this.pageContext())) {
       this.element.hidden = true
@@ -428,7 +439,6 @@ export default class extends Controller {
     // enough: a visitor who never scrolls far enough never sees it.
     this.displayed = true
     this.stopWatchingMeasurements()
-    this.stopWatchingNavigation()
     this.stopWatchingActivities()
     this.showInitialState()
   }
@@ -505,11 +515,12 @@ export default class extends Controller {
     if (Array.isArray(brands)) {
       const brand = brands.map(({ brand }) => brand?.toLowerCase() || '')
       if (brand.some(name => name.includes('edge'))) return 'edge'
-      if (brand.some(name => name.includes('chrome') || name.includes('chromium'))) return 'chrome'
+      if (brand.some(name => name.includes('opera') || name.includes('samsung'))) return undefined
+      if (brand.some(name => name.includes('chrome'))) return 'chrome'
     }
 
     const agent = window.navigator.userAgent?.toLowerCase() || ''
-    if (/edg[ea]?\//.test(agent)) return 'edge'
+    if (/edg([ea]|ios)?\//.test(agent)) return 'edge'
     if (agent.includes('firefox/') || agent.includes('fxios/')) return 'firefox'
     if (agent.includes('chrome/') || agent.includes('crios/')) return 'chrome'
     if (agent.includes('safari/')) return 'safari'
@@ -529,13 +540,10 @@ export default class extends Controller {
    * than dividing by zero.
    */
   scrollDepth() {
-    const scrollable = document.documentElement.scrollHeight - window.innerHeight
+    const height = Math.max(document.documentElement.scrollHeight, window.innerHeight)
+    const viewed = window.scrollY + window.innerHeight
 
-    if (scrollable <= 0) return 100
-
-    const scrolled = (window.scrollY / scrollable) * 100
-
-    return Math.max(0, Math.min(100, Math.round(scrolled)))
+    return Math.max(0, Math.min(100, Math.round((viewed / height) * 100)))
   }
 
   /**
@@ -622,8 +630,8 @@ export default class extends Controller {
 
   /**
    * Format a local identity for completion copy when backend route data is absent.
-   * Phone prefixes and leading-zero removal apply only to this display fallback;
-   * submissionPayload() still sends the original field value.
+   * Phone prefixes and leading-zero removal are used for both completion copy and submission,
+   * so the destination the visitor sees is the destination the backend receives.
    *
    * @param {PopupInput} input - Email or phone field containing a string value.
    * @returns {string} Trimmed identity with the configured phone prefix when needed.
@@ -985,6 +993,8 @@ export default class extends Controller {
     const errors = data.errors || []
     const generalErrors = []
 
+    const invalidInputs = []
+
     errors.forEach(error => {
       const input = this.inputForError(error)
       if (!input) {
@@ -993,8 +1003,15 @@ export default class extends Controller {
       }
 
       input.setCustomValidity(error.description || input.validationMessage)
-      input.reportValidity()
+      invalidInputs.push(input)
     })
+
+    const stepIndex = this.stepTargets.findIndex(step =>
+      invalidInputs.some(input => step.contains(input)),
+    )
+    if (stepIndex >= 0) this.showStep(stepIndex)
+
+    invalidInputs.forEach(input => input.reportValidity())
 
     this.showErrorMessages(this.inputTargets)
     if (generalErrors.length) this.showGlobalError(generalErrors.join(' '))
@@ -1038,7 +1055,10 @@ export default class extends Controller {
       const inputs = this.inputsForStep(step)
 
       inputs.forEach(input => {
-        const value = this.inputValue(input)
+        const value =
+          input.dataset.popupFieldKind === 'phone'
+            ? this.identityValue(input)
+            : this.inputValue(input)
         const key = input.dataset.popupFieldKey || input.name
 
         stepFields[key] = value

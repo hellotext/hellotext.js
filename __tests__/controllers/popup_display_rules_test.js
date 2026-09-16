@@ -102,7 +102,7 @@ describe('PopupController display rules', () => {
     it('keeps re-checking until the visitor scrolls far enough', () => {
       const { element } = buildController({ lanes: [lane(['session.scroll_depth', 'at_least', 50])] })
 
-      jest.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(2000)
+      jest.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(4000)
       window.innerWidth = 1200
       Object.defineProperty(window, 'innerHeight', { value: 1000, configurable: true })
       Object.defineProperty(window, 'scrollY', { value: 0, configurable: true, writable: true })
@@ -110,7 +110,7 @@ describe('PopupController display rules', () => {
       controller.connect()
       expect(element.hidden).toBe(true)
 
-      window.scrollY = 900
+      window.scrollY = 1100
       window.dispatchEvent(new Event('scroll'))
 
       expect(element.hidden).toBe(false)

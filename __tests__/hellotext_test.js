@@ -517,6 +517,20 @@ describe("when the class is initialized successfully", () => {
         expect(Hellotext.activities).toContain('activity.product_viewed')
       });
 
+      it('does not apply an accepted activity to a runtime that changed while it was pending', async () => {
+        let resolve
+        global.fetch = jest.fn().mockReturnValue(new Promise(result => { resolve = result }))
+
+        const tracked = Hellotext.track('product.viewed')
+        Hellotext.business = { id: 'other-business' }
+        Hellotext.visitBusinessId = 'other-business'
+        resolve({ json: jest.fn().mockResolvedValue({ received: 'success' }), status: 200 })
+
+        await tracked
+
+        expect(Hellotext.activities).not.toContain('activity.product_viewed')
+      })
+
       it("records an accepted cart addition for popup activity rules", async () => {
         global.fetch = jest.fn().mockResolvedValue({
           json: jest.fn().mockResolvedValue({received: "success"}),
@@ -1100,6 +1114,18 @@ describe('when initializing Push', () => {
 
     expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat')
     expect(Hellotext.isInitialized).toBe(true)
+  })
+
+  it('does not synchronize Push when loading a required surface fails', async () => {
+    loadWebchat.mockRejectedValueOnce(new Error('surface failed'))
+    mockBusinessFetch(defaultBusiness({
+      push: { public_key: 'business-public-key' },
+      webchat: { id: 'dashboard-webchat' },
+    }))
+
+    await expect(Hellotext.initialize('xy76ks')).rejects.toThrow('surface failed')
+
+    expect(initializePush).not.toHaveBeenCalled()
   })
 
   it('resets omitted Push options when initializing another business', async () => {
