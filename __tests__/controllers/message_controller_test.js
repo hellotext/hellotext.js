@@ -378,12 +378,12 @@ describe('MessageController', () => {
       expect(Hellotext.track).not.toHaveBeenCalled()
     })
 
-    it('records the cart activity for popup rules', () => {
+    it('does not record cart activity before the platform confirms success', () => {
       const recordActivity = jest.spyOn(Hellotext, 'recordActivity').mockImplementation(() => {})
 
       controller.addToCart({ currentTarget: mockButton })
 
-      expect(recordActivity).toHaveBeenCalledWith('cart.added')
+      expect(recordActivity).not.toHaveBeenCalled()
       recordActivity.mockRestore()
     })
 
