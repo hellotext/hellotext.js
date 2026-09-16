@@ -145,6 +145,18 @@ describe('PopupController', () => {
     const flushTimers = () => new Promise(resolve => setTimeout(resolve, 0))
     let originalPage
 
+    // The rule has to be in place before initialize(), which is where the controller builds
+    // it. Assigning rulesValue after that leaves the controller evaluating an empty rule set,
+    // which matches every page and would let these tests pass without reading their rule.
+    const connectWith = rules => {
+      const built = buildController({ hasBubble: false })
+      controller.rulesValue = rules
+      controller.initialize()
+      controller.connect()
+
+      return built
+    }
+
     beforeEach(() => {
       originalPage = Hellotext.page
       // Set, and expected to stay unread: this is the attribution the browser persisted.
@@ -163,20 +175,16 @@ describe('PopupController', () => {
 
     it('matches a campaign the URL carries without a source or medium', () => {
       window.history.replaceState({}, '', '/landing?utm_campaign=spring')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_campaign', 'spring')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_campaign', 'spring'))
 
       expect(element.hidden).toBe(false)
     })
 
     it('ignores capitalization while keeping each value as the link wrote it', () => {
       window.history.replaceState({}, '', '/landing?utm_source=Google&utm_medium=Paid_Social&utm_campaign=Spring')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'google')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
 
       expect(element.hidden).toBe(false)
       expect(controller.pageContext().utm).toEqual({
@@ -186,9 +194,7 @@ describe('PopupController', () => {
       })
 
       controller.disconnect()
-      const campaign = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_campaign', 'spring')
-      controller.connect()
+      const campaign = connectWith(utmRule('session.utm_campaign', 'spring'))
 
       expect(campaign.element.hidden).toBe(false)
     })
@@ -196,10 +202,8 @@ describe('PopupController', () => {
     it('keeps the campaign this visit arrived with once the URL drops it', () => {
       Hellotext.rememberVisitCampaign({ campaign: 'spring' })
       window.history.replaceState({}, '', '/products/42')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_campaign', 'spring')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_campaign', 'spring'))
 
       expect(element.hidden).toBe(false)
     })
@@ -208,10 +212,8 @@ describe('PopupController', () => {
     // an old campaign must never decide a popup for a visit that arrived some other way.
     it('never falls back to the attribution persisted for the browser', () => {
       window.history.replaceState({}, '', '/landing')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'google')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
 
       expect(element.hidden).toBe(true)
       expect(controller.pageContext().utm).toEqual({})
@@ -220,10 +222,8 @@ describe('PopupController', () => {
     it('lets the URL replace the remembered campaign rather than merge with it', () => {
       Hellotext.rememberVisitCampaign({ source: 'google', medium: 'cpc' })
       window.history.replaceState({}, '', '/landing?utm_campaign=spring')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'google')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
 
       expect(element.hidden).toBe(true)
       expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
@@ -232,10 +232,8 @@ describe('PopupController', () => {
     it('ignores parameters that name no campaign', () => {
       Hellotext.rememberVisitCampaign({ source: 'google', medium: 'cpc' })
       window.history.replaceState({}, '', '/landing?utm_term=shoes')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'google')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
 
       expect(element.hidden).toBe(false)
     })
@@ -243,17 +241,13 @@ describe('PopupController', () => {
     it('falls back when UTM values are blank, and never reads UTM parameters from a hash route', () => {
       Hellotext.rememberVisitCampaign({ source: 'Google', medium: 'CPC' })
       window.history.replaceState({}, '', '/landing?utm_campaign=%20')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'google')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
       expect(element.hidden).toBe(false)
 
       controller.disconnect()
       window.history.replaceState({}, '', '/#/landing?utm_campaign=spring')
-      const hashRoute = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'google')
-      controller.connect()
+      const hashRoute = connectWith(utmRule('session.utm_source', 'google'))
 
       expect(hashRoute.element.hidden).toBe(false)
     })
@@ -261,10 +255,8 @@ describe('PopupController', () => {
     it('uses the first duplicate UTM parameter without changing persisted attribution', () => {
       const set = jest.spyOn(Cookies, 'set')
       window.history.replaceState({}, '', '/landing?utm_source=First&utm_source=Second')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'first')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_source', 'first'))
 
       expect(element.hidden).toBe(false)
       expect(controller.pageContext().utm).toEqual({ source: 'First' })
@@ -273,10 +265,8 @@ describe('PopupController', () => {
 
     it('re-reads the URL after a SPA route adds a campaign', async () => {
       window.history.replaceState({}, '', '/landing')
-      const { element } = buildController({ hasBubble: false })
-      controller.rulesValue = utmRule('session.utm_source', 'newsletter')
 
-      controller.connect()
+      const { element } = connectWith(utmRule('session.utm_source', 'newsletter'))
       expect(element.hidden).toBe(true)
 
       window.history.pushState({}, '', '/offer?utm_source=newsletter')
