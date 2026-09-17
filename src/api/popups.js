@@ -3,6 +3,10 @@ import Hellotext from '../hellotext'
 
 import { Response } from './response'
 
+// The display-rules contract this runtime implements. Rails only relies on the browser for page,
+// session and activity rules when the runtime declares it, since an older one cannot check them.
+export const POPUP_RULES_CONTRACT = '1'
+
 class PopupsAPI {
   static get endpoint() {
     return Configuration.endpoint('public/popups')
@@ -85,7 +89,10 @@ class PopupsAPI {
     try {
       return await fetch(url, {
         method: 'GET',
-        headers: Hellotext.headers,
+        headers: {
+          ...Hellotext.headers,
+          'X-Hellotext-Popup-Rules': POPUP_RULES_CONTRACT,
+        },
       })
     } catch (_) {
       return { ok: false }
