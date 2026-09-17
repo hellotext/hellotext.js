@@ -1,7 +1,7 @@
 import { Application } from '@hotwired/stimulus'
 import Hellotext from '../src/hellotext'
 import API from '../src/api'
-import { Business, Push } from '../src/models'
+import { Business, Push, Webchat } from '../src/models'
 import AlertController from '../src/controllers/alert_controller'
 
 const html = `
@@ -124,6 +124,16 @@ describe('Smart Alert initialization', () => {
     supported.mockReturnValue(false)
 
     await initialize()
+
+    expect(Hellotext.alert).toBeNull()
+    expect(document.querySelector('article')).toBeNull()
+  })
+
+  it('does not mount an alert when another widget fails to load', async () => {
+    hydrate(businessData({ webchat: { id: 'broken-webchat' } }))
+    jest.spyOn(Webchat, 'load').mockRejectedValue(new Error('Unable to load webchat'))
+
+    await expect(initialize()).rejects.toThrow('Unable to load webchat')
 
     expect(Hellotext.alert).toBeNull()
     expect(document.querySelector('article')).toBeNull()

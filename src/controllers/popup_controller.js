@@ -2,6 +2,8 @@ import { Controller } from '@hotwired/stimulus'
 
 import PopupsAPI from '../api/popups'
 import Hellotext from '../hellotext'
+import { PopupDisplayRules } from '../models/popup_display_rules'
+import { UTM } from '../models/utm'
 
 /**
  * An input rendered by the popup's server-side field components.
@@ -70,6 +72,7 @@ import Hellotext from '../hellotext'
  * - device: Popup device targeting.
  * - hasBubble: Whether the popup starts from a bubble.
  * - id: Public popup identifier.
+ * - rules: Page-scoped display rules that survived server-side evaluation.
  */
 export default class extends Controller {
   static targets = [
@@ -91,6 +94,7 @@ export default class extends Controller {
     device: String,
     hasBubble: Boolean,
     id: String,
+    rules: Object,
   }
 
   /**
@@ -103,6 +107,8 @@ export default class extends Controller {
   initialize() {
     this.stepIndex = 0
     this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
+    this.rules = new PopupDisplayRules(this.rulesValue)
+    this.connectedAt = this.pageStartedAt()
   }
 
   /**
@@ -114,7 +120,12 @@ export default class extends Controller {
    */
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
+
+    this.deviceMatches = this.matchesDevice()
+    this.watchNavigation()
+    this.watchActivities()
     this.evaluateDisplay()
+    this.watchMeasurements()
   }
 
   /**
@@ -124,6 +135,168 @@ export default class extends Controller {
    */
   disconnect() {
     this.stopResendCooldown()
+    this.stopWatchingMeasurements()
+    this.stopWatchingNavigation()
+    this.stopWatchingActivities()
+  }
+
+  pageStartedAt() {
+    if (Number.isFinite(Hellotext.pageStartedAt)) return Hellotext.pageStartedAt
+
+    const timeOrigin = window.performance?.timeOrigin
+
+    return Number.isFinite(timeOrigin) && timeOrigin <= Date.now() ? timeOrigin : Date.now()
+  }
+
+  /**
+   * Merchant sites can be SPAs. Re-check client-side page/session rules whenever their
+   * route changes, including History API navigation which does not emit a browser event.
+   * The wrapper is restored only when it is still ours, so a later integration is never
+   * overwritten during cleanup.
+   */
+  watchNavigation() {
+    if (this.onNavigation) return
+
+    this.lastRoute = this.pageRoute()
+    this.onNavigation = () => this.scheduleNavigationEvaluation()
+    this.onTurboNavigation = () => this.scheduleNavigationEvaluation(true)
+
+    window.addEventListener('popstate', this.onNavigation)
+    window.addEventListener('hashchange', this.onNavigation)
+    window.addEventListener('turbo:load', this.onTurboNavigation)
+    window.addEventListener('turbo:render', this.onTurboNavigation)
+
+    if (this.rules.needsTitle && document.head) {
+      this.titleObserver = new MutationObserver(() => this.scheduleNavigationEvaluation(true))
+      this.titleObserver.observe(document.head, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      })
+    }
+
+    const originalPushState = window.history.pushState
+    const originalReplaceState = window.history.replaceState
+    let navigationActive = true
+
+    this.originalPushState = originalPushState
+    this.originalReplaceState = originalReplaceState
+    this.stopNavigationWrapper = () => {
+      navigationActive = false
+    }
+    this.patchedPushState = (...args) => {
+      const result = originalPushState.apply(window.history, args)
+
+      // A SPA can update document.title without changing the URL. History calls are an
+      // explicit navigation boundary, so they must still re-evaluate title rules.
+      if (navigationActive) this.scheduleNavigationEvaluation(true)
+      return result
+    }
+    this.patchedReplaceState = (...args) => {
+      const result = originalReplaceState.apply(window.history, args)
+
+      if (navigationActive) this.scheduleNavigationEvaluation(true)
+      return result
+    }
+    window.history.pushState = this.patchedPushState
+    window.history.replaceState = this.patchedReplaceState
+  }
+
+  scheduleNavigationEvaluation(force = false) {
+    this.navigationEvaluationForced ||= force
+    if (this.navigationTimer) return
+
+    this.navigationTimer = setTimeout(() => {
+      this.navigationTimer = undefined
+
+      const route = this.pageRoute()
+      if (!this.navigationEvaluationForced && route === this.lastRoute) return
+
+      this.navigationEvaluationForced = false
+      if (route !== this.lastRoute) {
+        Hellotext.recordPageView()
+        this.connectedAt = Date.now()
+      }
+      this.lastRoute = route
+      if (!this.displayed) this.evaluateDisplay()
+    })
+  }
+
+  pageRoute() {
+    return Hellotext.pageRoute()
+  }
+
+  stopWatchingNavigation() {
+    this.stopNavigationWrapper?.()
+    this.stopNavigationWrapper = undefined
+    this.titleObserver?.disconnect()
+    this.titleObserver = undefined
+
+    if (this.onNavigation) {
+      window.removeEventListener('popstate', this.onNavigation)
+      window.removeEventListener('hashchange', this.onNavigation)
+      this.onNavigation = undefined
+    }
+    if (this.onTurboNavigation) {
+      window.removeEventListener('turbo:load', this.onTurboNavigation)
+      window.removeEventListener('turbo:render', this.onTurboNavigation)
+      this.onTurboNavigation = undefined
+    }
+    if (this.navigationTimer) {
+      clearTimeout(this.navigationTimer)
+      this.navigationTimer = undefined
+    }
+    if (window.history.pushState === this.patchedPushState) {
+      window.history.pushState = this.originalPushState
+    }
+    if (window.history.replaceState === this.patchedReplaceState) {
+      window.history.replaceState = this.originalReplaceState
+    }
+
+    this.patchedPushState = undefined
+    this.patchedReplaceState = undefined
+    this.originalPushState = undefined
+    this.originalReplaceState = undefined
+    this.navigationEvaluationForced = false
+  }
+
+  /**
+   * Scroll depth and time on page only grow, so a popup gated on them cannot be decided
+   * once on connect. Watching starts only when a rule actually needs a measurement, so a
+   * popup without one adds no listeners and no timer.
+   */
+  watchMeasurements() {
+    if (this.displayed || !this.rules.needsMeasurements) return
+
+    this.onScroll = () => this.evaluateDisplay()
+    window.addEventListener('scroll', this.onScroll, { passive: true })
+    this.measurementTimer = setInterval(() => this.evaluateDisplay(), 1000)
+  }
+
+  stopWatchingMeasurements() {
+    if (this.onScroll) {
+      window.removeEventListener('scroll', this.onScroll)
+      this.onScroll = undefined
+    }
+
+    if (this.measurementTimer) {
+      clearInterval(this.measurementTimer)
+      this.measurementTimer = undefined
+    }
+  }
+
+  watchActivities() {
+    if (this.displayed || !this.rules.needsActivities || this.onActivity) return
+
+    this.onActivity = () => this.evaluateDisplay()
+    Hellotext.on('activity:occurred', this.onActivity)
+  }
+
+  stopWatchingActivities() {
+    if (!this.onActivity) return
+
+    Hellotext.removeEventListener('activity:occurred', this.onActivity)
+    this.onActivity = undefined
   }
 
   /**
@@ -261,12 +434,132 @@ export default class extends Controller {
    * @returns {void}
    */
   evaluateDisplay() {
-    if (this.dismissed || !this.matchesDevice()) {
+    if (this.dismissed || !this.deviceMatches) {
       this.element.hidden = true
       return
     }
 
+    if (this.displayed) return
+
+    if (!this.rules.matches(this.pageContext())) {
+      this.element.hidden = true
+      return
+    }
+
+    // A popup counts as shown only once it actually displays. Rules matching is not
+    // enough: a visitor who never scrolls far enough never sees it.
+    this.displayed = true
+    this.stopWatchingMeasurements()
+    this.stopWatchingActivities()
     this.showInitialState()
+  }
+
+  pageContext() {
+    return {
+      url: window.location.href,
+      path: window.location.pathname,
+      hash: window.location.hash,
+      title: document.title,
+      referrer: document.referrer || undefined,
+      scrollDepth: this.scrollDepth(),
+      timeOnPage: Math.floor((Date.now() - this.connectedAt) / 1000),
+      pageViews: Hellotext.pageViews,
+      language: this.browserLanguage(),
+      visitorType: Hellotext.visitorType,
+      browser: this.browserName(),
+      utm: this.currentUtmParams(),
+      activities: Hellotext.activities,
+    }
+  }
+
+  /**
+   * The campaign this visit arrived with. A URL carrying source, medium or campaign answers
+   * for itself and becomes the visit's campaign, so a SPA route that adds parameters is
+   * picked up at the next evaluation.
+   *
+   * Without any of them in the URL the campaign the visit started with still applies, which
+   * is what keeps a rule true after the site navigates past its landing URL or strips the
+   * parameters from it. Persisted attribution is deliberately not the fallback: `hello_utm`
+   * outlives the visit by years and would let an old campaign target a visitor who arrived
+   * from somewhere else entirely.
+   *
+   * The URL's parameters replace the remembered ones rather than merging with them, so a
+   * rule never pairs the source of one campaign with the name of another.
+   */
+  currentUtmParams() {
+    const hashSearch = window.location.hash.match(/^#!?\/[^?]*\?(.*)$/)?.[1]
+    const hashCampaign = this.popupUtmParams(UTM.paramsFrom(hashSearch))
+    const queryCampaign = this.popupUtmParams(UTM.paramsFrom(window.location.search))
+    const current = Object.keys(queryCampaign).length > 0 ? queryCampaign : hashCampaign
+
+    if (Object.keys(current).length > 0) {
+      Hellotext.rememberVisitCampaign(current)
+      return current
+    }
+
+    return this.popupUtmParams(Hellotext.visitCampaign)
+  }
+
+  // Only the three parameters Rules can target, without the blanks. Capitalization and `+`
+  // are left alone here and settled when the values are compared, so the campaign a rule
+  // holds reads the way the merchant wrote it.
+  popupUtmParams(params) {
+    return Object.fromEntries(
+      Object.entries(params || {}).flatMap(([key, value]) => {
+        if (!['source', 'medium', 'campaign'].includes(key) || typeof value !== 'string') return []
+
+        return value.trim() === '' ? [] : [[key, value.trim()]]
+      }),
+    )
+  }
+
+  /**
+   * Names the browser, or nothing when it is not one of the four the catalog offers.
+   *
+   * User-Agent Client Hints answer this without parsing when they exist. Where they do not
+   * — Safari and Firefox — the user agent string is the only source, and its order matters:
+   * Edge claims to be Chrome, and Chrome claims to be Safari. Testing from the most
+   * specific claim to the least is what keeps each from answering for the others.
+   *
+   * An unrecognised browser reports nothing rather than a guess, so `is` never matches on a
+   * mistake and `is not` never excludes on one.
+   */
+  browserName() {
+    const brands = window.navigator.userAgentData?.brands
+    if (Array.isArray(brands)) {
+      const brand = brands.map(({ brand }) => brand?.toLowerCase() || '')
+      if (brand.some(name => name.includes('edge'))) return 'edge'
+      if (brand.some(name => name.includes('opera') || name.includes('samsung'))) return undefined
+      if (brand.some(name => name.includes('chrome'))) return 'chrome'
+    }
+
+    const agent = window.navigator.userAgent?.toLowerCase() || ''
+    if (/edg([ea]|ios)?\//.test(agent)) return 'edge'
+    if (agent.includes('opr/') || agent.includes('opera/') || agent.includes('samsungbrowser/'))
+      return undefined
+    if (agent.includes('firefox/') || agent.includes('fxios/')) return 'firefox'
+    if (agent.includes('chrome/') || agent.includes('crios/')) return 'chrome'
+    if (agent.includes('safari/')) return 'safari'
+
+    return undefined
+  }
+
+  browserLanguage() {
+    const language = window.navigator.languages?.[0] || window.navigator.language
+
+    return language?.split('-')[0]?.toLowerCase()
+  }
+
+  /**
+   * Percentage of the document the visitor has reached, counting the viewport itself. A
+   * page shorter than the viewport has nothing to scroll, so it reads as fully seen rather
+   * than dividing by zero.
+   */
+  scrollDepth() {
+    const height = Math.max(document.documentElement.scrollHeight, window.innerHeight)
+    const viewed = window.scrollY + window.innerHeight
+
+    return Math.max(0, Math.min(100, Math.round((viewed / height) * 100)))
   }
 
   /**
@@ -353,14 +646,15 @@ export default class extends Controller {
 
   /**
    * Format a local identity for completion copy when backend route data is absent.
-   * Phone prefixes and leading-zero removal apply only to this display fallback;
-   * submissionPayload() still sends the original field value.
+   * Phone prefixes and leading-zero removal are used for both completion copy and submission,
+   * so the destination the visitor sees is the destination the backend receives.
    *
    * @param {PopupInput} input - Email or phone field containing a string value.
    * @returns {string} Trimmed identity with the configured phone prefix when needed.
    */
   identityValue(input) {
     const value = this.inputValue(input).trim()
+    if (!value) return ''
     if (input.dataset.popupFieldKind !== 'phone' || value.startsWith('+')) return value
 
     const prefix = input.dataset.popupPhonePrefix
@@ -716,6 +1010,8 @@ export default class extends Controller {
     const errors = data.errors || []
     const generalErrors = []
 
+    const invalidInputs = []
+
     errors.forEach(error => {
       const input = this.inputForError(error)
       if (!input) {
@@ -724,8 +1020,15 @@ export default class extends Controller {
       }
 
       input.setCustomValidity(error.description || input.validationMessage)
-      input.reportValidity()
+      invalidInputs.push(input)
     })
+
+    const stepIndex = this.stepTargets.findIndex(step =>
+      invalidInputs.some(input => this.inputsForStep(step).includes(input)),
+    )
+    if (stepIndex >= 0) this.showStep(stepIndex)
+
+    invalidInputs.forEach(input => input.reportValidity())
 
     this.showErrorMessages(this.inputTargets)
     if (generalErrors.length) this.showGlobalError(generalErrors.join(' '))
@@ -769,7 +1072,10 @@ export default class extends Controller {
       const inputs = this.inputsForStep(step)
 
       inputs.forEach(input => {
-        const value = this.inputValue(input)
+        const value =
+          input.dataset.popupFieldKind === 'phone'
+            ? this.identityValue(input)
+            : this.inputValue(input)
         const key = input.dataset.popupFieldKey || input.name
 
         stepFields[key] = value

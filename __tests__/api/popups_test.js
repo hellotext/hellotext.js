@@ -48,6 +48,9 @@ describe('PopupsAPI', () => {
     expect(url.searchParams.get('locale')).toBe('es')
     expect(url.searchParams.get('device')).toBe('desktop')
     expect(global.fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer business-id')
+    // Rails withholds a popup that depends on browser rules from a runtime that does not
+    // declare it can check them.
+    expect(global.fetch.mock.calls[0][1].headers['X-Hellotext-Popup-Rules']).toBe('1')
     expect(element.id).toBe('popup-widget')
     expect(Hellotext.business.setData).toHaveBeenCalledWith({ id: 'business-id' })
     expect(Hellotext.business.setLocale).toHaveBeenCalledWith('es')

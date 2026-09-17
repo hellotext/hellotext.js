@@ -95,6 +95,14 @@ describe('mount', () => {
 })
 
 describe('markAsCompleted', () => {
+  beforeEach(() => {
+    Hellotext.visitBusinessId = 'business-1'
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('saves the form as completed in localStorage', () => {
     const form = new Form({ id: 1 })
     form.markAsCompleted()
@@ -107,6 +115,25 @@ describe('markAsCompleted', () => {
 
     form.markAsCompleted()
     expect(emit).toHaveBeenCalled()
+  })
+
+  it('records a form activity for popup display rules', () => {
+    const form = new Form({ id: 1 })
+    const recordActivity = jest.spyOn(Hellotext, 'recordActivity')
+
+    form.markAsCompleted()
+
+    expect(recordActivity).toHaveBeenCalledWith('form.completed')
+  })
+
+  it('does not attribute a pending form completion to a later business', () => {
+    const form = new Form({ id: 1 })
+    const recordActivity = jest.spyOn(Hellotext, 'recordActivity')
+    Hellotext.visitBusinessId = 'business-2'
+
+    form.markAsCompleted()
+
+    expect(recordActivity).not.toHaveBeenCalled()
   })
 })
 

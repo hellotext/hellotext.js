@@ -46,6 +46,34 @@ describe('UTM', () => {
     jest.useRealTimers()
   })
 
+  describe('paramsFrom', () => {
+    it('reads every campaign parameter a query string carries', () => {
+      expect(
+        UTM.paramsFrom('?utm_source=google&utm_medium=cpc&utm_campaign=spring&utm_term=shoes&utm_content=ad1'),
+      ).toEqual({ source: 'google', medium: 'cpc', campaign: 'spring', term: 'shoes', content: 'ad1' })
+    })
+
+    it('keeps a lone parameter the persisted attribution would ignore', () => {
+      expect(UTM.paramsFrom('?utm_campaign=spring')).toEqual({ campaign: 'spring' })
+    })
+
+    it('leaves out absent and blank parameters', () => {
+      expect(UTM.paramsFrom('?utm_source=&page=2')).toEqual({})
+      expect(UTM.paramsFrom('')).toEqual({})
+    })
+
+    it('uses the first value when a campaign parameter is repeated', () => {
+      expect(UTM.paramsFrom('?utm_source=first&utm_source=second')).toEqual({ source: 'first' })
+    })
+
+    it('uses standard query-string decoding without losing literal plus signs', () => {
+      expect(UTM.paramsFrom('?utm_campaign=Black+Friday')).toEqual({ campaign: 'Black Friday' })
+      expect(UTM.paramsFrom('?utm_campaign=Black%20Friday')).toEqual({ campaign: 'Black Friday' })
+      expect(UTM.paramsFrom('?utm_campaign=Black%2BFriday')).toEqual({ campaign: 'Black+Friday' })
+      expect(UTM.paramsFrom('?utm_campaign=Black%252BFriday')).toEqual({ campaign: 'Black%2BFriday' })
+    })
+  })
+
   describe('constructor', () => {
     it('stores UTM parameters in cookies when utm_source and utm_medium are present', () => {
       window.location.search = '?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale&utm_term=shoes&utm_content=ad1'

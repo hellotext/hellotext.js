@@ -5,6 +5,7 @@
 import PopupController from '../../src/controllers/popup_controller'
 import PopupsAPI from '../../src/api/popups'
 import Hellotext from '../../src/hellotext'
+import { Cookies } from '../../src/models/cookies'
 
 describe('PopupController', () => {
   let controller
@@ -89,6 +90,8 @@ describe('PopupController', () => {
     controller.captureValue = { capture_id: 'capture-id' }
     controller.deviceValue = 'all'
     controller.idValue = id
+    // Before initialize(): that is where the controller builds its display rules.
+    controller.rulesValue = { lanes: [] }
     controller.initialize()
 
     return {
@@ -130,6 +133,186 @@ describe('PopupController', () => {
     jest.useRealTimers()
     jest.restoreAllMocks()
     document.body.innerHTML = ''
+  })
+
+  // A rule may target any of the three campaign parameters. The URL the visitor is on answers
+  // for itself, and what it carried is remembered for the rest of the visit — persisted
+  // attribution, which outlives the visit by years, is never the fallback.
+  describe('UTM rules', () => {
+    const utmRule = (field, value) => ({
+      lanes: [[{ type: 'condition', field, operator: 'is', values: [value] }]],
+    })
+    const flushTimers = () => new Promise(resolve => setTimeout(resolve, 0))
+    let originalPage
+
+    // The rule has to be in place before initialize(), which is where the controller builds
+    // it. Assigning rulesValue after that leaves the controller evaluating an empty rule set,
+    // which matches every page and would let these tests pass without reading their rule.
+    const connectWith = rules => {
+      const built = buildController({ hasBubble: false })
+      controller.rulesValue = rules
+      controller.initialize()
+      controller.connect()
+
+      return built
+    }
+
+    beforeEach(() => {
+      originalPage = Hellotext.page
+      // Set, and expected to stay unread: this is the attribution the browser persisted.
+      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+      Hellotext.visitBusinessId = 'business-1'
+      Hellotext.visitCampaign = {}
+      window.sessionStorage.clear()
+    })
+
+    afterEach(() => {
+      controller?.disconnect()
+      Hellotext.page = originalPage
+      Hellotext.visitCampaign = {}
+      window.history.replaceState({}, '', '/')
+    })
+
+    it('matches a campaign the URL carries without a source or medium', () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=spring')
+
+      const { element } = connectWith(utmRule('session.utm_campaign', 'spring'))
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('ignores capitalization while keeping each value as the link wrote it', () => {
+      window.history.replaceState({}, '', '/landing?utm_source=Google&utm_medium=Paid_Social&utm_campaign=Spring')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({
+        source: 'Google',
+        medium: 'Paid_Social',
+        campaign: 'Spring',
+      })
+
+      controller.disconnect()
+      const campaign = connectWith(utmRule('session.utm_campaign', 'spring'))
+
+      expect(campaign.element.hidden).toBe(false)
+    })
+
+    it('keeps an encoded literal plus distinct from a space in campaign values', () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=Black%2BFriday')
+
+      const plus = connectWith(utmRule('session.utm_campaign', 'black+friday'))
+
+      expect(plus.element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ campaign: 'Black+Friday' })
+
+      controller.disconnect()
+      const words = connectWith(utmRule('session.utm_campaign', 'black friday'))
+
+      expect(words.element.hidden).toBe(true)
+    })
+
+    it('keeps the campaign this visit arrived with once the URL drops it', () => {
+      Hellotext.rememberVisitCampaign({ campaign: 'spring' })
+      window.history.replaceState({}, '', '/products/42')
+
+      const { element } = connectWith(utmRule('session.utm_campaign', 'spring'))
+
+      expect(element.hidden).toBe(false)
+    })
+
+    // `hello_utm` records only a complete source and medium pair and survives for years, so
+    // an old campaign must never decide a popup for a visit that arrived some other way.
+    it('never falls back to the attribution persisted for the browser', () => {
+      window.history.replaceState({}, '', '/landing')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(element.hidden).toBe(true)
+      expect(controller.pageContext().utm).toEqual({})
+    })
+
+    it('lets the URL replace the remembered campaign rather than merge with it', () => {
+      Hellotext.rememberVisitCampaign({ source: 'google', medium: 'cpc' })
+      window.history.replaceState({}, '', '/landing?utm_campaign=spring')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(element.hidden).toBe(true)
+      expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
+    })
+
+    it('ignores parameters that name no campaign', () => {
+      Hellotext.rememberVisitCampaign({ source: 'google', medium: 'cpc' })
+      window.history.replaceState({}, '', '/landing?utm_term=shoes')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('falls back when UTM values are blank and reads campaign parameters from a hash route', () => {
+      Hellotext.rememberVisitCampaign({ source: 'Google', medium: 'CPC' })
+      window.history.replaceState({}, '', '/landing?utm_campaign=%20')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+      expect(element.hidden).toBe(false)
+
+      controller.disconnect()
+      window.history.replaceState({}, '', '/?affiliate=1#/landing?utm_campaign=spring')
+      const hashRoute = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(hashRoute.element.hidden).toBe(true)
+    })
+
+    it('prefers a document campaign over campaign parameters inside the hash route', () => {
+      window.history.replaceState(
+        {},
+        '',
+        '/?utm_source=paid#/landing?utm_campaign=spring',
+      )
+
+      const { element } = connectWith(utmRule('session.utm_source', 'paid'))
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ source: 'paid' })
+    })
+
+    it('uses the first duplicate UTM parameter without changing persisted attribution', () => {
+      const set = jest.spyOn(Cookies, 'set')
+      window.history.replaceState({}, '', '/landing?utm_source=First&utm_source=Second')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'first'))
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ source: 'First' })
+      expect(set).not.toHaveBeenCalled()
+    })
+
+    it('re-reads the URL after a SPA route adds a campaign', async () => {
+      window.history.replaceState({}, '', '/landing')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'newsletter'))
+      expect(element.hidden).toBe(true)
+
+      window.history.pushState({}, '', '/offer?utm_source=newsletter')
+      await flushTimers()
+
+      expect(element.hidden).toBe(false)
+    })
+  })
+
+  describe('browser detection', () => {
+    it.each([
+      ['Opera', 'Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0'],
+      ['Samsung Internet', 'Mozilla/5.0 Chrome/120.0.0.0 Mobile Safari/537.36 SamsungBrowser/23.0'],
+    ])('does not classify %s as Chrome', (_browser, userAgent) => {
+      jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(userAgent)
+      buildController()
+
+      expect(controller.browserName()).toBeUndefined()
+    })
   })
 
   it('shows the bubble first and opens the dialog when clicked', () => {
@@ -309,6 +492,49 @@ describe('PopupController', () => {
     expect(controller.submitButtonTargets.every(button => !button.disabled)).toBe(true)
   })
 
+  it('returns to the step containing a field the server rejects', async () => {
+    const { emailInput, phoneInput, stepOne, stepTwo } = buildController({ hasBubble: false })
+    PopupsAPI.submit.mockResolvedValueOnce({
+      failed: true,
+      json: jest.fn().mockResolvedValue({
+        errors: [{ parameter: 'email', description: 'Email is already in use.' }],
+      }),
+    })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    phoneInput.value = '+15551234567'
+    await controller.submit()
+
+    expect(controller.stepIndex).toBe(0)
+    expect(stepOne.hidden).toBe(false)
+    expect(stepTwo.hidden).toBe(true)
+    expect(emailInput.validationMessage).toBe('Email is already in use.')
+  })
+
+  it('returns to the step associated with a rejected field outside its layout wrapper', async () => {
+    const { emailInput, phoneInput, stepOne, stepTwo } = buildController({ hasBubble: false })
+    stepOne.removeChild(emailInput)
+    controller.element.appendChild(emailInput)
+    PopupsAPI.submit.mockResolvedValueOnce({
+      failed: true,
+      json: jest.fn().mockResolvedValue({
+        errors: [{ parameter: 'email', description: 'Email is already in use.' }],
+      }),
+    })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    phoneInput.value = '+15551234567'
+    controller.showStep(1)
+    await controller.submit()
+
+    expect(controller.stepIndex).toBe(0)
+    expect(stepOne.hidden).toBe(false)
+    expect(stepTwo.hidden).toBe(true)
+  })
+
   it('shows a one-minute resend cooldown and the change action for the submitted identity', async () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-08-24T12:00:00Z'))
@@ -477,6 +703,44 @@ describe('PopupController', () => {
 
     expect(completed.querySelector('p').textContent).toBe(
       'We sent it to +584126625353 via phone. It may take a minute to arrive.',
+    )
+  })
+
+  it('submits a prefixed phone value in the identity and metadata fields', () => {
+    const { emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    emailInput.required = false
+    phoneInput.dataset.popupPhonePrefix = '+58'
+    phoneInput.value = '04126625353'
+
+    expect(controller.submissionPayload()).toEqual(
+      expect.objectContaining({
+        phone: '+584126625353',
+        metadata: expect.objectContaining({
+          fields: expect.objectContaining({ phone: '+584126625353' }),
+          steps: expect.arrayContaining([
+            expect.objectContaining({ fields: expect.objectContaining({ phone: '+584126625353' }) }),
+          ]),
+        }),
+      }),
+    )
+  })
+
+  it('keeps an empty optional phone blank when it has a country prefix', () => {
+    const { emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    phoneInput.required = false
+    phoneInput.dataset.popupPhonePrefix = '+58'
+    phoneInput.value = ''
+    emailInput.value = 'customer@example.com'
+
+    expect(controller.submissionPayload()).toEqual(
+      expect.objectContaining({
+        phone: '',
+        metadata: expect.objectContaining({
+          fields: expect.objectContaining({ phone: '' }),
+        }),
+      }),
     )
   })
 

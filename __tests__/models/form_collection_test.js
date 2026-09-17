@@ -91,6 +91,46 @@ describe('collect', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
+  it('discards forms that finish loading after the active business changes', async () => {
+    let resolveResponse
+    global.fetch = jest.fn().mockReturnValue(
+      new Promise(resolve => {
+        resolveResponse = resolve
+      }),
+    )
+    document.body.innerHTML = `<form data-hello-form="1"></form>`
+    const forms = Hellotext.forms
+    const collected = jest.spyOn(Hellotext.eventEmitter, 'dispatch')
+
+    const collection = forms.collect()
+    Hellotext.visitBusinessId = 'another-business'
+    resolveResponse({ json: jest.fn().mockResolvedValue({ id: 1 }) })
+    await collection
+
+    expect(forms.length).toBe(0)
+    expect(collected).not.toHaveBeenCalledWith('forms:collected', forms)
+    expect(forms.fetching).toBe(false)
+  })
+
+  it('discards forms from an earlier initialization of the same business', async () => {
+    let resolveResponse
+    global.fetch = jest.fn().mockReturnValue(
+      new Promise(resolve => {
+        resolveResponse = resolve
+      }),
+    )
+    document.body.innerHTML = `<form data-hello-form="1"></form>`
+    const forms = Hellotext.forms
+
+    const collection = forms.collect()
+    Hellotext.initializationVersion += 1
+    resolveResponse({ json: jest.fn().mockResolvedValue({ id: 1 }) })
+    await collection
+
+    expect(forms.length).toBe(0)
+    expect(forms.fetching).toBe(false)
+  })
+
   it('emits forms:collected event after successful collection', async () => {
     const eventSpy = jest.spyOn(Hellotext.eventEmitter, 'dispatch')
 
