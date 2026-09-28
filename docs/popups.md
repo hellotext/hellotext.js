@@ -45,6 +45,16 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 })
 ```
 
+For a popup installed manually, use `mountPopup` with the public business and popup ids:
+
+```js
+Hellotext.mountPopup('PUBLIC_BUSINESS_ID', 'POPUP_ID')
+```
+
+It initializes Hellotext if necessary. When Hellotext is already initialized for that business, it replaces only the popup; webchat and WhatsApp keep running. The manual popup remains selected if the same business initializes again, including when the manual snippet runs first. Initializing another business clears that choice. Existing `initialize` calls and dashboard popup configuration continue to work as before.
+
+The third argument accepts `container` and `device` options. `mountPopup` requires an SDK version that provides this method; older versions can still load a specific popup through `initialize` as shown above.
+
 ### Container
 
 By default, the popup is appended to the end of `body`. To use a custom container, create it before initializing Hellotext:

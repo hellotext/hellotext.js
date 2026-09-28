@@ -177,6 +177,7 @@ export interface Response {
 
 declare class Hellotext {
   static initialize(businessId: string, config?: HellotextConfig): Promise<void>
+  static mountPopup(businessId: string, popupId: string, options?: HellotextPopupConfig): Promise<void>
   static track(action: string, params?: TrackingParams): Promise<Response>
   static identify(userId: string, options?: IdentificationOptions): Promise<Response>
   static forget(): void

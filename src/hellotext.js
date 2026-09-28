@@ -28,6 +28,9 @@ class Hellotext {
   static push
   static alert
   static initializationVersion = 0
+  static popupVersion = 0
+  static manualPopup = null
+  static businessReady = false
 
   /**
    * initialize the module.
@@ -36,6 +39,9 @@ class Hellotext {
    */
   static async initialize(business, config = {}) {
     const initializationVersion = ++this.initializationVersion
+    ++this.popupVersion
+    if (this.manualPopup && this.manualPopup.businessId !== business) this.manualPopup = null
+    this.businessReady = false
     this.popup?.unmount?.()
     this.popup = undefined
 
@@ -57,6 +63,7 @@ class Hellotext {
 
     const businessData = await businessContext.hydrate()
     if (this.business !== businessContext) return
+    this.businessReady = true
 
     if (config.push !== false && businessData?.push?.public_key && Push.supported) {
       this.push = new Push(businessData.push)
@@ -70,8 +77,9 @@ class Hellotext {
       }
     }
 
-    const popupConfig =
-      config.popup === false
+    const popupConfig = this.manualPopup
+      ? { ...this.manualPopup.options, id: this.manualPopup.id }
+      : config.popup === false
         ? false
         : this.deepMergePlainObjects((businessData && businessData.popup) || {}, config.popup || {})
 
@@ -117,26 +125,7 @@ class Hellotext {
     }
 
     if (popupConfig && popupConfig.id) {
-      const resolvedPopupConfig = { container: 'body', device: 'auto', ...popupConfig }
-      Configuration.popup.assign(resolvedPopupConfig)
-      widgetLoads.push(
-        Popup.load(resolvedPopupConfig.id, {
-          container: resolvedPopupConfig.container,
-          shouldMount: () => {
-            return (
-              this.business === businessContext &&
-              this.initializationVersion === initializationVersion
-            )
-          },
-        }).then(popup => {
-          if (
-            this.business === businessContext &&
-            this.initializationVersion === initializationVersion
-          ) {
-            this.popup = popup
-          }
-        }),
-      )
+      widgetLoads.push(this.loadPopup(popupConfig, businessContext))
     }
 
     await Promise.all(widgetLoads)
@@ -146,6 +135,32 @@ class Hellotext {
     if (typeof MutationObserver !== 'undefined') {
       this.forms.collectExistingFormsOnPage()
     }
+  }
+
+  /** Mount a manual popup without restarting the other Hellotext surfaces. */
+  static mountPopup(businessId, popupId, options = {}) {
+    if (!businessId || !popupId) throw new TypeError('A business id and popup id are required')
+
+    this.manualPopup = { businessId, id: popupId, options }
+    if (this.business?.id !== businessId) return this.initialize(businessId)
+    if (!this.businessReady) return Promise.resolve()
+
+    ++this.popupVersion
+    this.popup?.unmount?.()
+    this.popup = undefined
+    return this.loadPopup({ ...options, id: popupId }, this.business)
+  }
+
+  static loadPopup(config, businessContext) {
+    const popupVersion = this.popupVersion
+    const resolvedConfig = { container: 'body', device: 'auto', ...config }
+    Configuration.popup.assign(resolvedConfig)
+    return Popup.load(resolvedConfig.id, {
+      container: resolvedConfig.container,
+      shouldMount: () => this.business === businessContext && this.popupVersion === popupVersion,
+    }).then(popup => {
+      if (this.business === businessContext && this.popupVersion === popupVersion) this.popup = popup
+    })
   }
 
   static mergeWebchatConfig(dashboardConfig, localConfig) {

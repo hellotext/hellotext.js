@@ -56,6 +56,9 @@ describe("when initializing business metadata", () => {
     loadPopup = jest.spyOn(Popup, 'load').mockResolvedValue({})
     loadWebchat = jest.spyOn(Webchat, 'load').mockResolvedValue({})
     loadWhatsAppWidget = jest.spyOn(WhatsAppWidget, 'load').mockResolvedValue({})
+    Hellotext.manualPopup = null
+    Hellotext.business = undefined
+    Hellotext.businessReady = false
   })
 
   afterEach(() => {
@@ -392,6 +395,72 @@ describe("when initializing business metadata", () => {
       'explicit-popup',
       expect.objectContaining({ container: 'body', shouldMount: expect.any(Function) }),
     )
+  })
+
+  it('mounts a manual popup without restarting webchat or WhatsApp', async () => {
+    mockBusinessFetch(defaultBusiness({ webchat: { id: 'chat' }, whatsapp: { id: 'whatsapp' } }))
+    await Hellotext.initialize('xy76ks')
+    const previousBusiness = Hellotext.business
+
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+
+    expect(Hellotext.business).toBe(previousBusiness)
+    expect(loadWebchat).toHaveBeenCalledTimes(1)
+    expect(loadWhatsAppWidget).toHaveBeenCalledTimes(1)
+    expect(loadPopup).toHaveBeenCalledWith('manual-popup', expect.objectContaining({ container: 'body' }))
+  })
+
+  it('keeps a manual popup across initialization of the same business', async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+    await Hellotext.initialize('xy76ks')
+
+    expect(loadPopup).toHaveBeenNthCalledWith(
+      2, 'manual-popup', expect.objectContaining({ container: 'body' }),
+    )
+    expect(loadPopup).not.toHaveBeenCalledWith('dashboard-popup', expect.anything())
+  })
+
+  it('queues a manual popup while business initialization is pending', async () => {
+    let resolveBusiness
+    API.businesses.get = jest.fn().mockImplementation(() => new Promise(resolve => {
+      resolveBusiness = resolve
+    }))
+    const initialized = Hellotext.initialize('xy76ks')
+
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+    resolveBusiness(businessResponse(defaultBusiness({ popup: { id: 'dashboard-popup' } })))
+    await initialized
+
+    expect(loadPopup).toHaveBeenCalledTimes(1)
+    expect(loadPopup).toHaveBeenCalledWith('manual-popup', expect.anything())
+  })
+
+  it('ignores an older popup response after manual mounting', async () => {
+    let resolveDashboard
+    const dashboardPopup = { unmount: jest.fn() }
+    loadPopup.mockImplementationOnce(() => new Promise(resolve => { resolveDashboard = resolve }))
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+    const initialized = Hellotext.initialize('xy76ks')
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+    resolveDashboard(dashboardPopup)
+    await initialized
+
+    expect(loadPopup).toHaveBeenNthCalledWith(2, 'manual-popup', expect.anything())
+    expect(Hellotext.popup).not.toBe(dashboardPopup)
+    expect(loadPopup.mock.calls[0][1].shouldMount()).toBe(false)
+  })
+
+  it('clears the manual choice when another business initializes', async () => {
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+    mockBusinessFetch(defaultBusiness({ id: 'other', popup: { id: 'other-popup' } }))
+
+    await Hellotext.initialize('other')
+
+    expect(Hellotext.manualPopup).toBeNull()
+    expect(loadPopup).toHaveBeenLastCalledWith('other-popup', expect.anything())
   })
 
   it("skips popup loading when popup is false", async () => {
