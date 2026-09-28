@@ -516,6 +516,64 @@ describe("when initializing business metadata", () => {
   })
 })
 
+describe('manual popup DOM replacement', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<main id="popup-container"></main>'
+    Hellotext.popup = undefined
+    Hellotext.business = undefined
+    Hellotext.businessReady = false
+    Hellotext.manualPopup = null
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+    jest.spyOn(API.popups, 'get').mockImplementation(async id => {
+      const article = document.createElement('article')
+      article.dataset.popupId = id
+      return article
+    })
+  })
+
+  afterEach(() => {
+    Hellotext.popup?.unmount()
+    Hellotext.popup = undefined
+    Hellotext.manualPopup = null
+    jest.restoreAllMocks()
+    document.body.innerHTML = ''
+  })
+
+  it('leaves only the manual popup after replacing and reinitializing', async () => {
+    await Hellotext.initialize('xy76ks')
+    expect(document.querySelectorAll('article[data-popup-id="dashboard-popup"]')).toHaveLength(1)
+
+    await Hellotext.mountPopup('xy76ks', 'manual-popup', { container: '#popup-container' })
+    await Hellotext.initialize('xy76ks')
+
+    expect(document.querySelectorAll('article')).toHaveLength(1)
+    expect(document.querySelector('article')?.dataset.popupId).toBe('manual-popup')
+    expect(document.querySelector('#popup-container article')).not.toBeNull()
+  })
+
+  it('does not insert an older popup response after manual mounting', async () => {
+    let resolveDashboard
+    API.popups.get.mockImplementation(id => {
+      if (id === 'dashboard-popup') return new Promise(resolve => { resolveDashboard = resolve })
+      const article = document.createElement('article')
+      article.dataset.popupId = id
+      return Promise.resolve(article)
+    })
+
+    const initialized = Hellotext.initialize('xy76ks')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+    const oldArticle = document.createElement('article')
+    oldArticle.dataset.popupId = 'dashboard-popup'
+    resolveDashboard(oldArticle)
+    await initialized
+
+    expect(document.querySelectorAll('article')).toHaveLength(1)
+    expect(document.querySelector('article')?.dataset.popupId).toBe('manual-popup')
+    expect(oldArticle.isConnected).toBe(false)
+  })
+})
+
 describe("when the class is initialized successfully", () => {
   const business_id = "xy76ks"
 
