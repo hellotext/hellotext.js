@@ -410,6 +410,18 @@ describe("when initializing business metadata", () => {
     expect(loadPopup).toHaveBeenCalledWith('manual-popup', expect.objectContaining({ container: 'body' }))
   })
 
+  it('replaces an automatically mounted popup without leaving it in the page', async () => {
+    const unmount = jest.fn()
+    loadPopup.mockResolvedValueOnce({ unmount })
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+    await Hellotext.initialize('xy76ks')
+
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+
+    expect(unmount).toHaveBeenCalledTimes(1)
+    expect(loadPopup).toHaveBeenLastCalledWith('manual-popup', expect.anything())
+  })
+
   it('keeps a manual popup across initialization of the same business', async () => {
     mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
     await Hellotext.mountPopup('xy76ks', 'manual-popup')
