@@ -11,7 +11,7 @@ class PopupsAPI {
   static async get(id) {
     const url = new URL(`${this.endpoint}/${id}`)
 
-    url.searchParams.append('session', Hellotext.session)
+    if (Hellotext.session) url.searchParams.append('session', Hellotext.session)
     url.searchParams.append('locale', Locale.toString())
     url.searchParams.append('device', this.runtimeDevice)
 

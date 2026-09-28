@@ -1,7 +1,7 @@
 import Hellotext from "../src/hellotext";
 import API from "../src/api";
 import { Configuration } from "../src/core";
-import { Popup, Push, Session, Webchat, WhatsAppWidget } from "../src/models";
+import { FormCollection, Popup, Push, Session, Webchat, WhatsAppWidget } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -410,6 +410,19 @@ describe("when initializing business metadata", () => {
     expect(loadPopup).toHaveBeenCalledWith('manual-popup', expect.objectContaining({ container: 'body' }))
   })
 
+  it('switches business context when mounting a popup for another business', async () => {
+    mockBusinessFetch(defaultBusiness())
+    await Hellotext.initialize('xy76ks')
+    API.businesses.get = jest.fn().mockResolvedValue(
+      businessResponse(defaultBusiness({ id: 'other-business' })),
+    )
+
+    await Hellotext.mountPopup('other-business', 'other-popup')
+
+    expect(Hellotext.business.id).toBe('other-business')
+    expect(loadPopup).toHaveBeenLastCalledWith('other-popup', expect.anything())
+  })
+
   it('replaces an automatically mounted popup without leaving it in the page', async () => {
     const unmount = jest.fn()
     loadPopup.mockResolvedValueOnce({ unmount })
@@ -423,17 +436,18 @@ describe("when initializing business metadata", () => {
   })
 
   it('keeps a manual popup across initialization of the same business', async () => {
+    loadPopup.mockResolvedValueOnce({ mounted: true })
     mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
     await Hellotext.mountPopup('xy76ks', 'manual-popup')
     await Hellotext.initialize('xy76ks')
 
-    expect(loadPopup).toHaveBeenNthCalledWith(
-      2, 'manual-popup', expect.objectContaining({ container: 'body' }),
-    )
+    expect(loadPopup).toHaveBeenCalledTimes(1)
+    expect(loadPopup).toHaveBeenCalledWith('manual-popup', expect.objectContaining({ container: 'body' }))
     expect(loadPopup).not.toHaveBeenCalledWith('dashboard-popup', expect.anything())
   })
 
   it('queues a manual popup while business initialization is pending', async () => {
+    loadPopup.mockResolvedValueOnce({ mounted: true })
     let resolveBusiness
     API.businesses.get = jest.fn().mockImplementation(() => new Promise(resolve => {
       resolveBusiness = resolve
@@ -466,6 +480,7 @@ describe("when initializing business metadata", () => {
   })
 
   it('keeps only the latest manual choice while business initialization is pending', async () => {
+    loadPopup.mockResolvedValueOnce({ mounted: true })
     let resolveBusiness
     API.businesses.get = jest.fn().mockImplementation(() => new Promise(resolve => {
       resolveBusiness = resolve
@@ -648,14 +663,18 @@ describe('manual popup initialization with dashboard widgets', () => {
     Hellotext.popup?.unmount?.()
     Hellotext.webchat?.unmount?.()
     Hellotext.whatsapp?.unmount?.()
+    Hellotext.forms?.disconnect?.()
     Hellotext.popup = undefined
     Hellotext.webchat = undefined
     Hellotext.whatsapp = undefined
+    Hellotext.forms = undefined
     Hellotext.business = undefined
     Hellotext.businessReady = false
     Hellotext.manualPopup = null
     Hellotext.initializationPromise = null
     Hellotext.popupId = undefined
+    Configuration.autoGenerateSession = true
+    Configuration.session = null
     Configuration.webchat.container = 'body'
     Configuration.whatsapp.container = 'body'
   }
@@ -684,6 +703,55 @@ describe('manual popup initialization with dashboard widgets', () => {
     expect(document.querySelectorAll('[data-popup-id="manual-popup"]')).toHaveLength(1)
   })
 
+  it('defers session and forms setup until the site initializes', async () => {
+    document.cookie = 'hello_session=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
+    document.cookie = 'hello_session_ack_at=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
+    const initializeSession = jest.spyOn(Session, 'initialize')
+    const sendAck = jest.spyOn(API.acks, 'send').mockResolvedValue()
+
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+
+    expect(initializeSession).not.toHaveBeenCalled()
+    expect(Hellotext.forms).toBeUndefined()
+    expect(sendAck).not.toHaveBeenCalled()
+    expect(getCookieValue('hello_session')).toBeUndefined()
+
+    await Hellotext.initialize('xy76ks', { autoGenerateSession: false })
+
+    expect(initializeSession).toHaveBeenCalledTimes(1)
+    expect(sendAck).not.toHaveBeenCalled()
+    expect(getCookieValue('hello_session')).toBeUndefined()
+    expect(Hellotext.forms).toBeInstanceOf(FormCollection)
+    expect(Hellotext.forms.mutationObserver).toBeDefined()
+    expect(API.popups.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('creates one session and ack when the site later initializes normally', async () => {
+    document.cookie = 'hello_session=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
+    document.cookie = 'hello_session_ack_at=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'
+    const sendAck = jest.spyOn(API.acks, 'send').mockResolvedValue()
+
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+    expect(getCookieValue('hello_session')).toBeUndefined()
+    expect(sendAck).not.toHaveBeenCalled()
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(getCookieValue('hello_session')).toBeTruthy()
+    expect(sendAck).toHaveBeenCalledTimes(1)
+  })
+
+  it('disconnects the previous form observer on reinitialization', async () => {
+    await Hellotext.initialize('xy76ks')
+    const previousObserver = Hellotext.forms.mutationObserver
+    const disconnect = jest.spyOn(previousObserver, 'disconnect')
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(disconnect).toHaveBeenCalledTimes(1)
+    expect(Hellotext.forms.mutationObserver).not.toBe(previousObserver)
+  })
+
   it('keeps dashboard widgets mounted once when the site initializes first', async () => {
     await Hellotext.initialize('xy76ks')
     await Hellotext.mountPopup('xy76ks', 'manual-popup')
@@ -693,25 +761,19 @@ describe('manual popup initialization with dashboard widgets', () => {
     expect(document.querySelectorAll('[data-popup-id="manual-popup"]')).toHaveLength(1)
   })
 
-  it('does not append stale dashboard widgets during overlapping initializations', async () => {
-    let resolveFirstWebchat
-    let resolveFirstWhatsApp
-    API.webchats.get
-      .mockImplementationOnce(() => new Promise(resolve => { resolveFirstWebchat = resolve }))
-      .mockImplementation(async id => widgetRoot('hellotext--webchat', id))
-    API.whatsappWidgets.get
-      .mockImplementationOnce(() => new Promise(resolve => { resolveFirstWhatsApp = resolve }))
-      .mockImplementation(async id => widgetRoot('hellotext--whatsapp-widget', id))
+  it('loads dashboard widgets only when the site initializes after the manual snippet', async () => {
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
 
-    const manualMount = Hellotext.mountPopup('xy76ks', 'manual-popup')
-    await new Promise(resolve => setTimeout(resolve, 0))
-    const siteInitialization = Hellotext.initialize('xy76ks')
-    resolveFirstWebchat(widgetRoot('hellotext--webchat', 'stale-webchat'))
-    resolveFirstWhatsApp(widgetRoot('hellotext--whatsapp-widget', 'stale-whatsapp'))
-    await Promise.all([manualMount, siteInitialization])
+    expect(API.webchats.get).not.toHaveBeenCalled()
+    expect(API.whatsappWidgets.get).not.toHaveBeenCalled()
 
+    await Hellotext.initialize('xy76ks')
+
+    expect(API.webchats.get).toHaveBeenCalledTimes(1)
+    expect(API.whatsappWidgets.get).toHaveBeenCalledTimes(1)
     expect(document.querySelectorAll('.hellotext--webchat')).toHaveLength(1)
     expect(document.querySelectorAll('.hellotext--whatsapp-widget')).toHaveLength(1)
+    expect(document.querySelectorAll('[data-popup-id="manual-popup"]')).toHaveLength(1)
   })
 })
 

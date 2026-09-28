@@ -67,6 +67,26 @@ describe('collect', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
+  it('ignores form responses after the collection disconnects', async () => {
+    let resolveForm
+    const getForm = jest.spyOn(API.forms, 'get').mockImplementation(
+      () => new Promise(resolve => { resolveForm = resolve }),
+    )
+    const forms = new FormCollection()
+    const add = jest.spyOn(forms, 'add')
+    const dispatch = jest.spyOn(Hellotext.eventEmitter, 'dispatch')
+    document.body.innerHTML = '<form data-hello-form="stale-form"></form>'
+
+    const collecting = forms.collect()
+    forms.disconnect()
+    resolveForm({ json: jest.fn().mockResolvedValue({ id: 'stale-form' }) })
+    await collecting
+
+    expect(getForm).toHaveBeenCalledTimes(1)
+    expect(add).not.toHaveBeenCalled()
+    expect(dispatch).not.toHaveBeenCalledWith('forms:collected', forms)
+  })
+
   it('throws NotInitializedError when Hellotext is not initialized', async () => {
     const originalBusiness = Hellotext.business
 
