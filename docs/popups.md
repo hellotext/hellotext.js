@@ -51,7 +51,7 @@ For a popup installed manually, use `mountPopup` with the public business and po
 Hellotext.mountPopup('PUBLIC_BUSINESS_ID', 'POPUP_ID')
 ```
 
-It initializes Hellotext if necessary. When Hellotext is already initialized for that business, it replaces only the popup; webchat and WhatsApp keep running. The manual popup remains selected if the same business initializes again, including when the manual snippet runs first. Initializing another business clears that choice. Existing `initialize` calls and dashboard popup configuration continue to work as before.
+It initializes Hellotext if necessary. When Hellotext is already initialized for that business, it replaces only the popup; webchat and WhatsApp keep running. The manual popup remains selected if the same business initializes again, including when the manual snippet runs first. Passing `popup: false` to a later `initialize` call removes the manual popup and disables popup mounting for that call. Initializing another business clears the manual choice. Existing `initialize` calls and dashboard popup configuration continue to work as before.
 
 The third argument accepts `container` and `device` options. `mountPopup` is available from SDK version 2.6.1; older versions can still load a specific popup through `initialize` as shown above.
 

@@ -31,19 +31,34 @@ class Hellotext {
   static popupVersion = 0
   static manualPopup = null
   static businessReady = false
+  static initializationPromise = null
+  static popupId
 
   /**
    * initialize the module.
    * @param business public business id
    * @param { Configuration } config
    */
-  static async initialize(business, config = {}) {
+  static initialize(business, config = {}) {
+    const initialization = this.initializeBusiness(business, config)
+    this.initializationPromise = initialization
+    return initialization
+  }
+
+  static async initializeBusiness(business, config = {}) {
     const initializationVersion = ++this.initializationVersion
     ++this.popupVersion
     if (this.manualPopup && this.manualPopup.businessId !== business) this.manualPopup = null
+    if (config.popup === false) this.manualPopup = null
     this.businessReady = false
     this.popup?.unmount?.()
     this.popup = undefined
+    this.popupId = undefined
+
+    this.webchat?.unmount?.()
+    this.webchat = undefined
+    this.whatsapp?.unmount?.()
+    this.whatsapp = undefined
 
     this.alert?.dispose()
     this.alert = null
@@ -109,8 +124,12 @@ class Hellotext {
     if (webchatConfig && webchatConfig.id) {
       Configuration.webchat.assign(webchatConfig)
       widgetLoads.push(
-        Webchat.load(webchatConfig.id).then(webchat => {
-          if (this.business === businessContext) this.webchat = webchat
+        Webchat.load(webchatConfig.id, {
+          shouldMount: () =>
+            this.business === businessContext && this.initializationVersion === initializationVersion,
+        }).then(webchat => {
+          if (this.business === businessContext && this.initializationVersion === initializationVersion)
+            this.webchat = webchat
         }),
       )
     }
@@ -118,8 +137,12 @@ class Hellotext {
     if (whatsappConfig && whatsappConfig.id) {
       Configuration.whatsapp.assign(whatsappConfig)
       widgetLoads.push(
-        WhatsAppWidget.load(whatsappConfig.id).then(whatsapp => {
-          if (this.business === businessContext) this.whatsapp = whatsapp
+        WhatsAppWidget.load(whatsappConfig.id, {
+          shouldMount: () =>
+            this.business === businessContext && this.initializationVersion === initializationVersion,
+        }).then(whatsapp => {
+          if (this.business === businessContext && this.initializationVersion === initializationVersion)
+            this.whatsapp = whatsapp
         }),
       )
     }
@@ -141,9 +164,15 @@ class Hellotext {
   static mountPopup(businessId, popupId, options = {}) {
     if (!businessId || !popupId) throw new TypeError('A business id and popup id are required')
 
-    this.manualPopup = { businessId, id: popupId, options }
+    const manualPopup = { businessId, id: popupId, options }
+    this.manualPopup = manualPopup
     if (this.business?.id !== businessId) return this.initialize(businessId)
-    if (!this.businessReady) return Promise.resolve()
+    if (!this.businessReady) {
+      return this.initializationPromise?.then(() => {
+        if (this.manualPopup !== manualPopup || this.business?.id !== businessId || this.popupId === popupId) return
+        return this.mountPopup(businessId, popupId, options)
+      })
+    }
 
     ++this.popupVersion
     this.popup?.unmount?.()
@@ -159,7 +188,10 @@ class Hellotext {
       container: resolvedConfig.container,
       shouldMount: () => this.business === businessContext && this.popupVersion === popupVersion,
     }).then(popup => {
-      if (this.business === businessContext && this.popupVersion === popupVersion) this.popup = popup
+      if (this.business === businessContext && this.popupVersion === popupVersion) {
+        this.popup = popup
+        this.popupId = resolvedConfig.id
+      }
     })
   }
 

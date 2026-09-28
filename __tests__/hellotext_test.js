@@ -96,7 +96,7 @@ describe("when initializing business metadata", () => {
 
     await Hellotext.initialize("xy76ks")
 
-    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat", expect.anything())
   })
 
   it("uses the dashboard webchat id with explicit local options", async () => {
@@ -109,7 +109,7 @@ describe("when initializing business metadata", () => {
       },
     })
 
-    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat", expect.anything())
     expect(Configuration.webchat.container).toEqual("#webchat-container")
     expect(Configuration.webchat.placement).toEqual("top-left")
   })
@@ -128,7 +128,7 @@ describe("when initializing business metadata", () => {
       },
     })
 
-    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat", expect.anything())
     expect(Configuration.webchat.hasBehaviourOverride).toBe(true)
     expect(Configuration.webchat.behaviour).toEqual({
       trigger: "onLoad",
@@ -153,7 +153,7 @@ describe("when initializing business metadata", () => {
 
     await Hellotext.initialize("xy76ks")
 
-    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat", expect.anything())
     expect(Configuration.webchat.hasBehaviourOverride).toBe(false)
   })
 
@@ -166,7 +166,7 @@ describe("when initializing business metadata", () => {
       },
     })
 
-    expect(loadWebchat).toHaveBeenCalledWith("explicit-webchat")
+    expect(loadWebchat).toHaveBeenCalledWith("explicit-webchat", expect.anything())
   })
 
   it("deep merges explicit local webchat appearance and WhatsApp overrides with dashboard defaults", async () => {
@@ -201,7 +201,7 @@ describe("when initializing business metadata", () => {
       },
     })
 
-    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat", expect.anything())
     expect(Configuration.webchat.appearance).toEqual({
       header: {
         name: "Local Support",
@@ -229,7 +229,7 @@ describe("when initializing business metadata", () => {
 
     await Hellotext.initialize("xy76ks")
 
-    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget", expect.anything())
   })
 
   it("loads dashboard webchat and WhatsApp widget together", async () => {
@@ -240,8 +240,8 @@ describe("when initializing business metadata", () => {
 
     await Hellotext.initialize("xy76ks")
 
-    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat")
-    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+    expect(loadWebchat).toHaveBeenCalledWith("dashboard-webchat", expect.anything())
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget", expect.anything())
   })
 
   it("deep merges explicit local WhatsApp widget options with dashboard defaults", async () => {
@@ -268,7 +268,7 @@ describe("when initializing business metadata", () => {
       },
     })
 
-    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget", expect.anything())
     expect(Configuration.whatsapp.container).toEqual("#whatsapp-container")
     expect(Configuration.whatsapp.placement).toEqual("bottom-left")
     expect(Configuration.whatsapp.appearance).toEqual({
@@ -288,7 +288,7 @@ describe("when initializing business metadata", () => {
       },
     })
 
-    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget")
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith("dashboard-whatsapp-widget", expect.anything())
     expect(Configuration.whatsapp.number).toEqual("+15551234567")
     expect(Configuration.whatsapp.body).toEqual("Hello from install")
   })
@@ -355,8 +355,8 @@ describe("when initializing business metadata", () => {
     const initialized = Hellotext.initialize('xy76ks')
     await new Promise(resolve => setTimeout(resolve, 0))
 
-    expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat')
-    expect(loadWhatsAppWidget).toHaveBeenCalledWith('dashboard-whatsapp')
+    expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat', expect.anything())
+    expect(loadWhatsAppWidget).toHaveBeenCalledWith('dashboard-whatsapp', expect.anything())
     expect(loadPopup).toHaveBeenCalledWith(
       'dashboard-popup',
       expect.objectContaining({ container: 'body', shouldMount: expect.any(Function) }),
@@ -440,12 +440,45 @@ describe("when initializing business metadata", () => {
     }))
     const initialized = Hellotext.initialize('xy76ks')
 
-    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+    const mounted = Hellotext.mountPopup('xy76ks', 'manual-popup')
     resolveBusiness(businessResponse(defaultBusiness({ popup: { id: 'dashboard-popup' } })))
+    await mounted
     await initialized
 
     expect(loadPopup).toHaveBeenCalledTimes(1)
     expect(loadPopup).toHaveBeenCalledWith('manual-popup', expect.anything())
+  })
+
+  it('does not remount a queued manual popup after popup loading is disabled', async () => {
+    let resolveFirstBusiness
+    API.businesses.get = jest.fn()
+      .mockImplementationOnce(() => new Promise(resolve => { resolveFirstBusiness = resolve }))
+      .mockResolvedValue(businessResponse(defaultBusiness()))
+
+    const firstInitialization = Hellotext.initialize('xy76ks')
+    const pendingMount = Hellotext.mountPopup('xy76ks', 'manual-popup')
+    const disabledInitialization = Hellotext.initialize('xy76ks', { popup: false })
+    resolveFirstBusiness(businessResponse(defaultBusiness()))
+    await Promise.all([firstInitialization, pendingMount, disabledInitialization])
+
+    expect(Hellotext.manualPopup).toBeNull()
+    expect(loadPopup).not.toHaveBeenCalled()
+  })
+
+  it('keeps only the latest manual choice while business initialization is pending', async () => {
+    let resolveBusiness
+    API.businesses.get = jest.fn().mockImplementation(() => new Promise(resolve => {
+      resolveBusiness = resolve
+    }))
+
+    const initialized = Hellotext.initialize('xy76ks')
+    const firstMount = Hellotext.mountPopup('xy76ks', 'first-popup')
+    const secondMount = Hellotext.mountPopup('xy76ks', 'second-popup')
+    resolveBusiness(businessResponse(defaultBusiness()))
+    await Promise.all([initialized, firstMount, secondMount])
+
+    expect(loadPopup).toHaveBeenCalledTimes(1)
+    expect(loadPopup).toHaveBeenCalledWith('second-popup', expect.anything())
   })
 
   it('ignores an older popup response after manual mounting', async () => {
@@ -494,6 +527,15 @@ describe("when initializing business metadata", () => {
     expect(Hellotext.popup).toBeUndefined()
   })
 
+  it('clears a manual popup when a later initialization disables popups', async () => {
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+
+    await Hellotext.initialize('xy76ks', { popup: false })
+
+    expect(Hellotext.manualPopup).toBeNull()
+    expect(loadPopup).toHaveBeenCalledTimes(1)
+  })
+
   it("does not break initialization when business fetch rejects", async () => {
     API.businesses.get = jest.fn().mockRejectedValue(new Error("network error"))
 
@@ -512,7 +554,7 @@ describe("when initializing business metadata", () => {
       },
     })
 
-    expect(loadWebchat).toHaveBeenCalledWith("explicit-webchat")
+    expect(loadWebchat).toHaveBeenCalledWith("explicit-webchat", expect.anything())
   })
 })
 
@@ -571,6 +613,105 @@ describe('manual popup DOM replacement', () => {
     expect(document.querySelectorAll('article')).toHaveLength(1)
     expect(document.querySelector('article')?.dataset.popupId).toBe('manual-popup')
     expect(oldArticle.isConnected).toBe(false)
+  })
+})
+
+describe('manual popup initialization with dashboard widgets', () => {
+  const widgetRoot = (className, id) => {
+    const element = document.createElement('article')
+    element.className = className
+    element.dataset.widgetId = id
+    return element
+  }
+
+  const popupRoot = id => {
+    const element = document.createElement('article')
+    element.dataset.popupId = id
+    return element
+  }
+
+  const prepareBusiness = () => {
+    document.head.insertAdjacentHTML(
+      'beforeend',
+      '<link rel="stylesheet" data-hellotext-stylesheet="true" data-hellotext-stylesheet-loaded="true" href="https://example.com/hellotext.css">',
+    )
+    mockBusinessFetch(defaultBusiness({
+      webchat: { id: 'dashboard-webchat' },
+      whatsapp: { id: 'dashboard-whatsapp' },
+    }))
+    jest.spyOn(API.webchats, 'get').mockImplementation(async id => widgetRoot('hellotext--webchat', id))
+    jest.spyOn(API.whatsappWidgets, 'get').mockImplementation(async id => widgetRoot('hellotext--whatsapp-widget', id))
+    jest.spyOn(API.popups, 'get').mockImplementation(async id => popupRoot(id))
+  }
+
+  const resetHellotext = () => {
+    Hellotext.popup?.unmount?.()
+    Hellotext.webchat?.unmount?.()
+    Hellotext.whatsapp?.unmount?.()
+    Hellotext.popup = undefined
+    Hellotext.webchat = undefined
+    Hellotext.whatsapp = undefined
+    Hellotext.business = undefined
+    Hellotext.businessReady = false
+    Hellotext.manualPopup = null
+    Hellotext.initializationPromise = null
+    Hellotext.popupId = undefined
+    Configuration.webchat.container = 'body'
+    Configuration.whatsapp.container = 'body'
+  }
+
+  beforeEach(() => {
+    document.body.innerHTML = ''
+    resetHellotext()
+    prepareBusiness()
+  })
+
+  afterEach(() => {
+    resetHellotext()
+    jest.restoreAllMocks()
+    document.body.innerHTML = ''
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove())
+  })
+
+  it('keeps one webchat and WhatsApp widget when the manual snippet runs first', async () => {
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+    await Hellotext.initialize('xy76ks')
+
+    expect(API.webchats.get).toHaveBeenCalledWith('dashboard-webchat')
+    expect(API.whatsappWidgets.get).toHaveBeenCalledWith('dashboard-whatsapp')
+    expect(document.querySelectorAll('.hellotext--webchat')).toHaveLength(1)
+    expect(document.querySelectorAll('.hellotext--whatsapp-widget')).toHaveLength(1)
+    expect(document.querySelectorAll('[data-popup-id="manual-popup"]')).toHaveLength(1)
+  })
+
+  it('keeps dashboard widgets mounted once when the site initializes first', async () => {
+    await Hellotext.initialize('xy76ks')
+    await Hellotext.mountPopup('xy76ks', 'manual-popup')
+
+    expect(document.querySelectorAll('.hellotext--webchat')).toHaveLength(1)
+    expect(document.querySelectorAll('.hellotext--whatsapp-widget')).toHaveLength(1)
+    expect(document.querySelectorAll('[data-popup-id="manual-popup"]')).toHaveLength(1)
+  })
+
+  it('does not append stale dashboard widgets during overlapping initializations', async () => {
+    let resolveFirstWebchat
+    let resolveFirstWhatsApp
+    API.webchats.get
+      .mockImplementationOnce(() => new Promise(resolve => { resolveFirstWebchat = resolve }))
+      .mockImplementation(async id => widgetRoot('hellotext--webchat', id))
+    API.whatsappWidgets.get
+      .mockImplementationOnce(() => new Promise(resolve => { resolveFirstWhatsApp = resolve }))
+      .mockImplementation(async id => widgetRoot('hellotext--whatsapp-widget', id))
+
+    const manualMount = Hellotext.mountPopup('xy76ks', 'manual-popup')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const siteInitialization = Hellotext.initialize('xy76ks')
+    resolveFirstWebchat(widgetRoot('hellotext--webchat', 'stale-webchat'))
+    resolveFirstWhatsApp(widgetRoot('hellotext--whatsapp-widget', 'stale-whatsapp'))
+    await Promise.all([manualMount, siteInitialization])
+
+    expect(document.querySelectorAll('.hellotext--webchat')).toHaveLength(1)
+    expect(document.querySelectorAll('.hellotext--whatsapp-widget')).toHaveLength(1)
   })
 })
 
@@ -1154,7 +1295,7 @@ describe('when initializing Push', () => {
 
     await Hellotext.initialize('xy76ks')
 
-    expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat')
+    expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat', expect.anything())
     expect(Hellotext.isInitialized).toBe(true)
   })
 
