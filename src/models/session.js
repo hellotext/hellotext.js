@@ -41,10 +41,14 @@ class Session {
     this.#page = page
     this.#query = new Query()
 
-    this.session = this.#query.session || Configuration.session || Cookies.get('hello_session')
+    const session = this.#query.session || Configuration.session || Cookies.get('hello_session')
 
-    if (!this.session && Configuration.autoGenerateSession) {
+    if (session) {
+      this.session = session
+    } else if (Configuration.autoGenerateSession) {
       this.session = crypto.randomUUID()
+    } else {
+      this.#session = undefined
     }
   }
 }

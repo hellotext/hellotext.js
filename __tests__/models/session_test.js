@@ -86,6 +86,8 @@ describe('Session', () => {
       Session.initialize()
 
       expect(Session.session).toBeUndefined()
+      expect(Cookies.get('hello_session')).toBeUndefined()
+      expect(API.acks.send).not.toHaveBeenCalled()
     })
   })
 

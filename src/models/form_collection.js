@@ -9,6 +9,7 @@ import { NotInitializedError } from '../errors'
 class FormCollection {
   constructor() {
     this.forms = []
+    this.disconnected = false
 
     this.includes = this.includes.bind(this)
     this.excludes = this.excludes.bind(this)
@@ -27,7 +28,15 @@ class FormCollection {
     }
   }
 
+  disconnect() {
+    this.disconnected = true
+    this.mutationObserver?.disconnect()
+    this.mutationObserver = undefined
+  }
+
   formMutationObserver(mutations) {
+    if (this.disconnected) return
+
     const mutation = mutations.find(
       mutation => mutation.type === 'childList' && mutation.addedNodes.length > 0,
     )
@@ -40,6 +49,8 @@ class FormCollection {
   }
 
   async collect() {
+    if (this.disconnected) return
+
     if (Hellotext.notInitialized) {
       throw new NotInitializedError()
     }
@@ -61,10 +72,12 @@ class FormCollection {
 
     this.fetching = true
 
-    await Promise.all(promises)
-      .then(forms => forms.forEach(this.add))
-      .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
-      .then(() => (this.fetching = false))
+    const forms = await Promise.all(promises)
+    this.fetching = false
+    if (this.disconnected) return
+
+    forms.forEach(this.add)
+    Hellotext.eventEmitter.dispatch('forms:collected', this)
 
     if (Configuration.forms.autoMount) {
       this.forms.forEach(form => form.mount())

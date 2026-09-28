@@ -4,19 +4,20 @@ import API from '../api'
 import { Business } from './business'
 
 class Webchat {
-  static async load(id) {
+  static async load(id, { shouldMount = () => true } = {}) {
     const webchat = new Webchat({
       id,
       html: await API.webchats.get(id),
-    })
+    }, { shouldMount })
 
     webchat.rendered = webchat.render()
 
     return webchat
   }
 
-  constructor(data) {
+  constructor(data, { shouldMount = () => true } = {}) {
     this.data = data
+    this.shouldMount = shouldMount
     this.mounted = false
     this.rendered = Promise.resolve(false)
   }
@@ -24,16 +25,30 @@ class Webchat {
   async render() {
     this.applyBehaviourOverride()
 
+    if (!this.shouldMount()) return false
+
     if (!(await this.stylesheetLoaded)) {
       console.warn('Hellotext webchat was not mounted because its stylesheet failed to load.')
       return false
     }
 
-    this.containerToAppendTo.appendChild(this.data.html)
+    if (!this.shouldMount()) return false
+
+    const container = this.containerToAppendTo
+    if (!container) return false
+
+    container.appendChild(this.data.html)
     this.markCoexistingWidgets()
     this.mounted = true
 
-    return true
+    if (!this.shouldMount()) this.unmount()
+
+    return this.mounted
+  }
+
+  unmount() {
+    this.data.html?.remove()
+    this.mounted = false
   }
 
   applyBehaviourOverride() {

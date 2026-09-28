@@ -4,25 +4,27 @@ import API from '../api'
 import { Business } from './business'
 
 class WhatsAppWidget {
-  static async load(id) {
+  static async load(id, { shouldMount = () => true } = {}) {
     const widget = new WhatsAppWidget({
       id,
       html: await API.whatsappWidgets.get(id),
-    })
+    }, { shouldMount })
 
     widget.rendered = widget.render()
 
     return widget
   }
 
-  constructor(data) {
+  constructor(data, { shouldMount = () => true } = {}) {
     this.data = data
+    this.shouldMount = shouldMount
     this.mounted = false
     this.rendered = Promise.resolve(false)
   }
 
   async render() {
     if (!this.data.html) return false
+    if (!this.shouldMount()) return false
 
     const container = this.containerToAppendTo
     if (!container) {
@@ -39,11 +41,20 @@ class WhatsAppWidget {
       return false
     }
 
+    if (!this.shouldMount()) return false
+
     container.appendChild(this.data.html)
     this.markCoexistingWidgets()
     this.mounted = true
 
-    return true
+    if (!this.shouldMount()) this.unmount()
+
+    return this.mounted
+  }
+
+  unmount() {
+    this.data.html?.remove()
+    this.mounted = false
   }
 
   get containerToAppendTo() {

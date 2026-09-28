@@ -53,6 +53,15 @@ describe('PopupsAPI', () => {
     expect(Hellotext.business.setLocale).toHaveBeenCalledWith('es')
   })
 
+  it('omits the session parameter when session generation is disabled', async () => {
+    jest.spyOn(Hellotext, 'session', 'get').mockReturnValue(undefined)
+
+    await PopupsAPI.get('popup-id')
+
+    const url = new URL(global.fetch.mock.calls[0][0])
+    expect(url.searchParams.has('session')).toBe(false)
+  })
+
   it('resolves the automatic device from the viewport before requesting markup', async () => {
     Configuration.popup.device = 'auto'
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 767 })
