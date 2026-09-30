@@ -492,6 +492,10 @@ class Hellotext {
     const fingerprint = await Fingerprint.generate(this.session, externalId, options)
 
     if (Fingerprint.matches(User.fingerprint, fingerprint)) {
+      // This identification is the newest one, so a receipt still polling for an earlier user
+      // must not be allowed to overwrite the identity it confirms.
+      if (this.supersedeIdentification()) this.reloadPopup()
+
       return new Response(true, {
         json: async () => ({
           already_identified: true,
@@ -559,6 +563,26 @@ class Hellotext {
     return response
   }
 
+  // Retires whatever identification is in flight and reports whether one was. Popup evaluation
+  // is held while a receipt is pending, so it has to be released by whoever supersedes it.
+  static supersedeIdentification() {
+    this.identificationVersion += 1
+
+    const pending = this.identificationPending
+    this.identificationPending = false
+    this.cancelIdentificationPolling()
+
+    return pending
+  }
+
+  // Every exit that is not a completed identification hands the visit back to anonymous
+  // evaluation, otherwise the popup stays hidden for the rest of it.
+  static async resumeAnonymousEvaluation() {
+    this.identificationPending = false
+    this.cancelIdentificationPolling()
+    await this.reloadPopup()
+  }
+
   static identificationCurrent(version, businessId, session) {
     return (
       this.identificationVersion === version &&
@@ -608,11 +632,8 @@ class Hellotext {
       if (response.data.status === 202) continue
       if (!response.succeeded) {
         if (response.data.status === 429 || response.data.status >= 500) continue
-        if (response.data.status === 422) {
-          this.identificationPending = false
-          this.cancelIdentificationPolling()
-          await this.reloadPopup()
-        }
+
+        await this.resumeAnonymousEvaluation()
         return
       }
 
@@ -626,10 +647,15 @@ class Hellotext {
         return
 
       User.remember(details.externalId, details.source, details.fingerprint)
-      this.identificationPending = false
-      this.cancelIdentificationPolling()
-      await this.reloadPopup()
+      await this.resumeAnonymousEvaluation()
       return
+    }
+
+    // The receipt is still pending after the last attempt. The visit cannot wait for it forever.
+    if (
+      this.identificationCurrent(details.identificationVersion, details.businessId, details.session)
+    ) {
+      await this.resumeAnonymousEvaluation()
     }
   }
 
@@ -658,7 +684,13 @@ class Hellotext {
    * @returns {void}
    */
   static forget() {
+    // A receipt still polling would otherwise complete after the logout and write the identity
+    // cookies it just cleared.
+    const pending = this.supersedeIdentification()
+
     User.forget()
+
+    if (pending) this.reloadPopup()
   }
 
   /**

@@ -1094,6 +1094,111 @@ describe("when the class is initialized successfully", () => {
       Hellotext.popup = undefined
     })
 
+    const pendingPoll = () => ({
+      json: jest.fn().mockResolvedValue({ status: 'pending' }),
+      status: 202,
+      ok: true,
+    })
+
+    // The receipt is polled with a growing backoff, so the whole budget has to elapse.
+    const drainPolling = async () => {
+      for (let attempt = 0; attempt < 12; attempt++) {
+        for (let tick = 0; tick < 5; tick++) await Promise.resolve()
+
+        jest.advanceTimersByTime(8000)
+      }
+
+      await Hellotext.identificationCompletion
+    }
+
+    it('restores anonymous popup evaluation when the receipt never resolves', async () => {
+      jest.useFakeTimers()
+      const loadPopup = jest.spyOn(Popup, 'load').mockResolvedValue({ unmount: jest.fn() })
+      Hellotext.popupRuntime = {
+        config: { id: 'popup-id', container: 'body' },
+        businessContext: Hellotext.business,
+        initializationVersion: Hellotext.initializationVersion,
+      }
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ identification_receipt: 'receipt-1' }),
+          status: 200,
+          ok: true,
+        })
+        .mockResolvedValue(pendingPoll())
+
+      await Hellotext.identify('slow-user', { source: 'shopify' })
+      await drainPolling()
+
+      expect(Hellotext.identificationPending).toBe(false)
+      expect(getCookieValue('hello_user_identification_hash')).toBeUndefined()
+      expect(Popup.load).toHaveBeenCalled()
+      loadPopup.mockRestore()
+      Hellotext.popupRuntime = undefined
+      Hellotext.popup = undefined
+      jest.useRealTimers()
+    })
+
+    it('does not let a pending identification restore the user after forget', async () => {
+      jest.useFakeTimers()
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ identification_receipt: 'receipt-1' }),
+          status: 200,
+          ok: true,
+        })
+        .mockResolvedValueOnce(pendingPoll())
+        .mockResolvedValue({
+          json: jest.fn().mockResolvedValue({ status: 'completed' }),
+          status: 200,
+          ok: true,
+        })
+
+      await Hellotext.identify('logged-out-user', { source: 'shopify' })
+      await Promise.resolve()
+      Hellotext.forget()
+      await drainPolling()
+
+      expect(Hellotext.identificationPending).toBe(false)
+      expect(getCookieValue('hello_user_id')).toBeUndefined()
+      jest.useRealTimers()
+    })
+
+    it('supersedes a pending identification when an already identified user returns', async () => {
+      jest.useFakeTimers()
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ received: 'success' }),
+          status: 200,
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          json: jest.fn().mockResolvedValue({ identification_receipt: 'receipt-2' }),
+          status: 200,
+          ok: true,
+        })
+        .mockResolvedValueOnce(pendingPoll())
+        .mockResolvedValue({
+          json: jest.fn().mockResolvedValue({ status: 'completed' }),
+          status: 200,
+          ok: true,
+        })
+
+      await Hellotext.identify('known-user', { source: 'shopify' })
+      await Hellotext.identify('other-user', { source: 'shopify' })
+      await Promise.resolve()
+      const response = await Hellotext.identify('known-user', { source: 'shopify' })
+      await drainPolling()
+
+      expect((await response.json()).already_identified).toBe(true)
+      expect(Hellotext.identificationPending).toBe(false)
+      expect(getCookieValue('hello_user_id')).toBe('known-user')
+      jest.useRealTimers()
+    })
+
     it("does not set cookies when identification fails", async () => {
       global.fetch = jest.fn().mockResolvedValue({
         json: jest.fn().mockResolvedValue({error: "invalid data"}),
