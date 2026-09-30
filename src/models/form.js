@@ -5,8 +5,9 @@ import { LogoBuilder } from '../builders/logo_builder'
 import { setSanitizedRichText } from '../core/sanitize_html'
 
 class Form {
-  constructor(data, element = null) {
+  constructor(data, element = null, visitBusinessId = Hellotext.visitBusinessId) {
     this.data = data
+    this.visitBusinessId = visitBusinessId
     this.element =
       element ||
       document.querySelector(`[data-hello-form="${this.id}"]`) ||
@@ -14,7 +15,7 @@ class Form {
   }
 
   async mount({ ifCompleted = true } = {}) {
-    if(ifCompleted && this.hasBeenCompleted) {
+    if (ifCompleted && this.hasBeenCompleted) {
       this.element?.remove()
 
       return Hellotext.eventEmitter.dispatch('form:completed', {
@@ -105,6 +106,8 @@ class Form {
     }
 
     localStorage.setItem(`hello-form-${this.id}`, JSON.stringify(payload))
+    if (Hellotext.visitBusinessId === this.visitBusinessId)
+      Hellotext.recordActivity('form.completed')
     Hellotext.eventEmitter.dispatch('form:completed', payload)
   }
 
@@ -119,11 +122,14 @@ class Form {
   get localeAuthKey() {
     const firstStep = this.data.steps[0]
 
-    if(firstStep.inputs.some(input => input.kind === 'email') && firstStep.inputs.some(input => input.kind === 'phone')) {
+    if (
+      firstStep.inputs.some(input => input.kind === 'email') &&
+      firstStep.inputs.some(input => input.kind === 'phone')
+    ) {
       return 'phone_and_email'
-    } else if(firstStep.inputs.some(input => input.kind === 'email')) {
+    } else if (firstStep.inputs.some(input => input.kind === 'email')) {
       return 'email'
-    } else if(firstStep.inputs.some(input => input.kind === 'phone')) {
+    } else if (firstStep.inputs.some(input => input.kind === 'phone')) {
       return 'phone'
     } else {
       return 'none'

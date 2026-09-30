@@ -9,6 +9,8 @@ import { NotInitializedError } from '../errors'
 class FormCollection {
   constructor() {
     this.forms = []
+    this.visitBusinessId = Hellotext.visitBusinessId
+    this.initializationVersion = Hellotext.initializationVersion
 
     this.includes = this.includes.bind(this)
     this.excludes = this.excludes.bind(this)
@@ -45,6 +47,7 @@ class FormCollection {
     }
 
     if (this.fetching) return
+    if (!this.current) return
 
     if (typeof document === 'undefined' || !('querySelectorAll' in document)) {
       return console.warn(
@@ -61,13 +64,18 @@ class FormCollection {
 
     this.fetching = true
 
-    await Promise.all(promises)
-      .then(forms => forms.forEach(this.add))
-      .then(() => Hellotext.eventEmitter.dispatch('forms:collected', this))
-      .then(() => (this.fetching = false))
+    try {
+      const forms = await Promise.all(promises)
+      if (!this.current) return
 
-    if (Configuration.forms.autoMount) {
-      this.forms.forEach(form => form.mount())
+      forms.forEach(this.add)
+      Hellotext.eventEmitter.dispatch('forms:collected', this)
+
+      if (Configuration.forms.autoMount) {
+        this.forms.forEach(form => form.mount())
+      }
+    } finally {
+      this.fetching = false
     }
   }
 
@@ -93,7 +101,7 @@ class FormCollection {
       )
     }
 
-    this.forms.push(new Form(data))
+    this.forms.push(new Form(data, null, this.visitBusinessId))
   }
 
   getById(id) {
@@ -114,6 +122,13 @@ class FormCollection {
 
   get length() {
     return this.forms.length
+  }
+
+  get current() {
+    return (
+      Hellotext.visitBusinessId === this.visitBusinessId &&
+      Hellotext.initializationVersion === this.initializationVersion
+    )
   }
 
   get #formIdsToFetch() {

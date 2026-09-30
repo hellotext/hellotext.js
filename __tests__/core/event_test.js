@@ -15,6 +15,10 @@ describe(".valid", function () {
     expect(Event.valid("popup:closed")).toEqual(true)
   });
 
+  it("is true for popup activity events", () => {
+    expect(Event.valid("activity:occurred")).toEqual(true)
+  });
+
   it("is false when event name is not defined", () =>  {
     expect(Event.valid("undefined-event")).toEqual(false)
   });
