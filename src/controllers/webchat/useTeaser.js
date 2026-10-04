@@ -69,29 +69,31 @@ export const useTeaser = controller => {
         return
       }
 
+      if (this.teaserMessageDelay(this.teaserMessages[0]) > 0) {
+        this.scheduleTeaserMessage(0)
+        return
+      }
+
       this.teaserTarget.classList.remove('invisible')
       this.showTeaserMessage(0)
-
-      if (this.teaserMessages.length < 2) return
-
-      this.scheduleNextTeaserMessage(0)
+      this.scheduleTeaserMessage(1)
     },
 
-    // Delays belong to the currently visible message, so each teaser controls
-    // how long it remains on screen before the next one replaces it. The
+    // Each teaser owns the delay before it appears, including the first one.
+    // The current message stays visible while the next message is waiting. The
     // presentation stops after the last message instead of looping forever.
-    scheduleNextTeaserMessage(currentIndex) {
-      const nextIndex = currentIndex + 1
+    scheduleTeaserMessage(index) {
+      const message = this.teaserMessages[index]
 
-      if (nextIndex >= this.teaserMessages.length) return
+      if (!message) return
 
-      const currentMessage = this.teaserMessages[currentIndex]
-      const delay = this.teaserPresentationDelay(currentMessage)
+      const delay = this.teaserPresentationDelay(message)
 
       this.teaserCycleTimeout = window.setTimeout(() => {
         this.teaserCycleTimeout = null
-        this.showTeaserMessage(nextIndex)
-        this.scheduleNextTeaserMessage(nextIndex)
+        this.teaserTarget.classList.remove('invisible')
+        this.showTeaserMessage(index)
+        this.scheduleTeaserMessage(index + 1)
       }, delay)
     },
 
