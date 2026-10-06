@@ -390,7 +390,9 @@ export default class extends Controller {
    */
   selectPhoneCountry(event) {
     const select = event.target
-    const label = select.closest('[data-popup-phone]')?.querySelector('[data-popup-phone-country-label]')
+    const label = select
+      .closest('[data-popup-phone]')
+      ?.querySelector('[data-popup-phone-country-label]')
 
     if (label) label.textContent = select.selectedOptions[0]?.dataset.label || ''
   }
