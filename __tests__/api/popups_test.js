@@ -47,6 +47,7 @@ describe('PopupsAPI', () => {
     expect(url.searchParams.get('session')).toBe('session-123')
     expect(url.searchParams.get('locale')).toBe('es')
     expect(url.searchParams.get('device')).toBe('desktop')
+    expect(url.searchParams.get('capabilities')).toBe('phone_country')
     expect(global.fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer business-id')
     expect(element.id).toBe('popup-widget')
     expect(Hellotext.business.setData).toHaveBeenCalledWith({ id: 'business-id' })

@@ -363,9 +363,54 @@ export default class extends Controller {
     const value = this.inputValue(input).trim()
     if (input.dataset.popupFieldKind !== 'phone' || value.startsWith('+')) return value
 
-    const prefix = input.dataset.popupPhonePrefix
+    const prefix = this.phoneCountryPrefix(input) || input.dataset.popupPhonePrefix
 
     return prefix ? `${prefix}${value.replace(/^0+/, '')}` : value
+  }
+
+  /**
+   * Read the prefix chosen in the country selector rendered next to a phone field.
+   * Popups served without a selector, such as to older SDKs, have none.
+   *
+   * @param {PopupInput} input - Phone field that may share a wrapper with a country selector.
+   * @returns {string | undefined} International prefix such as "+598".
+   */
+  phoneCountryPrefix(input) {
+    const select = input.closest('[data-popup-phone]')?.querySelector('[data-popup-phone-country]')
+
+    return select?.selectedOptions?.[0]?.dataset.prefix
+  }
+
+  /**
+   * Show the chosen country in the closed selector. The select itself is transparent so
+   * the visible label is the only place the compact "flag +prefix" text can be shown.
+   *
+   * @param {Event} event - Change event dispatched by the country select.
+   * @returns {void}
+   */
+  selectPhoneCountry(event) {
+    const select = event.target
+    const label = select.closest('[data-popup-phone]')?.querySelector('[data-popup-phone-country-label]')
+
+    if (label) label.textContent = select.selectedOptions[0]?.dataset.label || ''
+  }
+
+  /**
+   * Value sent to the API for a field. A phone number typed beside a country selector is
+   * sent in international form so the backend does not assume the Business country;
+   * everything else is sent as entered.
+   *
+   * @param {PopupInput} input - Field to read without mutating its value.
+   * @returns {string | boolean} Submitted representation of the field.
+   */
+  submissionValue(input) {
+    const value = this.inputValue(input)
+    const prefix = input.dataset.popupFieldKind === 'phone' && this.phoneCountryPrefix(input)
+    const entered = typeof value === 'string' ? value.trim() : ''
+
+    if (!prefix || !entered || entered.startsWith('+')) return value
+
+    return `${prefix}${entered.replace(/\D/g, '').replace(/^0+/, '')}`
   }
 
   /**
@@ -769,7 +814,7 @@ export default class extends Controller {
       const inputs = this.inputsForStep(step)
 
       inputs.forEach(input => {
-        const value = this.inputValue(input)
+        const value = this.submissionValue(input)
         const key = input.dataset.popupFieldKey || input.name
 
         stepFields[key] = value

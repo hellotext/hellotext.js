@@ -198,6 +198,96 @@ describe('PopupController', () => {
     expect(PopupsAPI.submit).not.toHaveBeenCalled()
   })
 
+  describe('phone country selector', () => {
+    const addCountrySelector = phoneInput => {
+      const wrapper = document.createElement('div')
+      const label = document.createElement('span')
+      const select = document.createElement('select')
+
+      wrapper.dataset.popupPhone = ''
+      label.dataset.popupPhoneCountryLabel = ''
+      select.dataset.popupPhoneCountry = ''
+      ;[
+        ['UY', '+598', '🇺🇾 +598'],
+        ['AR', '+54', '🇦🇷 +54'],
+      ].forEach(([code, prefix, shortLabel]) => {
+        const option = document.createElement('option')
+        option.value = code
+        option.dataset.prefix = prefix
+        option.dataset.label = shortLabel
+        select.appendChild(option)
+      })
+
+      phoneInput.replaceWith(wrapper)
+      wrapper.append(label, select, phoneInput)
+
+      return { select, label }
+    }
+
+    it('sends a phone typed without a plus in international form using the selected country', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'AR'
+      phoneInput.value = '011 2345-6789'
+
+      const payload = controller.submissionPayload()
+
+      expect(payload.phone).toBe('+541123456789')
+      expect(payload.metadata.fields.phone).toBe('+541123456789')
+      expect(payload.metadata.steps[1].fields.phone).toBe('+541123456789')
+    })
+
+    it('keeps a phone the visitor already typed in international form', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'AR'
+      phoneInput.value = '+598 99 123 456'
+
+      expect(controller.submissionPayload().phone).toBe('+598 99 123 456')
+    })
+
+    it('sends the phone as entered when the server rendered no country selector', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+
+      phoneInput.dataset.popupPhonePrefix = '+598'
+      phoneInput.value = '099 123 456'
+
+      expect(controller.submissionPayload().phone).toBe('099 123 456')
+    })
+
+    it('does not invent a prefix for an empty phone', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+
+      addCountrySelector(phoneInput)
+      phoneInput.value = ''
+
+      expect(controller.submissionPayload().phone).toBe('')
+    })
+
+    it('shows the chosen country in the closed selector', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select, label } = addCountrySelector(phoneInput)
+
+      select.value = 'AR'
+      controller.selectPhoneCountry({ target: select })
+
+      expect(label.textContent).toBe('🇦🇷 +54')
+    })
+
+    it('formats the completion identity with the selected country prefix', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      phoneInput.dataset.popupPhonePrefix = '+598'
+      select.value = 'AR'
+      phoneInput.value = '011 2345-6789'
+
+      expect(controller.identityValue(phoneInput)).toBe('+5411 2345-6789')
+    })
+  })
+
   it('submits collected fields and shows the completed step on the last step', async () => {
     const { completed, emailInput, phoneInput, stepOne, stepTwo } = buildController({ hasBubble: false })
 
