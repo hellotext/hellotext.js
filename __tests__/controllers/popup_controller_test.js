@@ -273,6 +273,16 @@ describe('PopupController', () => {
       expect(controller.submissionPayload().phone).toBe('+390669823456')
     })
 
+    it('converts the digits of a number typed with a plus and keeps its country code', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'AR'
+      phoneInput.value = '+٣٩٠٦٦٩٨٢٣٤٥٦'
+
+      expect(controller.submissionPayload().phone).toBe('+390669823456')
+    })
+
     it('keeps a phone the visitor already typed in international form', () => {
       const { phoneInput } = buildController({ hasBubble: false })
       const { select } = addCountrySelector(phoneInput)

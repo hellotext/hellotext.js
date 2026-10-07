@@ -372,13 +372,13 @@ export default class extends Controller {
   }
 
   /**
-   * Keep only the digits of a typed phone number, converting digits from other numeral
-   * systems (Arabic-Indic, full-width) to ASCII so the backend can read them.
+   * Convert digits from other numeral systems (Arabic-Indic, full-width) to ASCII so the
+   * backend can read them, leaving every other character as typed.
    *
    * @param {string} value - Phone number as typed.
-   * @returns {string} ASCII digits in their original order.
+   * @returns {string} The same text with ASCII digits.
    */
-  phoneDigits(value) {
+  asciiDigits(value) {
     const isDigit = char => /\p{Nd}/u.test(char)
     const asciiDigit = char => {
       let zero = char.codePointAt(0)
@@ -389,7 +389,17 @@ export default class extends Controller {
       return (position - zero) % 10
     }
 
-    return value.replace(/\p{Nd}/gu, asciiDigit).replace(/\D/g, '')
+    return value.replace(/\p{Nd}/gu, asciiDigit)
+  }
+
+  /**
+   * Keep only the digits of a typed phone number, as ASCII.
+   *
+   * @param {string} value - Phone number as typed.
+   * @returns {string} ASCII digits in their original order.
+   */
+  phoneDigits(value) {
+    return this.asciiDigits(value).replace(/\D/g, '')
   }
 
   /**
@@ -435,7 +445,8 @@ export default class extends Controller {
     const prefix = input.dataset.popupFieldKind === 'phone' && this.phoneCountryPrefix(input)
     const entered = typeof value === 'string' ? value.trim() : ''
 
-    if (!prefix || !entered || entered.startsWith('+')) return value
+    if (!prefix || !entered) return value
+    if (entered.startsWith('+')) return this.asciiDigits(value)
 
     return `${prefix}${this.phoneDigits(entered)}`
   }
