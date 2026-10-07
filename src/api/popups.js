@@ -14,8 +14,6 @@ class PopupsAPI {
     url.searchParams.append('session', Hellotext.session)
     url.searchParams.append('locale', Locale.toString())
     url.searchParams.append('device', this.runtimeDevice)
-    // Tells the server this SDK can read the country selected next to a phone field.
-    url.searchParams.append('capabilities', 'phone_country')
 
     const response = await this.fetchPopup(url)
 
