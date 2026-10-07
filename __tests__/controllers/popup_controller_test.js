@@ -249,6 +249,30 @@ describe('PopupController', () => {
       expect(controller.submissionPayload().phone).toBe('+390669823456')
     })
 
+    it('shows the same number in the completion copy fallback', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'IT'
+      phoneInput.value = '06 6982 3456'
+
+      expect(controller.identityValue(phoneInput)).toBe('+390669823456')
+    })
+
+    it('converts digits from other numeral systems before sending', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'IT'
+      phoneInput.value = '٠٦٦٩٨٢٣٤٥٦'
+
+      expect(controller.submissionPayload().phone).toBe('+390669823456')
+
+      phoneInput.value = '０６６９８２３４５６'
+
+      expect(controller.submissionPayload().phone).toBe('+390669823456')
+    })
+
     it('keeps a phone the visitor already typed in international form', () => {
       const { phoneInput } = buildController({ hasBubble: false })
       const { select } = addCountrySelector(phoneInput)
@@ -295,7 +319,7 @@ describe('PopupController', () => {
       select.value = 'AR'
       phoneInput.value = '011 2345-6789'
 
-      expect(controller.identityValue(phoneInput)).toBe('+5411 2345-6789')
+      expect(controller.identityValue(phoneInput)).toBe('+5401123456789')
     })
   })
 
