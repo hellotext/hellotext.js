@@ -353,8 +353,8 @@ export default class extends Controller {
 
   /**
    * Format a local identity for completion copy when backend route data is absent.
-   * Phone prefixes and leading-zero removal apply only to this display fallback;
-   * submissionPayload() still sends the original field value.
+   * With a country selector the number matches what submissionPayload() sends; the
+   * leading-zero removal applies only to the legacy popup prefix.
    *
    * @param {PopupInput} input - Email or phone field containing a string value.
    * @returns {string} Trimmed identity with the configured phone prefix when needed.
@@ -363,9 +363,92 @@ export default class extends Controller {
     const value = this.inputValue(input).trim()
     if (input.dataset.popupFieldKind !== 'phone' || value.startsWith('+')) return value
 
+    const selectedPrefix = this.phoneCountryPrefix(input)
+    if (selectedPrefix) return `${selectedPrefix}${this.phoneDigits(value)}`
+
     const prefix = input.dataset.popupPhonePrefix
 
     return prefix ? `${prefix}${value.replace(/^0+/, '')}` : value
+  }
+
+  /**
+   * Convert digits from other numeral systems (Arabic-Indic, full-width) to ASCII so the
+   * backend can read them, leaving every other character as typed.
+   *
+   * @param {string} value - Phone number as typed.
+   * @returns {string} The same text with ASCII digits.
+   */
+  asciiDigits(value) {
+    const isDigit = char => /\p{Nd}/u.test(char)
+    const asciiDigit = char => {
+      let zero = char.codePointAt(0)
+      const position = zero
+
+      while (isDigit(String.fromCodePoint(zero - 1))) zero -= 1
+
+      return (position - zero) % 10
+    }
+
+    return value.replace(/\p{Nd}/gu, asciiDigit)
+  }
+
+  /**
+   * Keep only the digits of a typed phone number, as ASCII.
+   *
+   * @param {string} value - Phone number as typed.
+   * @returns {string} ASCII digits in their original order.
+   */
+  phoneDigits(value) {
+    return this.asciiDigits(value).replace(/\D/g, '')
+  }
+
+  /**
+   * Read the prefix chosen in the country selector rendered next to a phone field.
+   * Popups served without a selector, such as to older SDKs, have none.
+   *
+   * @param {PopupInput} input - Phone field that may share a wrapper with a country selector.
+   * @returns {string | undefined} International prefix such as "+598".
+   */
+  phoneCountryPrefix(input) {
+    const select = input.closest('[data-popup-phone]')?.querySelector('[data-popup-phone-country]')
+
+    return select?.selectedOptions?.[0]?.dataset.prefix
+  }
+
+  /**
+   * Show the chosen country in the closed selector. The select itself is transparent so
+   * the visible label is the only place the compact "flag +prefix" text can be shown.
+   *
+   * @param {Event} event - Change event dispatched by the country select.
+   * @returns {void}
+   */
+  selectPhoneCountry(event) {
+    const select = event.target
+    const label = select
+      .closest('[data-popup-phone]')
+      ?.querySelector('[data-popup-phone-country-label]')
+
+    if (label) label.textContent = select.selectedOptions[0]?.dataset.label || ''
+  }
+
+  /**
+   * Value sent to the API for a field. A phone number typed beside a country selector is
+   * sent in international form so the backend does not assume the Business country.
+   * Leading zeros are kept: whether a national zero belongs to the number depends on the
+   * country, so the backend normalizes it. Everything else is sent as entered.
+   *
+   * @param {PopupInput} input - Field to read without mutating its value.
+   * @returns {string | boolean} Submitted representation of the field.
+   */
+  submissionValue(input) {
+    const value = this.inputValue(input)
+    const prefix = input.dataset.popupFieldKind === 'phone' && this.phoneCountryPrefix(input)
+    const entered = typeof value === 'string' ? value.trim() : ''
+
+    if (!prefix || !entered) return value
+    if (entered.startsWith('+')) return this.asciiDigits(value)
+
+    return `${prefix}${this.phoneDigits(entered)}`
   }
 
   /**
@@ -769,7 +852,7 @@ export default class extends Controller {
       const inputs = this.inputsForStep(step)
 
       inputs.forEach(input => {
-        const value = this.inputValue(input)
+        const value = this.submissionValue(input)
         const key = input.dataset.popupFieldKey || input.name
 
         stepFields[key] = value
