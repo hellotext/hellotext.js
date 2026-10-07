@@ -399,8 +399,9 @@ export default class extends Controller {
 
   /**
    * Value sent to the API for a field. A phone number typed beside a country selector is
-   * sent in international form so the backend does not assume the Business country;
-   * everything else is sent as entered.
+   * sent in international form so the backend does not assume the Business country.
+   * Leading zeros are kept: whether a national zero belongs to the number depends on the
+   * country, so the backend normalizes it. Everything else is sent as entered.
    *
    * @param {PopupInput} input - Field to read without mutating its value.
    * @returns {string | boolean} Submitted representation of the field.
@@ -412,7 +413,7 @@ export default class extends Controller {
 
     if (!prefix || !entered || entered.startsWith('+')) return value
 
-    return `${prefix}${entered.replace(/\D/g, '').replace(/^0+/, '')}`
+    return `${prefix}${entered.replace(/\D/g, '')}`
   }
 
   /**

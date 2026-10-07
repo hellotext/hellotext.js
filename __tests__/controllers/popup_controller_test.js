@@ -210,6 +210,7 @@ describe('PopupController', () => {
       ;[
         ['UY', '+598', '🇺🇾 +598'],
         ['AR', '+54', '🇦🇷 +54'],
+        ['IT', '+39', '🇮🇹 +39'],
       ].forEach(([code, prefix, shortLabel]) => {
         const option = document.createElement('option')
         option.value = code
@@ -233,9 +234,19 @@ describe('PopupController', () => {
 
       const payload = controller.submissionPayload()
 
-      expect(payload.phone).toBe('+541123456789')
-      expect(payload.metadata.fields.phone).toBe('+541123456789')
-      expect(payload.metadata.steps[1].fields.phone).toBe('+541123456789')
+      expect(payload.phone).toBe('+5401123456789')
+      expect(payload.metadata.fields.phone).toBe('+5401123456789')
+      expect(payload.metadata.steps[1].fields.phone).toBe('+5401123456789')
+    })
+
+    it('keeps the leading zero for the backend to normalize per country', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'IT'
+      phoneInput.value = '06 6982 3456'
+
+      expect(controller.submissionPayload().phone).toBe('+390669823456')
     })
 
     it('keeps a phone the visitor already typed in international form', () => {

@@ -98,7 +98,7 @@ Each step is validated using the browser's native input constraints, including r
 
 Submitting the form before the last step advances to the next step after validation. The final step validates its inputs and submits the collected flow, including email, phone, custom fields, checkbox choices, and capture metadata.
 
-A phone field shows a country selector when the popup is served with one. The SDK announces that it supports it with the `capabilities=phone_country` request parameter, so popups served to older SDK versions keep the plain phone field. A number typed without a leading `+` is submitted in international form with the selected country's prefix, for example `+54` followed by the digits, instead of assuming the business country.
+A phone field shows a country selector when the popup is served with one. The SDK announces that it supports it with the `capabilities=phone_country` request parameter, so popups served to older SDK versions keep the plain phone field. A number typed without a leading `+` is submitted in international form with the selected country's prefix, for example `+54` followed by the digits, instead of assuming the business country. The SDK keeps any leading zero the visitor typed; the server decides per country whether it is part of the number.
 
 Submission buttons are disabled while the request is pending. Field-specific errors appear beside their inputs, and other failures appear in the form's error message. The visitor can correct values or retry without reentering the whole form.
 
