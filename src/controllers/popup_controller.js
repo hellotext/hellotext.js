@@ -168,7 +168,13 @@ export default class extends Controller {
    * @returns {void}
    */
   closeOnEscape(event) {
-    if (this.element.hidden || this.dialogTarget.hidden || event.defaultPrevented || event.isComposing) return
+    if (
+      this.element.hidden ||
+      this.dialogTarget.hidden ||
+      event.defaultPrevented ||
+      event.isComposing
+    )
+      return
 
     this.close(event)
   }
