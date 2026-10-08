@@ -163,6 +163,45 @@ describe('PopupController', () => {
     expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(3, 'popup:closed')
   })
 
+  describe('closing with Escape', () => {
+    const escape = (init = {}) => new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, ...init })
+
+    it('dismisses the popup while the dialog is showing', () => {
+      const { element, dialog } = buildController({ hasBubble: false })
+
+      controller.connect()
+      controller.closeOnEscape(escape())
+
+      expect(element.hidden).toBe(true)
+      expect(dialog.hidden).toBe(true)
+      expect(Hellotext.eventEmitter.dispatch).toHaveBeenLastCalledWith('popup:closed')
+    })
+
+    it('leaves a bubble popup alone until its dialog is open', () => {
+      const { element, bubble } = buildController({ hasBubble: true })
+
+      controller.connect()
+      controller.closeOnEscape(escape())
+
+      expect(element.hidden).toBe(false)
+      expect(bubble.hidden).toBe(false)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:closed')
+    })
+
+    it('ignores Escape already handled by another control or an input method', () => {
+      const { element } = buildController({ hasBubble: false })
+
+      controller.connect()
+
+      const handled = escape()
+      handled.preventDefault()
+      controller.closeOnEscape(handled)
+      controller.closeOnEscape(escape({ isComposing: true }))
+
+      expect(element.hidden).toBe(false)
+    })
+  })
+
   it('validates the current step before moving to the next one', async () => {
     const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
 

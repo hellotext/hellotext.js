@@ -139,7 +139,7 @@ Use `Hellotext.on(event, callback)` to listen for popup events. Register listene
 
 - `popup:mounted` - Emitted when the popup is mounted, before any automatic `popup:opened` event. The dialog may remain hidden because of device targeting or bubble mode.
 - `popup:opened` - Emitted when the dialog becomes visible, either automatically or after a bubble click. Showing the bubble alone does not emit this event.
-- `popup:closed` - Emitted when the visitor dismisses the popup.
+- `popup:closed` - Emitted when the visitor dismisses the popup, with the close button or the Escape key.
 
 These events do not include a payload.
 
