@@ -188,6 +188,17 @@ describe('PopupController', () => {
       expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:closed')
     })
 
+    it('ignores Escape while the whole popup is hidden', () => {
+      const { element } = buildController({ hasBubble: false })
+
+      controller.connect()
+      element.hidden = true
+      Hellotext.eventEmitter.dispatch.mockClear()
+      controller.closeOnEscape(escape())
+
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:closed')
+    })
+
     it('ignores Escape already handled by another control or an input method', () => {
       const { element } = buildController({ hasBubble: false })
 

@@ -161,14 +161,14 @@ export default class extends Controller {
   }
 
   /**
-   * Dismiss the popup with the Escape key, only while the dialog is showing, so Escape on the
+   * Dismiss the popup with the Escape key, only while the popup and its dialog are showing, so Escape on the
    * page never hides the launcher bubble or reacts to a key another control already handled.
    *
    * @param {KeyboardEvent} event - Escape keydown reaching the window.
    * @returns {void}
    */
   closeOnEscape(event) {
-    if (this.dialogTarget.hidden || event.defaultPrevented || event.isComposing) return
+    if (this.element.hidden || this.dialogTarget.hidden || event.defaultPrevented || event.isComposing) return
 
     this.close(event)
   }
