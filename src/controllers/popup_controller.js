@@ -192,24 +192,30 @@ export default class extends Controller {
    */
   async next(event) {
     if (event) event.preventDefault()
+    if (this.advancingStep) return
 
-    this.clearCustomValidity()
+    this.advancingStep = true
+    try {
+      this.clearCustomValidity()
 
-    if (!this.currentStepValid()) {
-      this.showErrorMessages(this.currentStepInputs)
-      return
+      if (!this.currentStepValid()) {
+        this.showErrorMessages(this.currentStepInputs)
+        return
+      }
+
+      this.clearErrorMessages(this.currentStepInputs)
+
+      await this.subscribeForPushOnCurrentStep()
+
+      if (this.stepIndex < this.stepTargets.length - 1) {
+        this.showStep(this.stepIndex + 1)
+        return
+      }
+
+      await this.submit()
+    } finally {
+      this.advancingStep = false
     }
-
-    this.clearErrorMessages(this.currentStepInputs)
-
-    await this.subscribeForPushOnCurrentStep()
-
-    if (this.stepIndex < this.stepTargets.length - 1) {
-      this.showStep(this.stepIndex + 1)
-      return
-    }
-
-    await this.submit()
   }
 
   /**
@@ -222,6 +228,7 @@ export default class extends Controller {
    */
   async submit(event) {
     if (event) event.preventDefault()
+    if (this.submitting) return
 
     this.clearCustomValidity()
 
@@ -238,13 +245,14 @@ export default class extends Controller {
     this.clearErrorMessages(this.currentStepInputs)
     this.clearGlobalError()
 
-    await this.subscribeForPushOnCurrentStep()
-
+    this.submitting = true
     this.submitButtonTargets.forEach(button => {
       button.disabled = true
     })
 
     try {
+      await this.subscribeForPushOnCurrentStep()
+
       const payload = this.submissionPayload()
       const response = await PopupsAPI.submit(
         this.idValue,
@@ -273,6 +281,7 @@ export default class extends Controller {
       this.showGlobalError()
       return
     } finally {
+      this.submitting = false
       this.submitButtonTargets.forEach(button => {
         button.disabled = false
       })
@@ -296,13 +305,11 @@ export default class extends Controller {
 
     if (this.pushSubscriptionPromise) return this.pushSubscriptionPromise
 
-    const currentButtons = this.currentStepInputs
-      .map(input => input.closest('[data-step-id]'))
-      .filter(Boolean)
-      .flatMap(step =>
-        Array.from(step.querySelectorAll('[data-hellotext--popup-target~="submitButton"]')),
-      )
-    const buttons = currentButtons.map(button => ({ button, disabled: button.disabled }))
+    const currentButtons =
+      this.stepTargets[this.stepIndex]?.querySelectorAll(
+        '[data-hellotext--popup-target~="submitButton"], [data-action~="click->hellotext--popup#next"]',
+      ) || []
+    const buttons = Array.from(currentButtons, button => ({ button, disabled: button.disabled }))
     buttons.forEach(({ button }) => {
       button.disabled = true
     })

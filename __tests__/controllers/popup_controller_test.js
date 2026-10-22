@@ -257,6 +257,67 @@ describe('PopupController', () => {
     expect(stepTwo.hidden).toBe(false)
   })
 
+  it('advances only once for overlapping Next clicks while Push permission is pending', async () => {
+    const { stepOne, stepTwo, emailInput, phoneInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    const nextButton = document.createElement('button')
+    nextButton.dataset.action = 'click->hellotext--popup#next'
+    stepOne.append(pushInput, nextButton)
+    controller.inputTargets.push(pushInput)
+    emailInput.value = 'customer@example.com'
+    phoneInput.value = '+59898123456'
+    let settleSubscription
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(resolve => { settleSubscription = resolve })) }
+    controller.connect()
+
+    const firstClick = controller.next()
+    expect(nextButton.disabled).toBe(true)
+    const repeatedClick = controller.next()
+    const enterKey = controller.submit()
+    settleSubscription()
+    await Promise.all([firstClick, repeatedClick, enterKey])
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    expect(controller.stepIndex).toBe(1)
+    expect(stepTwo.hidden).toBe(false)
+    expect(PopupsAPI.submit).not.toHaveBeenCalled()
+    expect(nextButton.disabled).toBe(false)
+  })
+
+  it('submits only once for overlapping final-step actions while Push permission is pending', async () => {
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    let settleSubscription
+    Hellotext.push = {
+      subscribe: jest.fn(() => new Promise(resolve => { settleSubscription = resolve })),
+      subscriptionForSubmission: jest.fn(() => null),
+    }
+    controller.connect()
+
+    const firstClick = controller.submit()
+    const repeatedClick = controller.submit()
+    settleSubscription()
+    await Promise.all([firstClick, repeatedClick])
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    expect(PopupsAPI.submit).toHaveBeenCalledTimes(1)
+  })
+
   it('requests Push permission only once when the checked step is the final step', async () => {
     const { stepOne, emailInput } = buildController({ hasBubble: false })
     const pushInput = document.createElement('input')
