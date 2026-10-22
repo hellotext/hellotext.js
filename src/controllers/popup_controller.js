@@ -114,6 +114,7 @@ export default class extends Controller {
    */
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
+    this.hideUnsupportedPushFields()
     this.evaluateDisplay()
   }
 
@@ -198,6 +199,8 @@ export default class extends Controller {
 
     this.clearErrorMessages(this.currentStepInputs)
 
+    await this.subscribeForPushOnCurrentStep()
+
     if (this.stepIndex < this.stepTargets.length - 1) {
       this.showStep(this.stepIndex + 1)
       return
@@ -231,6 +234,8 @@ export default class extends Controller {
 
     this.clearErrorMessages(this.currentStepInputs)
     this.clearGlobalError()
+
+    await this.subscribeForPushOnCurrentStep()
 
     this.submitButtonTargets.forEach(button => {
       button.disabled = true
@@ -271,6 +276,91 @@ export default class extends Controller {
     }
 
     this.showCompleted()
+  }
+
+  /**
+   * Request Push permission directly from the visitor's step-button activation.
+   * Permission denial, dismissal, browser errors, and registration failures never
+   * block popup progress; the backend chooses the available fallback route.
+   *
+   * @returns {Promise<void>}
+   */
+  async subscribeForPushOnCurrentStep() {
+    const optedIn = this.currentStepInputs.some(
+      input => input.dataset.popupFieldKind === 'push' && input.checked,
+    )
+    if (!optedIn || !Hellotext.push || this.pushPermissionState) return
+
+    if (this.pushSubscriptionPromise) return this.pushSubscriptionPromise
+
+    const currentButtons = this.currentStepInputs
+      .map(input => input.closest('[data-step-id]'))
+      .filter(Boolean)
+      .flatMap(step =>
+        Array.from(step.querySelectorAll('[data-hellotext--popup-target~="submitButton"]')),
+      )
+    const buttons = currentButtons.map(button => ({ button, disabled: button.disabled }))
+    buttons.forEach(({ button }) => {
+      button.disabled = true
+    })
+
+    // Calling subscribe before the first await preserves browser user activation.
+    const permissionAtClick =
+      typeof Notification === 'undefined' ? 'default' : Notification.permission
+    let subscription
+    try {
+      subscription = Hellotext.push.subscribe()
+    } catch (_) {
+      this.pushPermissionState = permissionAtClick === 'denied' ? 'denied' : 'registration_failed'
+      buttons.forEach(({ button, disabled }) => {
+        button.disabled = disabled
+      })
+      return
+    }
+
+    this.pushSubscriptionPromise = subscription
+      .then(response => {
+        this.pushPermissionState = response?.failed
+          ? 'registration_failed'
+          : typeof Notification !== 'undefined' && Notification.permission === 'granted'
+          ? 'granted'
+          : permissionAtClick === 'denied'
+          ? 'denied'
+          : 'dismissed'
+      })
+      .catch(() => {
+        this.pushPermissionState =
+          typeof Notification !== 'undefined' && Notification.permission === 'denied'
+            ? 'denied'
+            : typeof Notification !== 'undefined' && Notification.permission === 'default'
+            ? 'dismissed'
+            : 'registration_failed'
+      })
+      .finally(() => {
+        buttons.forEach(({ button, disabled }) => {
+          button.disabled = disabled
+        })
+        this.pushSubscriptionPromise = null
+      })
+
+    return this.pushSubscriptionPromise
+  }
+
+  /**
+   * Hide and clear Push fields when the server or browser marks them unavailable.
+   *
+   * @returns {void}
+   */
+  hideUnsupportedPushFields() {
+    this.inputTargets
+      .filter(input => input.dataset.popupFieldKind === 'push')
+      .forEach(input => {
+        if (input.dataset.popupPushAvailable === 'true' && Hellotext.push) return
+
+        input.checked = false
+        const field = input.closest('.hellotext--popup-field') || input.parentElement
+        if (field) field.hidden = true
+      })
   }
 
   /**
@@ -359,7 +449,7 @@ export default class extends Controller {
 
     const replacements = {
       destination: identity.value,
-      channel: this.submissionDeliveryChannel || identity.kind,
+      channel: this.completionChannelLabel(this.submissionDeliveryChannel || identity.kind),
     }
 
     this.completionTextTemplates.forEach(({ node, template }) => {
@@ -368,6 +458,19 @@ export default class extends Controller {
         (placeholder, key) => replacements[key] || placeholder,
       )
     })
+  }
+
+  /**
+   * Use localized, visitor-facing delivery copy for the channel placeholder.
+   *
+   * @param {string} channel - The delivery channel returned by the API.
+   * @returns {string} Localized channel phrase when the runtime provides one.
+   */
+  completionChannelLabel(channel) {
+    const label =
+      this.element.dataset[`channelLabel${channel[0]?.toUpperCase()}${channel.slice(1)}`]
+
+    return label || channel
   }
 
   /**
@@ -887,6 +990,11 @@ export default class extends Controller {
         fields: stepFields,
       })
     })
+
+    if (this.inputTargets.some(input => input.dataset.popupFieldKind === 'push' && input.checked)) {
+      payload.metadata.push_subscription = Hellotext.push?.subscriptionForSubmission() || null
+      payload.metadata.push_permission = this.pushPermissionState || 'unavailable'
+    }
 
     return payload
   }

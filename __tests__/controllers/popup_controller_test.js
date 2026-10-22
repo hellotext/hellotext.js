@@ -130,6 +130,7 @@ describe('PopupController', () => {
     jest.useRealTimers()
     jest.restoreAllMocks()
     document.body.innerHTML = ''
+    Hellotext.push = null
   })
 
   it('shows the bubble first and opens the dialog when clicked', () => {
@@ -231,6 +232,51 @@ describe('PopupController', () => {
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(false)
     expect(PopupsAPI.submit).not.toHaveBeenCalled()
+  })
+
+  it('asks for Push permission from the checked step and advances after denial', async () => {
+    const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    emailInput.value = 'customer@example.com'
+    Hellotext.push = { subscribe: jest.fn().mockRejectedValue(new Error('denied')) }
+
+    controller.connect()
+    const advancing = controller.next()
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    await advancing
+
+    expect(stepOne.hidden).toBe(true)
+    expect(stepTwo.hidden).toBe(false)
+  })
+
+  it('requests Push permission only once when the checked step is the final step', async () => {
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    const subscribe = jest.fn().mockRejectedValue(new Error('denied'))
+    Hellotext.push = { subscribe }
+
+    await controller.subscribeForPushOnCurrentStep()
+    await controller.subscribeForPushOnCurrentStep()
+
+    expect(subscribe).toHaveBeenCalledTimes(1)
   })
 
   it('advances instead of submitting when the form submits before the last step', async () => {
