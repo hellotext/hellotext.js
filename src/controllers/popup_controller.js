@@ -117,7 +117,6 @@ export default class extends Controller {
    */
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
-    this.hideUnsupportedPushFields()
     this.evaluateDisplay()
   }
 
@@ -364,25 +363,6 @@ export default class extends Controller {
     })
 
     return this.pushSubscriptionPromise
-  }
-
-  /**
-   * Hide and clear Push fields when the server or browser marks them unavailable.
-   *
-   * @returns {void}
-   */
-  hideUnsupportedPushFields() {
-    this.inputTargets
-      .filter(input => input.dataset.popupFieldKind === 'push')
-      .forEach(input => {
-        if (input.dataset.popupPushAvailable === 'true' && Hellotext.push) return
-
-        input.checked = false
-        // A disabled input stays out of constraint validation once hidden.
-        input.disabled = true
-        const field = input.closest('.hellotext--popup-field') || input.parentElement
-        if (field) field.hidden = true
-      })
   }
 
   /**
