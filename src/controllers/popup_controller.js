@@ -3,6 +3,9 @@ import { Controller } from '@hotwired/stimulus'
 import PopupsAPI from '../api/popups'
 import Hellotext from '../hellotext'
 
+// Caps the wait for a stalled worker or identity request so the popup always continues.
+const PUSH_SUBSCRIPTION_TIMEOUT = 15000
+
 /**
  * An input rendered by the popup's server-side field components.
  *
@@ -318,7 +321,15 @@ export default class extends Controller {
       return
     }
 
-    this.pushSubscriptionPromise = subscription
+    let timeout
+    const timedOut = new Promise(resolve => {
+      timeout = setTimeout(() => {
+        this.pushPermissionState ||= 'registration_failed'
+        resolve()
+      }, PUSH_SUBSCRIPTION_TIMEOUT)
+    })
+
+    const settled = subscription
       .then(response => {
         this.pushPermissionState = response?.failed
           ? 'registration_failed'
@@ -336,12 +347,14 @@ export default class extends Controller {
             ? 'dismissed'
             : 'registration_failed'
       })
-      .finally(() => {
-        buttons.forEach(({ button, disabled }) => {
-          button.disabled = disabled
-        })
-        this.pushSubscriptionPromise = null
+
+    this.pushSubscriptionPromise = Promise.race([settled, timedOut]).finally(() => {
+      clearTimeout(timeout)
+      buttons.forEach(({ button, disabled }) => {
+        button.disabled = disabled
       })
+      this.pushSubscriptionPromise = null
+    })
 
     return this.pushSubscriptionPromise
   }
@@ -358,6 +371,8 @@ export default class extends Controller {
         if (input.dataset.popupPushAvailable === 'true' && Hellotext.push) return
 
         input.checked = false
+        // A disabled input stays out of constraint validation once hidden.
+        input.disabled = true
         const field = input.closest('.hellotext--popup-field') || input.parentElement
         if (field) field.hidden = true
       })

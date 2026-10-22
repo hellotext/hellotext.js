@@ -279,6 +279,30 @@ describe('PopupController', () => {
     expect(subscribe).toHaveBeenCalledTimes(1)
   })
 
+  it('stops waiting for a Push subscription that never settles', async () => {
+    jest.useFakeTimers()
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(() => {})) }
+
+    const waiting = controller.subscribeForPushOnCurrentStep()
+    jest.advanceTimersByTime(15000)
+    await waiting
+    jest.useRealTimers()
+
+    expect(controller.pushPermissionState).toBe('registration_failed')
+  })
+
   it('advances instead of submitting when the form submits before the last step', async () => {
     const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
     const event = { preventDefault: jest.fn() }
