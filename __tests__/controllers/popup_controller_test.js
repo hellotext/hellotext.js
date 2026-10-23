@@ -212,6 +212,39 @@ describe('PopupController', () => {
 
       expect(element.hidden).toBe(false)
     })
+
+    it('keeps the popup open for the Escape Chrome sends right after a mouse pick on a field', () => {
+      const { element } = buildController({ hasBubble: false })
+      const field = document.createElement('input')
+      element.appendChild(field)
+      const now = Date.now()
+      jest.spyOn(Date, 'now').mockReturnValue(now)
+
+      controller.connect()
+      field.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+      const autofillEscape = escape({ bubbles: true })
+      field.dispatchEvent(autofillEscape)
+      controller.closeOnEscape(autofillEscape)
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('closes on Escape from a field once the mouse pick window has passed', () => {
+      const { element } = buildController({ hasBubble: false })
+      const field = document.createElement('input')
+      element.appendChild(field)
+      const now = Date.now()
+      const spy = jest.spyOn(Date, 'now').mockReturnValueOnce(now).mockReturnValue(now + 600)
+
+      controller.connect()
+      field.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+      const laterEscape = escape({ bubbles: true })
+      field.dispatchEvent(laterEscape)
+      controller.closeOnEscape(laterEscape)
+
+      expect(spy).toHaveBeenCalled()
+      expect(element.hidden).toBe(true)
+    })
   })
 
   it('validates the current step before moving to the next one', async () => {

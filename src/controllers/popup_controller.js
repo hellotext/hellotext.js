@@ -6,6 +6,9 @@ import Hellotext from '../hellotext'
 // Caps the wait for a stalled worker or identity request so the popup always continues.
 const PUSH_SUBSCRIPTION_TIMEOUT = 15000
 
+// Chrome's autofill sends Escape right after a mouse pick on a field; ignore Escape within this window.
+const AUTOFILL_ESCAPE_WINDOW_MS = 500
+
 /**
  * An input rendered by the popup's server-side field components.
  *
@@ -117,6 +120,7 @@ export default class extends Controller {
    */
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
+    this.element.addEventListener('mousedown', this.rememberInputPointer)
     this.evaluateDisplay()
   }
 
@@ -126,6 +130,7 @@ export default class extends Controller {
    * @returns {void}
    */
   disconnect() {
+    this.element.removeEventListener('mousedown', this.rememberInputPointer)
     this.stopResendCooldown()
   }
 
@@ -175,11 +180,33 @@ export default class extends Controller {
       this.element.hidden ||
       this.dialogTarget.hidden ||
       event.defaultPrevented ||
-      event.isComposing
+      event.isComposing ||
+      this.escapeFollowsInputPointer(event)
     )
       return
 
     this.close(event)
+  }
+
+  /**
+   * Remember when the visitor pressed the mouse on a field. Chrome sends Escape to the page right after a
+   * mouse pick from its autofill suggestions, and that Escape must not close the popup.
+   *
+   * @param {MouseEvent} event - Mousedown inside the popup.
+   * @returns {void}
+   */
+  rememberInputPointer = event => {
+    if (event.target instanceof HTMLInputElement) this.inputPointerAt = Date.now()
+  }
+
+  /**
+   * @param {KeyboardEvent} event - Escape keydown reaching the window.
+   * @returns {boolean} Whether the Escape arrived right after a mouse press on a field.
+   */
+  escapeFollowsInputPointer(event) {
+    if (!this.inputPointerAt || !(event.target instanceof HTMLInputElement)) return false
+
+    return Date.now() - this.inputPointerAt < AUTOFILL_ESCAPE_WINDOW_MS
   }
 
   /**
