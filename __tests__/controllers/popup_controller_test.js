@@ -374,6 +374,51 @@ describe('PopupController', () => {
     expect(subscribe).toHaveBeenCalledTimes(1)
   })
 
+  it('shows animated loading dots on the step button while Push permission is pending', async () => {
+    jest.useFakeTimers()
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    const button = document.createElement('button')
+    button.setAttribute('data-hellotext--popup-target', 'submitButton')
+    button.textContent = 'Get my 10% OFF'
+    stepOne.appendChild(button)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    controller.element.dataset.pushLoadingLabel = 'Enable notifications'
+    emailInput.value = 'customer@example.com'
+    let settle
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(resolve => { settle = resolve })) }
+
+    const waiting = controller.subscribeForPushOnCurrentStep()
+    const visibleDots = () => button.querySelector('span').textContent
+
+    expect(button.disabled).toBe(true)
+    expect(button.getAttribute('aria-busy')).toBe('true')
+    expect(button.textContent.startsWith('Enable notifications')).toBe(true)
+    expect(visibleDots()).toBe('.')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('..')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('...')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('')
+
+    settle({ failed: false })
+    await waiting
+    jest.useRealTimers()
+
+    expect(button.textContent).toBe('Get my 10% OFF')
+    expect(button.hasAttribute('aria-busy')).toBe(false)
+    expect(button.disabled).toBe(false)
+  })
+
   it('stops waiting for a Push subscription that never settles', async () => {
     jest.useFakeTimers()
     const { stepOne, emailInput } = buildController({ hasBubble: false })
