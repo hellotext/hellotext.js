@@ -244,6 +244,30 @@ describe('PopupController', () => {
     expect(PopupsAPI.submit).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['the server marks Push unavailable', 'false', { subscribe: jest.fn() }],
+    ['the browser cannot use Push', 'true', null],
+  ])('hides and disables the Push field when %s', (_, available, push) => {
+    const { stepOne } = buildController({ hasBubble: false })
+    const field = document.createElement('article')
+    field.className = 'hellotext--popup-field'
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupPushAvailable = available
+    field.appendChild(pushInput)
+    stepOne.appendChild(field)
+    controller.inputTargets.push(pushInput)
+    Hellotext.push = push
+
+    controller.connect()
+
+    expect(field.hidden).toBe(true)
+    expect(pushInput.checked).toBe(false)
+    expect(pushInput.disabled).toBe(true)
+  })
+
   it('asks for Push permission from the checked step and advances after denial', async () => {
     const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
     const pushInput = document.createElement('input')
