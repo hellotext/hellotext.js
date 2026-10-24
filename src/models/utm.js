@@ -1,37 +1,207 @@
 import { Cookies } from './cookies'
+import { Page } from './page'
 
+const UTM_KEYS = ['source', 'medium', 'campaign', 'term', 'content']
+const ARRIVAL_COOKIE = 'hello_utm'
+const IN_SITE_COOKIE = 'hello_utm_internal'
+
+/**
+ * Reads the UTM parameters on the current URL and keeps the click that
+ * brought the visitor to the site.
+ *
+ * A UTM is an arrival when it is on the URL the document was loaded with and
+ * the visitor did not come from another page of the same site. It is stored in
+ * `hello_utm`, sent with every event as `utm_params`, and announced with
+ * `utm-set`.
+ *
+ * Any other UTM was picked up while the visitor was already browsing the site:
+ * the store's own popup, banner or menu links often carry UTMs. Letting those
+ * replace the arrival would hand the sale to the store's own link, so they are
+ * stored apart in `hello_utm_internal` and sent as `internal_utm_params`,
+ * where the server can still recognise them when a commerce platform reports
+ * the same UTM on the order. Two signals mark them, whatever the store:
+ * - single-page stores navigate without reloading, so the UTM differs from the
+ *   one on the URL the document was loaded with;
+ * - stores that reload report the page the visitor came from, so the referrer
+ *   is another page of the same site with different UTMs.
+ *
+ * Hellotext's own UTMs are never in-site: a Hellotext link opened inside the
+ * store, from the webchat for example, is our click.
+ *
+ * `observed_at` is when the click happened. Reading the same UTM again keeps
+ * it: single-page stores build a new Page for every tracked event, and a reload
+ * or a back navigation is not a new click. Only a new navigation to the URL
+ * stamps a new time.
+ */
 class UTM {
   constructor() {
-    const urlSearchParams = new URLSearchParams(window.location.search)
+    const utms = UTM.fromSearch(window.location.search)
+    if (!utms) return
 
-    const utmsFromUrl = {
-      source: urlSearchParams.get('utm_source'),
-      medium: urlSearchParams.get('utm_medium'),
-      campaign: urlSearchParams.get('utm_campaign'),
-      term: urlSearchParams.get('utm_term'),
-      content: urlSearchParams.get('utm_content'),
+    if (UTM.isArrival(utms)) {
+      this.saveArrival(utms)
+    } else if (UTM.isHellotext(utms)) {
+      this.saveIfChanged(ARRIVAL_COOKIE, utms)
+    } else {
+      this.saveIfChanged(IN_SITE_COOKIE, utms)
     }
-
-    this.save(utmsFromUrl)
   }
 
+  /**
+   * Stores the given UTM parameters as the visitor's current click, observed
+   * now. Callers use it for clicks they know are Hellotext's, such as a
+   * webchat product card.
+   * @param {Object} utmParams
+   */
   save(utmParams) {
+    this.write(ARRIVAL_COOKIE, utmParams)
+  }
+
+  /**
+   * The click that brought the visitor, as sent with events in `utm_params`.
+   * @returns {Object}
+   */
+  get current() {
+    return UTM.read(ARRIVAL_COOKIE)
+  }
+
+  /**
+   * The last UTM picked up while browsing the site, sent with events in
+   * `internal_utm_params`.
+   * @returns {Object}
+   */
+  get internal() {
+    return UTM.read(IN_SITE_COOKIE)
+  }
+
+  /**
+   * Stores an arrival unless it is the one already stored and this is not a
+   * new click on it: it was stored during this document, or this document is
+   * a reload or a back or forward navigation. A new arrival also clears the
+   * in-site UTM, which belonged to the previous visit.
+   */
+  saveArrival(utms) {
+    const stored = this.current
+
+    if (
+      UTM.same(utms, stored) &&
+      (UTM.restoredNavigation || UTM.observedDuringThisDocument(stored))
+    )
+      return
+
+    this.write(ARRIVAL_COOKIE, utms)
+    if (Object.keys(this.internal).length) Cookies.delete(IN_SITE_COOKIE)
+  }
+
+  saveIfChanged(cookie, utms) {
+    if (UTM.same(utms, UTM.read(cookie))) return
+
+    this.write(cookie, utms)
+  }
+
+  write(cookie, utmParams) {
     if (!utmParams.source || !utmParams.medium) return
 
     const cleanUtms = Object.fromEntries(
-      Object.entries(utmParams).filter(([_, value]) => value),
+      Object.entries(utmParams).filter(([key, value]) => value && key !== 'observed_at'),
     )
     cleanUtms.observed_at = new Date().toISOString()
 
-    Cookies.set('hello_utm', JSON.stringify(cleanUtms))
+    Cookies.set(cookie, JSON.stringify(cleanUtms))
   }
 
-  get current() {
+  /**
+   * The UTM parameters in a query string, or null without both a source and a
+   * medium.
+   */
+  static fromSearch(search) {
+    const params = new URLSearchParams(search || '')
+    const utms = Object.fromEntries(
+      UTM_KEYS.map(key => [key, params.get(`utm_${key}`)]).filter(([_, value]) => value),
+    )
+
+    return utms.source && utms.medium ? utms : null
+  }
+
+  /**
+   * On the URL the document was loaded with, and not handed over from another
+   * page of this site that carried different UTMs (a redirect that keeps the
+   * query is still the same arrival).
+   */
+  static isArrival(utms) {
+    if (!UTM.same(utms, UTM.fromSearch(UTM.documentSearch))) return false
+
+    const referrer = UTM.sameSiteReferrer
+    return !referrer || UTM.same(utms, UTM.fromSearch(referrer.search))
+  }
+
+  static isHellotext(utms) {
+    return String(utms.source).toLowerCase() === 'hellotext'
+  }
+
+  static same(a, b) {
+    if (!a || !b) return false
+
+    return UTM_KEYS.every(key => (a[key] || '') === (b[key] || ''))
+  }
+
+  static read(cookie) {
     try {
-      return JSON.parse(Cookies.get('hello_utm')) || {}
+      return JSON.parse(Cookies.get(cookie)) || {}
     } catch (e) {
       return {}
     }
+  }
+
+  /**
+   * The query string the document was loaded with. Single-page stores change
+   * the address without loading a new document, and the navigation entry
+   * keeps the original. Without it, the current address is the best answer.
+   */
+  static get documentSearch() {
+    try {
+      const entry = window.performance?.getEntriesByType?.('navigation')?.[0]
+      if (entry?.name) return new URL(entry.name).search
+    } catch (e) {
+      // An unparsable entry falls back to the current address.
+    }
+
+    return window.location.search
+  }
+
+  /**
+   * The referrer as a URL when it is another page of this site, compared by
+   * root domain so subdomains of one store count as the same site.
+   */
+  static get sameSiteReferrer() {
+    try {
+      if (typeof document === 'undefined' || !document.referrer || !window.location.hostname)
+        return null
+
+      const referrer = new URL(document.referrer)
+      const sameSite =
+        Page.getRootDomain(referrer.hostname) === Page.getRootDomain(window.location.hostname)
+
+      return sameSite ? referrer : null
+    } catch (e) {
+      return null
+    }
+  }
+
+  static get restoredNavigation() {
+    try {
+      const type = window.performance?.getEntriesByType?.('navigation')?.[0]?.type
+      return type === 'reload' || type === 'back_forward'
+    } catch (e) {
+      return false
+    }
+  }
+
+  static observedDuringThisDocument(stored) {
+    const documentStart = window.performance?.timeOrigin
+    const observedAt = Date.parse(stored?.observed_at)
+
+    return Boolean(documentStart) && !Number.isNaN(observedAt) && observedAt >= documentStart
   }
 }
 
