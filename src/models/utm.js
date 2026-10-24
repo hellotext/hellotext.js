@@ -54,7 +54,7 @@ class UTM {
    * @param {Object} utmParams
    */
   save(utmParams) {
-    this.write(ARRIVAL_COOKIE, utmParams)
+    this.recordClick(utmParams)
   }
 
   /**
@@ -78,8 +78,7 @@ class UTM {
    * Stores an arrival unless it is the one already stored and this is not a
    * new click on it: it was stored during this document, this document is a
    * reload or a back or forward navigation, or the visitor came from another
-   * page of this site whose links kept the arrival's UTMs. A new arrival also
-   * clears the in-site UTM, which belonged to the previous visit.
+   * page of this site whose links kept the arrival's UTMs.
    */
   saveArrival(utms) {
     const stored = this.current
@@ -90,8 +89,7 @@ class UTM {
 
     if (UTM.same(utms, stored) && sameClick) return
 
-    this.write(ARRIVAL_COOKIE, utms)
-    if (Object.keys(this.internal).length) Cookies.delete(IN_SITE_COOKIE)
+    this.recordClick(utms)
   }
 
   /**
@@ -110,7 +108,18 @@ class UTM {
     )
       return
 
-    this.write(ARRIVAL_COOKIE, utms)
+    this.recordClick(utms)
+  }
+
+  /**
+   * Records a new click as the visitor's current one, whether an arrival, a
+   * Hellotext link opened in the store or an explicit save. The in-site UTM
+   * described the browsing before it, so it is cleared rather than sent along
+   * with the new click on every event.
+   */
+  recordClick(utms) {
+    if (!this.write(ARRIVAL_COOKIE, utms)) return
+    if (Object.keys(this.internal).length) Cookies.delete(IN_SITE_COOKIE)
   }
 
   saveIfChanged(cookie, utms) {
@@ -119,8 +128,12 @@ class UTM {
     this.write(cookie, utms)
   }
 
+  /**
+   * Writes the UTM parameters to the cookie, observed now. Returns whether
+   * they had the source and medium needed to be written.
+   */
   write(cookie, utmParams) {
-    if (!utmParams.source || !utmParams.medium) return
+    if (!utmParams.source || !utmParams.medium) return false
 
     const cleanUtms = Object.fromEntries(
       Object.entries(utmParams).filter(([key, value]) => value && key !== 'observed_at'),
@@ -128,6 +141,7 @@ class UTM {
     cleanUtms.observed_at = new Date().toISOString()
 
     Cookies.set(cookie, JSON.stringify(cleanUtms))
+    return true
   }
 
   /**

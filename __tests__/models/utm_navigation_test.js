@@ -177,6 +177,35 @@ describe('UTM arrival and in-site navigation', () => {
       expect(written('hello_utm')).toHaveLength(1)
     })
 
+    it('clears the in-site UTM when a Hellotext link is opened after a store banner', () => {
+      cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', observed_at: '2026-10-24T17:59:10.000Z' })
+
+      visit({ search: hellotext, loadedWith: '' })
+
+      expect(written('hello_utm')).toHaveLength(1)
+      expect(Cookies.delete).toHaveBeenCalledWith('hello_utm_internal')
+    })
+
+    it('clears the in-site UTM when the webchat saves a Hellotext click', () => {
+      cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', observed_at: '2026-10-24T17:59:10.000Z' })
+      window.location = { search: '', hostname: 'www.store.com' }
+
+      new UTM().save({ source: 'hellotext', medium: 'webchat', campaign: 'webchat_widget' })
+
+      expect(written('hello_utm')).toHaveLength(1)
+      expect(Cookies.delete).toHaveBeenCalledWith('hello_utm_internal')
+    })
+
+    it('keeps the in-site UTM when an explicit save has nothing to store', () => {
+      cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', observed_at: '2026-10-24T17:59:10.000Z' })
+      window.location = { search: '', hostname: 'www.store.com' }
+
+      new UTM().save({ source: 'hellotext' })
+
+      expect(Cookies.set).not.toHaveBeenCalled()
+      expect(Cookies.delete).not.toHaveBeenCalled()
+    })
+
     it('keeps the time of a Hellotext link reloaded from inside the store', () => {
       cookies.hello_utm = JSON.stringify({ source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: '2026-10-20T10:00:00.000Z' })
 
