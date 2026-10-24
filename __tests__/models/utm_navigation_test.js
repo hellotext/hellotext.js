@@ -216,6 +216,19 @@ describe('UTM arrival and in-site navigation', () => {
       expect(Cookies.delete).toHaveBeenCalledWith('hello_utm_internal')
     })
 
+    it('clears the in-site UTM before the new click fires utm-set', () => {
+      cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', observed_at: '2026-10-24T17:59:10.000Z' })
+      let internalWhenSet = 'not written'
+      Cookies.set = jest.fn((name, value) => {
+        if (name === 'hello_utm') internalWhenSet = cookies.hello_utm_internal
+        cookies[name] = value
+      })
+
+      visit({ search: hellotext, loadedWith: '' })
+
+      expect(internalWhenSet).toBeUndefined()
+    })
+
     it('keeps the in-site UTM when an explicit save has nothing to store', () => {
       cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', observed_at: '2026-10-24T17:59:10.000Z' })
       window.location = { search: '', hostname: 'www.store.com' }

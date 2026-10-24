@@ -111,11 +111,16 @@ class UTM {
    * Records a new click as the visitor's current one, whether an arrival, a
    * Hellotext link opened in the store or an explicit save. The in-site UTM
    * described the browsing before it, so it is cleared rather than sent along
-   * with the new click on every event.
+   * with the new click on every event. It is cleared before the click is
+   * written: writing `hello_utm` fires `utm-set` synchronously, and a listener
+   * that tracks an event must not send the old in-site UTM with the new click.
+   * A click without a source and a medium is not written and clears nothing.
    */
   recordClick(utms) {
-    if (!this.write(ARRIVAL_COOKIE, utms)) return
+    if (!UTM.complete(utms)) return
+
     if (Object.keys(this.internal).length) Cookies.delete(IN_SITE_COOKIE)
+    this.write(ARRIVAL_COOKIE, utms)
   }
 
   saveIfChanged(cookie, utms) {
@@ -125,11 +130,11 @@ class UTM {
   }
 
   /**
-   * Writes the UTM parameters to the cookie, observed now. Returns whether
-   * they had the source and medium needed to be written.
+   * Writes the UTM parameters to the cookie, observed now, when they have the
+   * source and medium needed to be stored.
    */
   write(cookie, utmParams) {
-    if (!utmParams.source || !utmParams.medium) return false
+    if (!UTM.complete(utmParams)) return
 
     const cleanUtms = Object.fromEntries(
       Object.entries(utmParams).filter(([key, value]) => value && key !== 'observed_at'),
@@ -137,7 +142,10 @@ class UTM {
     cleanUtms.observed_at = new Date().toISOString()
 
     Cookies.set(cookie, JSON.stringify(cleanUtms))
-    return true
+  }
+
+  static complete(utmParams) {
+    return Boolean(utmParams?.source && utmParams?.medium)
   }
 
   /**
