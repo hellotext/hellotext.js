@@ -158,6 +158,34 @@ describe('UTM arrival and in-site navigation', () => {
       expect(Cookies.delete).not.toHaveBeenCalled()
     })
 
+    it('stays in-site when a reload restores an earlier store link after another one was opened', () => {
+      const bannerA = '?utm_source=banner_a&utm_medium=banner_a&utm_campaign=banner_a'
+      cookies.hello_utm = JSON.stringify({ source: 'google', medium: 'cpc', campaign: 'brand', observed_at: '2026-10-24T17:00:00.000Z' })
+      cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', campaign: 'pop_up_tv', observed_at: '2026-10-24T17:40:00.000Z' })
+
+      visit({ search: bannerA, referrer: 'https://www.google.com/', type: 'reload' })
+
+      expect(written('hello_utm')).toEqual([])
+      expect(Cookies.delete).not.toHaveBeenCalled()
+      expect(written('hello_utm_internal')).toEqual([
+        { source: 'banner_a', medium: 'banner_a', campaign: 'banner_a', observed_at: now },
+      ])
+    })
+
+    it("keeps a newer arrival when the visitor goes back to an older visit's tagged landing", () => {
+      cookies.hello_utm = JSON.stringify({ source: 'facebook', medium: 'paid', observed_at: '2026-10-24T17:00:00.000Z' })
+
+      visit({ search: ad, type: 'back_forward' })
+
+      expect(written('hello_utm')).toEqual([])
+    })
+
+    it('takes a restored tagged URL as the arrival when none is stored', () => {
+      visit({ search: ad, type: 'reload' })
+
+      expect(written('hello_utm')).toEqual([{ source: 'google', medium: 'cpc', campaign: 'brand', observed_at: now }])
+    })
+
     it('treats the in-site UTMs as an arrival when the visitor comes back from outside the site', () => {
       cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', campaign: 'pop_up_tv', observed_at: '2026-10-20T10:00:00.000Z' })
 
@@ -247,6 +275,14 @@ describe('UTM arrival and in-site navigation', () => {
       expect(written('hello_utm')).toEqual([
         { source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: now },
       ])
+    })
+
+    it('keeps a newer arrival when the visitor goes back to an older Hellotext link', () => {
+      cookies.hello_utm = JSON.stringify({ source: 'google', medium: 'cpc', campaign: 'brand', observed_at: '2026-10-24T17:00:00.000Z' })
+
+      visit({ search: hellotext, referrer: 'https://www.store.com/tv', type: 'back_forward' })
+
+      expect(Cookies.set).not.toHaveBeenCalled()
     })
 
     it('keeps the time of a Hellotext link reloaded from inside the store', () => {

@@ -92,17 +92,18 @@ class UTM {
 
   /**
    * Stores a Hellotext click opened from inside the store. Reading it again
-   * during this document, or on a reload or a back or forward navigation that
-   * restores its URL, keeps its time. Anything else is a new click even when
-   * an earlier visit stored the same campaign: the cookie lives for years, and
-   * `utm-set` must fire again so integrations restamp the order with the fresh
-   * click.
+   * during this document keeps its time, and a reload or a back or forward
+   * navigation that restores its URL is not a new click, so it neither
+   * restamps it nor replaces a newer arrival. Anything else is a new click
+   * even when an earlier visit stored the same campaign: the cookie lives for
+   * years, and `utm-set` must fire again so integrations restamp the order
+   * with the fresh click.
    */
   saveHellotext(utms) {
     const stored = this.current
 
-    if (UTM.same(utms, stored) && (UTM.restored(utms) || UTM.observedDuringThisDocument(stored)))
-      return
+    if (UTM.restored(utms) && UTM.complete(stored)) return
+    if (UTM.same(utms, stored) && UTM.observedDuringThisDocument(stored)) return
 
     this.recordClick(utms)
   }
@@ -166,21 +167,29 @@ class UTM {
    * the site or handed over from another page of this site that carried the
    * same UTMs: a redirect that keeps the query is still the arrival.
    *
-   * The stored in-site UTMs stay in-site in two cases, because neither is a
-   * new click: the visitor browses on from the store's own link (pagination
-   * and filters often keep the query), or a reload or a back or forward
-   * navigation restores a URL they were already on. A single-page store
-   * reloaded on the store's link loads the document with its UTMs while the
-   * referrer is still the one the visit started with. A new navigation from
-   * outside the site with the same UTMs is still an arrival.
+   * A reload or a back or forward navigation is never a new click. When it
+   * restores UTMs other than the stored arrival, they are in-site: a single-
+   * page store reloaded on one of the store's links loads the document with
+   * its UTMs while the referrer is still the one the visit started with, and
+   * the visitor may have opened other store links since, so the in-site
+   * cookie alone cannot recognise it. With no arrival stored there is nothing
+   * to protect, and the restored UTMs are the arrival.
+   *
+   * The stored in-site UTMs also stay in-site when the visitor browses on
+   * from the store's own link: pagination and filters often keep the query.
+   * A new navigation from outside the site with the same UTMs is an arrival.
    */
   static isArrival(utms) {
     if (!UTM.same(utms, UTM.fromSearch(UTM.documentSearch))) return false
 
+    if (UTM.restored(utms)) {
+      const stored = UTM.read(ARRIVAL_COOKIE)
+      return !UTM.complete(stored) || UTM.same(utms, stored)
+    }
+
     const referrer = UTM.sameSiteReferrer
-    const inSite = UTM.same(utms, UTM.read(IN_SITE_COOKIE))
-    if (inSite && (referrer || UTM.restored(utms))) return false
     if (!referrer) return true
+    if (UTM.same(utms, UTM.read(IN_SITE_COOKIE))) return false
 
     return UTM.same(utms, UTM.fromSearch(referrer.search))
   }
