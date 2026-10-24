@@ -41,7 +41,7 @@ class UTM {
     if (UTM.isArrival(utms)) {
       this.saveArrival(utms)
     } else if (UTM.isHellotext(utms)) {
-      this.saveIfChanged(ARRIVAL_COOKIE, utms)
+      this.saveHellotext(utms)
     } else {
       this.saveIfChanged(IN_SITE_COOKIE, utms)
     }
@@ -92,6 +92,25 @@ class UTM {
 
     this.write(ARRIVAL_COOKIE, utms)
     if (Object.keys(this.internal).length) Cookies.delete(IN_SITE_COOKIE)
+  }
+
+  /**
+   * Stores a Hellotext click opened from inside the store. Reading it again
+   * during this document, or on a reload or a back or forward navigation,
+   * keeps its time. A new document is a new click even when an earlier visit
+   * stored the same campaign: the cookie lives for years, and `utm-set` must
+   * fire again so integrations restamp the order with the fresh click.
+   */
+  saveHellotext(utms) {
+    const stored = this.current
+
+    if (
+      UTM.same(utms, stored) &&
+      (UTM.restoredNavigation || UTM.observedDuringThisDocument(stored))
+    )
+      return
+
+    this.write(ARRIVAL_COOKIE, utms)
   }
 
   saveIfChanged(cookie, utms) {

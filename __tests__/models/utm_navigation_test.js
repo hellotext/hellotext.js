@@ -159,6 +159,32 @@ describe('UTM arrival and in-site navigation', () => {
       expect(written('hello_utm_internal')).toEqual([])
     })
 
+    it('stamps a new click on a Hellotext link the visitor also clicked on an earlier visit', () => {
+      cookies.hello_utm = JSON.stringify({ source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: '2026-10-20T10:00:00.000Z' })
+
+      visit({ search: hellotext, referrer: 'https://www.store.com/tv' })
+
+      expect(written('hello_utm')).toEqual([
+        { source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: now },
+      ])
+    })
+
+    it('stamps it again when a single-page store opens it in-page on a new visit', () => {
+      cookies.hello_utm = JSON.stringify({ source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: '2026-10-20T10:00:00.000Z' })
+
+      visit({ search: hellotext, loadedWith: '' })
+
+      expect(written('hello_utm')).toHaveLength(1)
+    })
+
+    it('keeps the time of a Hellotext link reloaded from inside the store', () => {
+      cookies.hello_utm = JSON.stringify({ source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: '2026-10-20T10:00:00.000Z' })
+
+      visit({ search: hellotext, referrer: 'https://www.store.com/tv', type: 'reload' })
+
+      expect(Cookies.set).not.toHaveBeenCalled()
+    })
+
     it('keeps the time of a Hellotext UTM read again in the same document', () => {
       cookies.hello_utm = JSON.stringify({ source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: '2026-10-24T17:59:30.000Z' })
 
