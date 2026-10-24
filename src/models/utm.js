@@ -160,17 +160,23 @@ class UTM {
   /**
    * On the URL the document was loaded with, and either reached from outside
    * the site or handed over from another page of this site that carried the
-   * same UTMs: a redirect that keeps the query is still the arrival. When those
-   * same UTMs are the stored in-site ones, the visitor is browsing on from the
-   * store's own link (pagination and filters often keep the query), so they
-   * stay in-site.
+   * same UTMs: a redirect that keeps the query is still the arrival.
+   *
+   * The stored in-site UTMs stay in-site in two cases, because neither is a
+   * new click: the visitor browses on from the store's own link (pagination
+   * and filters often keep the query), or a reload or a back or forward
+   * navigation restores a URL they were already on. A single-page store
+   * reloaded on the store's link loads the document with its UTMs while the
+   * referrer is still the one the visit started with. A new navigation from
+   * outside the site with the same UTMs is still an arrival.
    */
   static isArrival(utms) {
     if (!UTM.same(utms, UTM.fromSearch(UTM.documentSearch))) return false
 
     const referrer = UTM.sameSiteReferrer
+    const inSite = UTM.same(utms, UTM.read(IN_SITE_COOKIE))
+    if (inSite && (referrer || UTM.restoredNavigation)) return false
     if (!referrer) return true
-    if (UTM.same(utms, UTM.read(IN_SITE_COOKIE))) return false
 
     return UTM.same(utms, UTM.fromSearch(referrer.search))
   }

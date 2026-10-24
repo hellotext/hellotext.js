@@ -138,6 +138,26 @@ describe('UTM arrival and in-site navigation', () => {
       expect(JSON.parse(cookies.hello_utm)).toMatchObject({ source: 'google', observed_at: '2026-10-24T17:00:00.000Z' })
     })
 
+    it('stays in-site when a single-page store is reloaded on the store link', () => {
+      cookies.hello_utm = JSON.stringify({ source: 'google', medium: 'cpc', campaign: 'brand', observed_at: '2026-10-24T17:00:00.000Z' })
+      cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', campaign: 'pop_up_tv', observed_at: '2026-10-24T17:30:00.000Z' })
+
+      visit({ search: popup, referrer: 'https://www.google.com/', type: 'reload' })
+
+      expect(Cookies.set).not.toHaveBeenCalled()
+      expect(Cookies.delete).not.toHaveBeenCalled()
+    })
+
+    it('stays in-site when a back or forward navigation restores the store link without a referrer', () => {
+      cookies.hello_utm = JSON.stringify({ source: 'google', medium: 'cpc', campaign: 'brand', observed_at: '2026-10-24T17:00:00.000Z' })
+      cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', campaign: 'pop_up_tv', observed_at: '2026-10-24T17:30:00.000Z' })
+
+      visit({ search: popup, type: 'back_forward' })
+
+      expect(Cookies.set).not.toHaveBeenCalled()
+      expect(Cookies.delete).not.toHaveBeenCalled()
+    })
+
     it('treats the in-site UTMs as an arrival when the visitor comes back from outside the site', () => {
       cookies.hello_utm_internal = JSON.stringify({ source: 'pop_up_tv', medium: 'pop_up_tv', campaign: 'pop_up_tv', observed_at: '2026-10-20T10:00:00.000Z' })
 
