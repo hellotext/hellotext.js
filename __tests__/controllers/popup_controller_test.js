@@ -130,6 +130,7 @@ describe('PopupController', () => {
     jest.useRealTimers()
     jest.restoreAllMocks()
     document.body.innerHTML = ''
+    Hellotext.push = null
   })
 
   it('shows the bubble first and opens the dialog when clicked', () => {
@@ -211,6 +212,16 @@ describe('PopupController', () => {
 
       expect(element.hidden).toBe(false)
     })
+
+    it('ignores the keyless keydown Chrome fires when an autofill suggestion is picked', () => {
+      const { element } = buildController({ hasBubble: false })
+
+      controller.connect()
+      controller.closeOnEscape(new Event('keydown', { bubbles: true }))
+
+      expect(element.hidden).toBe(false)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:closed')
+    })
   })
 
   it('validates the current step before moving to the next one', async () => {
@@ -231,6 +242,227 @@ describe('PopupController', () => {
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(false)
     expect(PopupsAPI.submit).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['the server marks Push unavailable', 'false', { subscribe: jest.fn() }],
+    ['the browser cannot use Push', 'true', null],
+  ])('hides and disables the Push field when %s', (_, available, push) => {
+    const { stepOne } = buildController({ hasBubble: false })
+    const field = document.createElement('article')
+    field.className = 'hellotext--popup-field'
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupPushAvailable = available
+    field.appendChild(pushInput)
+    stepOne.appendChild(field)
+    controller.inputTargets.push(pushInput)
+    Hellotext.push = push
+
+    controller.connect()
+
+    expect(field.hidden).toBe(true)
+    expect(pushInput.checked).toBe(false)
+    expect(pushInput.disabled).toBe(true)
+  })
+
+  it('asks for Push permission from the checked step and advances after denial', async () => {
+    const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    emailInput.value = 'customer@example.com'
+    Hellotext.push = { subscribe: jest.fn().mockRejectedValue(new Error('denied')) }
+
+    controller.connect()
+    const advancing = controller.next()
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    await advancing
+
+    expect(stepOne.hidden).toBe(true)
+    expect(stepTwo.hidden).toBe(false)
+  })
+
+  it('advances only once for overlapping Next clicks while Push permission is pending', async () => {
+    const { stepOne, stepTwo, emailInput, phoneInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    const nextButton = document.createElement('button')
+    nextButton.dataset.action = 'click->hellotext--popup#next'
+    stepOne.append(pushInput, nextButton)
+    controller.inputTargets.push(pushInput)
+    emailInput.value = 'customer@example.com'
+    phoneInput.value = '+59898123456'
+    let settleSubscription
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(resolve => { settleSubscription = resolve })) }
+    controller.connect()
+
+    const firstClick = controller.next()
+    expect(nextButton.disabled).toBe(true)
+    const repeatedClick = controller.next()
+    const enterKey = controller.submit()
+    settleSubscription()
+    await Promise.all([firstClick, repeatedClick, enterKey])
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    expect(controller.stepIndex).toBe(1)
+    expect(stepTwo.hidden).toBe(false)
+    expect(PopupsAPI.submit).not.toHaveBeenCalled()
+    expect(nextButton.disabled).toBe(false)
+  })
+
+  it('submits only once for overlapping final-step actions while Push permission is pending', async () => {
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    let settleSubscription
+    Hellotext.push = {
+      subscribe: jest.fn(() => new Promise(resolve => { settleSubscription = resolve })),
+      subscriptionForSubmission: jest.fn(() => null),
+    }
+    controller.connect()
+
+    const firstClick = controller.submit()
+    const repeatedClick = controller.submit()
+    settleSubscription()
+    await Promise.all([firstClick, repeatedClick])
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    expect(PopupsAPI.submit).toHaveBeenCalledTimes(1)
+  })
+
+  it('requests Push permission only once when the checked step is the final step', async () => {
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    const subscribe = jest.fn().mockRejectedValue(new Error('denied'))
+    Hellotext.push = { subscribe }
+
+    await controller.subscribeForPushOnCurrentStep()
+    await controller.subscribeForPushOnCurrentStep()
+
+    expect(subscribe).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows animated loading dots on the step button while Push permission is pending', async () => {
+    jest.useFakeTimers()
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    const button = document.createElement('button')
+    button.setAttribute('data-hellotext--popup-target', 'submitButton')
+    button.textContent = 'Get my 10% OFF'
+    stepOne.appendChild(button)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    controller.element.dataset.pushLoadingLabel = 'Enable notifications'
+    emailInput.value = 'customer@example.com'
+    let settle
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(resolve => { settle = resolve })) }
+
+    const waiting = controller.subscribeForPushOnCurrentStep()
+    const visibleDots = () => button.querySelector('span').textContent
+
+    expect(button.disabled).toBe(true)
+    expect(button.getAttribute('aria-busy')).toBe('true')
+    expect(button.textContent.startsWith('Enable notifications')).toBe(true)
+    expect(visibleDots()).toBe('.')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('..')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('...')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('')
+
+    settle({ failed: false })
+    await waiting
+    jest.useRealTimers()
+
+    expect(button.textContent).toBe('Get my 10% OFF')
+    expect(button.hasAttribute('aria-busy')).toBe(false)
+    expect(button.disabled).toBe(false)
+  })
+
+  it('sanitizes the step button markup it restores after the Push request settles', () => {
+    buildController({ hasBubble: false })
+    const button = document.createElement('button')
+    button.innerHTML = [
+      '<span class="label">Get my 10% OFF</span>',
+      '<svg aria-hidden="true"><path d="M0 0h1"></path></svg>',
+      '<img src="x" onerror="window.pwned = true">',
+      '<script>window.pwned = true</script>',
+    ].join('')
+
+    const restore = controller.showPushLoading([button])
+    expect(button.textContent.startsWith('Enable notifications')).toBe(true)
+    restore()
+
+    expect(button.querySelector('span.label').textContent).toBe('Get my 10% OFF')
+    expect(button.querySelector('svg path')).not.toBeNull()
+    expect(button.querySelector('img').getAttribute('src')).toBe('x')
+    expect(button.querySelector('img').hasAttribute('onerror')).toBe(false)
+    expect(button.querySelector('script')).toBeNull()
+    expect(window.pwned).toBeUndefined()
+  })
+
+  it('stops waiting for a Push subscription that never settles', async () => {
+    jest.useFakeTimers()
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(() => {})) }
+
+    const waiting = controller.subscribeForPushOnCurrentStep()
+    jest.advanceTimersByTime(15000)
+    await waiting
+    jest.useRealTimers()
+
+    expect(controller.pushPermissionState).toBe('registration_failed')
   })
 
   it('advances instead of submitting when the form submits before the last step', async () => {
