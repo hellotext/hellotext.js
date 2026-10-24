@@ -83,9 +83,7 @@ class UTM {
   saveArrival(utms) {
     const stored = this.current
     const sameClick =
-      UTM.restoredNavigation ||
-      UTM.observedDuringThisDocument(stored) ||
-      Boolean(UTM.sameSiteReferrer)
+      UTM.restored(utms) || UTM.observedDuringThisDocument(stored) || Boolean(UTM.sameSiteReferrer)
 
     if (UTM.same(utms, stored) && sameClick) return
 
@@ -94,18 +92,16 @@ class UTM {
 
   /**
    * Stores a Hellotext click opened from inside the store. Reading it again
-   * during this document, or on a reload or a back or forward navigation,
-   * keeps its time. A new document is a new click even when an earlier visit
-   * stored the same campaign: the cookie lives for years, and `utm-set` must
-   * fire again so integrations restamp the order with the fresh click.
+   * during this document, or on a reload or a back or forward navigation that
+   * restores its URL, keeps its time. Anything else is a new click even when
+   * an earlier visit stored the same campaign: the cookie lives for years, and
+   * `utm-set` must fire again so integrations restamp the order with the fresh
+   * click.
    */
   saveHellotext(utms) {
     const stored = this.current
 
-    if (
-      UTM.same(utms, stored) &&
-      (UTM.restoredNavigation || UTM.observedDuringThisDocument(stored))
-    )
+    if (UTM.same(utms, stored) && (UTM.restored(utms) || UTM.observedDuringThisDocument(stored)))
       return
 
     this.recordClick(utms)
@@ -175,7 +171,7 @@ class UTM {
 
     const referrer = UTM.sameSiteReferrer
     const inSite = UTM.same(utms, UTM.read(IN_SITE_COOKIE))
-    if (inSite && (referrer || UTM.restoredNavigation)) return false
+    if (inSite && (referrer || UTM.restored(utms))) return false
     if (!referrer) return true
 
     return UTM.same(utms, UTM.fromSearch(referrer.search))
@@ -232,6 +228,16 @@ class UTM {
     } catch (e) {
       return null
     }
+  }
+
+  /**
+   * Whether these UTMs are on a URL that a reload or a back or forward
+   * navigation restored. The navigation type describes the whole document,
+   * so on a single-page store it stays "reload" for links opened afterwards;
+   * only the UTMs on the URL the document was loaded with were restored.
+   */
+  static restored(utms) {
+    return UTM.restoredNavigation && UTM.same(utms, UTM.fromSearch(UTM.documentSearch))
   }
 
   static get restoredNavigation() {

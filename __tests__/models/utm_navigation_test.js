@@ -226,6 +226,16 @@ describe('UTM arrival and in-site navigation', () => {
       expect(Cookies.delete).not.toHaveBeenCalled()
     })
 
+    it('stamps a Hellotext link opened in-page after a single-page store was reloaded on another page', () => {
+      cookies.hello_utm = JSON.stringify({ source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: '2026-10-20T10:00:00.000Z' })
+
+      visit({ search: hellotext, loadedWith: '', type: 'reload' })
+
+      expect(written('hello_utm')).toEqual([
+        { source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: now },
+      ])
+    })
+
     it('keeps the time of a Hellotext link reloaded from inside the store', () => {
       cookies.hello_utm = JSON.stringify({ source: 'hellotext', medium: 'whatsapp', campaign: 'product_recommender', observed_at: '2026-10-20T10:00:00.000Z' })
 
