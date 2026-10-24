@@ -1,6 +1,7 @@
 import { Controller } from '@hotwired/stimulus'
 
 import PopupsAPI from '../api/popups'
+import { setSanitizedButtonContent } from '../core/sanitize_html'
 import Hellotext from '../hellotext'
 
 // Caps the wait for a stalled worker or identity request so the popup always continues.
@@ -301,7 +302,7 @@ export default class extends Controller {
    * reserved dots keep the button width still while the dots change.
    *
    * @param {HTMLElement[]} buttons - Step buttons that are disabled for the request.
-   * @returns {() => void} Restores each button's original content and accessibility state.
+   * @returns {() => void} Restores each button's original content, sanitized, and accessibility state.
    */
   showPushLoading(buttons) {
     const label = this.element.dataset.pushLoadingLabel || PUSH_LOADING_LABEL
@@ -332,7 +333,7 @@ export default class extends Controller {
     return () => {
       clearInterval(interval)
       saved.forEach(({ button, content, busy }) => {
-        button.innerHTML = content
+        setSanitizedButtonContent(button, content)
         if (busy === null) button.removeAttribute('aria-busy')
         else button.setAttribute('aria-busy', busy)
       })

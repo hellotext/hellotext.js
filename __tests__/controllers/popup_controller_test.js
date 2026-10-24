@@ -419,6 +419,28 @@ describe('PopupController', () => {
     expect(button.disabled).toBe(false)
   })
 
+  it('sanitizes the step button markup it restores after the Push request settles', () => {
+    buildController({ hasBubble: false })
+    const button = document.createElement('button')
+    button.innerHTML = [
+      '<span class="label">Get my 10% OFF</span>',
+      '<svg aria-hidden="true"><path d="M0 0h1"></path></svg>',
+      '<img src="x" onerror="window.pwned = true">',
+      '<script>window.pwned = true</script>',
+    ].join('')
+
+    const restore = controller.showPushLoading([button])
+    expect(button.textContent.startsWith('Enable notifications')).toBe(true)
+    restore()
+
+    expect(button.querySelector('span.label').textContent).toBe('Get my 10% OFF')
+    expect(button.querySelector('svg path')).not.toBeNull()
+    expect(button.querySelector('img').getAttribute('src')).toBe('x')
+    expect(button.querySelector('img').hasAttribute('onerror')).toBe(false)
+    expect(button.querySelector('script')).toBeNull()
+    expect(window.pwned).toBeUndefined()
+  })
+
   it('stops waiting for a Push subscription that never settles', async () => {
     jest.useFakeTimers()
     const { stepOne, emailInput } = buildController({ hasBubble: false })
