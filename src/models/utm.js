@@ -76,18 +76,19 @@ class UTM {
 
   /**
    * Stores an arrival unless it is the one already stored and this is not a
-   * new click on it: it was stored during this document, or this document is
-   * a reload or a back or forward navigation. A new arrival also clears the
-   * in-site UTM, which belonged to the previous visit.
+   * new click on it: it was stored during this document, this document is a
+   * reload or a back or forward navigation, or the visitor came from another
+   * page of this site whose links kept the arrival's UTMs. A new arrival also
+   * clears the in-site UTM, which belonged to the previous visit.
    */
   saveArrival(utms) {
     const stored = this.current
+    const sameClick =
+      UTM.restoredNavigation ||
+      UTM.observedDuringThisDocument(stored) ||
+      Boolean(UTM.sameSiteReferrer)
 
-    if (
-      UTM.same(utms, stored) &&
-      (UTM.restoredNavigation || UTM.observedDuringThisDocument(stored))
-    )
-      return
+    if (UTM.same(utms, stored) && sameClick) return
 
     this.write(ARRIVAL_COOKIE, utms)
     if (Object.keys(this.internal).length) Cookies.delete(IN_SITE_COOKIE)
@@ -124,15 +125,21 @@ class UTM {
   }
 
   /**
-   * On the URL the document was loaded with, and not handed over from another
-   * page of this site that carried different UTMs (a redirect that keeps the
-   * query is still the same arrival).
+   * On the URL the document was loaded with, and either reached from outside
+   * the site or handed over from another page of this site that carried the
+   * same UTMs: a redirect that keeps the query is still the arrival. When those
+   * same UTMs are the stored in-site ones, the visitor is browsing on from the
+   * store's own link (pagination and filters often keep the query), so they
+   * stay in-site.
    */
   static isArrival(utms) {
     if (!UTM.same(utms, UTM.fromSearch(UTM.documentSearch))) return false
 
     const referrer = UTM.sameSiteReferrer
-    return !referrer || UTM.same(utms, UTM.fromSearch(referrer.search))
+    if (!referrer) return true
+    if (UTM.same(utms, UTM.read(IN_SITE_COOKIE))) return false
+
+    return UTM.same(utms, UTM.fromSearch(referrer.search))
   }
 
   static isHellotext(utms) {
