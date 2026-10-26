@@ -402,6 +402,67 @@ describe("when initializing business metadata", () => {
     expect(loadPopup).not.toHaveBeenCalled()
   })
 
+  describe('when a short link asks for a popup', () => {
+    let linkedId
+
+    beforeEach(() => {
+      linkedId = jest.spyOn(Popup, 'linkedId', 'get').mockReturnValue('linked-popup')
+    })
+
+    afterEach(() => {
+      linkedId.mockRestore()
+    })
+
+    it('opens the linked popup instead of the dashboard popup', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).toHaveBeenCalledTimes(1)
+      expect(loadPopup).toHaveBeenCalledWith(
+        'linked-popup',
+        expect.objectContaining({ container: 'body', linked: true }),
+      )
+    })
+
+    it('opens the linked popup instead of an explicit popup id and keeps the local options', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks', {
+        popup: { id: 'explicit-popup', container: '#popup-container' },
+      })
+
+      expect(loadPopup).toHaveBeenCalledWith(
+        'linked-popup',
+        expect.objectContaining({ container: '#popup-container', linked: true }),
+      )
+    })
+
+    it('opens the linked popup when the dashboard has no popup', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: null }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).toHaveBeenCalledWith('linked-popup', expect.objectContaining({ linked: true }))
+    })
+
+    it('opens nothing when the installation disables popups', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks', { popup: false })
+
+      expect(loadPopup).not.toHaveBeenCalled()
+    })
+  })
+
+  it('does not mark the dashboard popup as linked', async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(loadPopup).toHaveBeenCalledWith('dashboard-popup', expect.objectContaining({ linked: false }))
+  })
+
   it('unmounts the previous popup when a later initialization disables it', async () => {
     const unmount = jest.fn()
     Hellotext.popup = { unmount }

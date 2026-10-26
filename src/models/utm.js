@@ -1,5 +1,5 @@
 import { Cookies } from './cookies'
-import { Page } from './page'
+import { Navigation } from './navigation'
 
 const UTM_KEYS = ['source', 'medium', 'campaign', 'term', 'content']
 const ARRIVAL_COOKIE = 'hello_utm'
@@ -83,7 +83,9 @@ class UTM {
   saveArrival(utms) {
     const stored = this.current
     const sameClick =
-      UTM.restored(utms) || UTM.observedDuringThisDocument(stored) || Boolean(UTM.sameSiteReferrer)
+      UTM.restored(utms) ||
+      UTM.observedDuringThisDocument(stored) ||
+      Boolean(Navigation.sameSiteReferrer)
 
     if (UTM.same(utms, stored) && sameClick) return
 
@@ -180,14 +182,14 @@ class UTM {
    * A new navigation from outside the site with the same UTMs is an arrival.
    */
   static isArrival(utms) {
-    if (!UTM.same(utms, UTM.fromSearch(UTM.documentSearch))) return false
+    if (!UTM.same(utms, UTM.fromSearch(Navigation.documentSearch))) return false
 
     if (UTM.restored(utms)) {
       const stored = UTM.read(ARRIVAL_COOKIE)
       return !UTM.complete(stored) || UTM.same(utms, stored)
     }
 
-    const referrer = UTM.sameSiteReferrer
+    const referrer = Navigation.sameSiteReferrer
     if (!referrer) return true
     if (UTM.same(utms, UTM.read(IN_SITE_COOKIE))) return false
 
@@ -213,57 +215,13 @@ class UTM {
   }
 
   /**
-   * The query string the document was loaded with. Single-page stores change
-   * the address without loading a new document, and the navigation entry
-   * keeps the original. Without it, the current address is the best answer.
-   */
-  static get documentSearch() {
-    try {
-      const entry = window.performance?.getEntriesByType?.('navigation')?.[0]
-      if (entry?.name) return new URL(entry.name).search
-    } catch (e) {
-      // An unparsable entry falls back to the current address.
-    }
-
-    return window.location.search
-  }
-
-  /**
-   * The referrer as a URL when it is another page of this site, compared by
-   * root domain so subdomains of one store count as the same site.
-   */
-  static get sameSiteReferrer() {
-    try {
-      if (typeof document === 'undefined' || !document.referrer || !window.location.hostname)
-        return null
-
-      const referrer = new URL(document.referrer)
-      const sameSite =
-        Page.getRootDomain(referrer.hostname) === Page.getRootDomain(window.location.hostname)
-
-      return sameSite ? referrer : null
-    } catch (e) {
-      return null
-    }
-  }
-
-  /**
    * Whether these UTMs are on a URL that a reload or a back or forward
    * navigation restored. The navigation type describes the whole document,
    * so on a single-page store it stays "reload" for links opened afterwards;
    * only the UTMs on the URL the document was loaded with were restored.
    */
   static restored(utms) {
-    return UTM.restoredNavigation && UTM.same(utms, UTM.fromSearch(UTM.documentSearch))
-  }
-
-  static get restoredNavigation() {
-    try {
-      const type = window.performance?.getEntriesByType?.('navigation')?.[0]?.type
-      return type === 'reload' || type === 'back_forward'
-    } catch (e) {
-      return false
-    }
+    return Navigation.restored && UTM.same(utms, UTM.fromSearch(Navigation.documentSearch))
   }
 
   static observedDuringThisDocument(stored) {

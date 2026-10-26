@@ -54,6 +54,7 @@ class Hellotext {
     this.forms = new FormCollection()
 
     this.query = new Query()
+    const linkedPopupId = Popup.linkedId
 
     const businessData = await businessContext.hydrate()
     if (this.business !== businessContext) return
@@ -70,10 +71,15 @@ class Hellotext {
       }
     }
 
+    // A popup opened by a short link replaces the dashboard and local popup id,
+    // but `popup: false` still keeps this installation free of popups.
     const popupConfig =
       config.popup === false
         ? false
-        : this.deepMergePlainObjects((businessData && businessData.popup) || {}, config.popup || {})
+        : this.deepMergePlainObjects(
+            (businessData && businessData.popup) || {},
+            linkedPopupId ? { ...config.popup, id: linkedPopupId } : config.popup || {},
+          )
 
     const webchatConfig =
       config.webchat === false
@@ -122,6 +128,7 @@ class Hellotext {
       widgetLoads.push(
         Popup.load(resolvedPopupConfig.id, {
           container: resolvedPopupConfig.container,
+          linked: Boolean(linkedPopupId),
           shouldMount: () => {
             return (
               this.business === businessContext &&

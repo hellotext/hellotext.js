@@ -91,6 +91,24 @@ describe('Popup', () => {
     expect(popup.mounted).toBe(false)
   })
 
+  it('marks a popup opened from a short link before mounting it', async () => {
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+
+    await Popup.load('popup-id', { linked: true })
+
+    expect(article.getAttribute('data-hellotext--popup-linked-value')).toEqual('true')
+  })
+
+  it('leaves the server markup alone for a popup the page opened itself', async () => {
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+
+    await Popup.load('popup-id')
+
+    expect(article.hasAttribute('data-hellotext--popup-linked-value')).toBe(false)
+  })
+
   it('unmounts its rendered surface', async () => {
     const article = document.createElement('article')
     API.popups.get.mockResolvedValue(article)

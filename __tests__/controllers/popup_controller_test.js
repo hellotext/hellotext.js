@@ -9,8 +9,10 @@ import Hellotext from '../../src/hellotext'
 describe('PopupController', () => {
   let controller
   const buildController = ({
+    device = 'all',
     hasBubble = true,
     id = 'popup-id',
+    linked = false,
   } = {}) => {
     const element = document.createElement('article')
     const bubble = document.createElement('button')
@@ -87,8 +89,9 @@ describe('PopupController', () => {
     controller.hasBubbleTarget = hasBubble
     controller.hasBubbleValue = hasBubble
     controller.captureValue = { capture_id: 'capture-id' }
-    controller.deviceValue = 'all'
+    controller.deviceValue = device
     controller.idValue = id
+    controller.linkedValue = linked
     controller.initialize()
 
     return {
@@ -162,6 +165,48 @@ describe('PopupController', () => {
     expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(1, 'popup:mounted')
     expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(2, 'popup:opened')
     expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(3, 'popup:closed')
+  })
+
+  describe('when a short link opened the popup', () => {
+    it('opens the dialog immediately instead of showing the bubble', () => {
+      const { element, bubble, dialog } = buildController({ hasBubble: true, linked: true })
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+      expect(bubble.hidden).toBe(true)
+      expect(dialog.hidden).toBe(false)
+      expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(1, 'popup:mounted')
+      expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(2, 'popup:opened')
+    })
+
+    it('shows on a device the popup does not target', () => {
+      const { element, dialog } = buildController({ device: 'mobile', hasBubble: false, linked: true })
+
+      controller.connect()
+
+      expect(window.innerWidth).toBeGreaterThanOrEqual(768)
+      expect(element.hidden).toBe(false)
+      expect(dialog.hidden).toBe(false)
+    })
+
+    it('stays closed once the visitor dismissed it', () => {
+      const { element } = buildController({ hasBubble: false, linked: true })
+
+      controller.connect()
+      controller.close()
+      controller.evaluateDisplay()
+
+      expect(element.hidden).toBe(true)
+    })
+  })
+
+  it('hides a popup that does not target this device', () => {
+    const { element } = buildController({ device: 'mobile', hasBubble: false })
+
+    controller.connect()
+
+    expect(element.hidden).toBe(true)
   })
 
   describe('closing with Escape', () => {

@@ -23,6 +23,10 @@ class Query {
     return this.get('session')
   }
 
+  get popup() {
+    return this.get('popup')
+  }
+
   toHellotextParam(param) {
     return `hello_${param}`
   }
