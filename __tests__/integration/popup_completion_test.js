@@ -83,4 +83,27 @@ describe('server-rendered popup completion', () => {
     expect(noDeliveryCopy[0].innerHTML).toBe('<h4><strong>Thanks for signing up</strong></h4>')
     expect(popup.querySelector('[data-delivery-actions]').hidden).toBe(true)
   })
+
+  it('opens a popup a short link asked for in its dialog on a device it does not target', async () => {
+    const popup = new DOMParser().parseFromString(popupRuntimeHTML, 'text/html').querySelector('article')
+    const bubble = document.createElement('button')
+    const dialog = popup.querySelector('[data-hellotext--popup-target="dialog"]')
+
+    bubble.setAttribute('data-hellotext--popup-target', 'bubble')
+    bubble.hidden = true
+    dialog.hidden = true
+    popup.prepend(bubble)
+    popup.setAttribute('data-hellotext--popup-has-bubble-value', 'true')
+    popup.setAttribute('data-hellotext--popup-device-value', 'mobile')
+    API.popups.get.mockResolvedValue(popup)
+
+    await Popup.load('popup-id', { linked: true })
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(application.getControllerForElementAndIdentifier(popup, 'hellotext--popup')).toBeInstanceOf(PopupController)
+    expect(popup.hidden).toBe(false)
+    expect(bubble.hidden).toBe(true)
+    expect(dialog.hidden).toBe(false)
+  })
 })

@@ -92,6 +92,25 @@ Closing the popup hides both the dialog and the launcher. Dismissal is remembere
 
 The popup configuration does not provide the Webchat `behaviour` options. This runtime does not implement delayed opening, first-visit rules, or once-per-session display rules.
 
+### Opening a popup from a link
+
+A short link can open a specific popup on the page it leads to. The redirect adds the popup's public id to the destination URL as the `hello_popup` query parameter, next to `hello_session`:
+
+```
+https://store.com/collections/summer?hello_session=SESSION&hello_popup=POPUP_ID
+```
+
+Hellotext.js reads the parameter when it initializes and loads that popup instead of the dashboard popup or a `popup.id` passed in the configuration. The `container` and `device` options still apply. Passing `popup: false` keeps the installation free of popups, links included.
+
+Because the visitor asked for it, a popup opened from a link skips the bubble and opens its dialog immediately, on any device, whatever its device targeting.
+
+The parameter counts only when the visitor follows the link. The popup does not open again when:
+
+- the visitor reloads the page or comes back to it with the browser's back or forward buttons;
+- the visitor moves to another page of the store whose links kept the query, such as pagination or filters.
+
+A link opened from inside the store, for example from the webchat, still opens its popup. A value that is not a public popup id is ignored.
+
 ### Validation and submission
 
 Each step is validated using the browser's native input constraints, including required fields and email format. Invalid fields display their validation messages before the visitor can continue.

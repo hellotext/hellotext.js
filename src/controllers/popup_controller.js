@@ -76,6 +76,8 @@ const PUSH_LOADING_LABEL = 'Enable notifications'
  * - device: Popup device targeting.
  * - hasBubble: Whether the popup starts from a bubble.
  * - id: Public popup identifier.
+ * - linked: Set by the SDK when a short link opened the popup. The visitor asked for
+ *   it, so the dialog opens immediately on any device, skipping the bubble.
  */
 export default class extends Controller {
   static targets = [
@@ -97,6 +99,7 @@ export default class extends Controller {
     device: String,
     hasBubble: Boolean,
     id: String,
+    linked: Boolean,
   }
 
   /**
@@ -441,11 +444,12 @@ export default class extends Controller {
   /**
    * Apply dismissal and viewport eligibility before revealing any popup surface.
    * Hide the root on rejection so this also works after a previously visible mount.
+   * A popup opened from a short link ignores device targeting.
    *
    * @returns {void}
    */
   evaluateDisplay() {
-    if (this.dismissed || !this.matchesDevice()) {
+    if (this.dismissed || (!this.linkedValue && !this.matchesDevice())) {
       this.element.hidden = true
       return
     }
@@ -456,14 +460,15 @@ export default class extends Controller {
   /**
    * Choose the launcher or immediate dialog without resetting entered form values.
    * Set both surface states explicitly because a reconnect can reuse modified DOM.
-   * Bubble display alone does not emit the dialog's popup:opened event.
+   * Bubble display alone does not emit the dialog's popup:opened event. A popup
+   * opened from a short link skips the bubble.
    *
    * @returns {void}
    */
   showInitialState() {
     this.element.hidden = false
 
-    if (this.hasBubbleValue && this.hasBubbleTarget) {
+    if (this.hasBubbleValue && this.hasBubbleTarget && !this.linkedValue) {
       this.bubbleTarget.hidden = false
       this.dialogTarget.hidden = true
       return
