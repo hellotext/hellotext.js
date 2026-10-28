@@ -69,6 +69,8 @@ const PUSH_LOADING_LABEL = 'Enable notifications'
  * - resendButton: Delivery resend action and its localized countdown label.
  * - changeDestinationButton: Action that returns to the delivered-to identity field.
  * - deliveryCopy: Completion headline and description shown when a delivery is queued.
+ *   Its `data-delivery-description` element is replaced by pushDeliveryCopy when the coupon went by push.
+ * - pushDeliveryCopy: Server-rendered description shown when the popup coupon was sent by push.
  * - noDeliveryCopy: Server-rendered completion copy shown when no delivery is required.
  *
  * Values:
@@ -91,6 +93,7 @@ export default class extends Controller {
     'resendButton',
     'changeDestinationButton',
     'deliveryCopy',
+    'pushDeliveryCopy',
     'noDeliveryCopy',
   ]
 
@@ -283,6 +286,7 @@ export default class extends Controller {
       this.submissionDeliveryStatus = submission.delivery_status
       this.submissionDeliveryChannel = submission.delivery_channel
       this.submissionDestination = submission.destination
+      this.submissionCouponPush = submission.coupon_push === true
       this.resetSubmissionRequest()
     } catch (_) {
       // The server may have accepted a request whose response was lost. Retain the
@@ -774,6 +778,7 @@ export default class extends Controller {
       this.submissionDeliveryStatus = null
       this.submissionDeliveryChannel = null
       this.submissionDestination = null
+      this.submissionCouponPush = false
       this.resetSubmissionRequest()
       this.showStep(stepIndex)
       input.focus()
@@ -887,9 +892,19 @@ export default class extends Controller {
    * @returns {void}
    */
   revealCompletionCopy(deliveryRequired) {
+    // A coupon already sent by push replaces the verification description, but keeps the headline.
+    const couponByPush = deliveryRequired && this.submissionCouponPush === true
+
     if (this.hasDeliveryCopyTarget) {
       this.deliveryCopyTargets.forEach(element => {
-        element.hidden = !deliveryRequired
+        const replacedByPush = couponByPush && element.hasAttribute('data-delivery-description')
+        element.hidden = !deliveryRequired || replacedByPush
+      })
+    }
+
+    if (this.hasPushDeliveryCopyTarget) {
+      this.pushDeliveryCopyTargets.forEach(element => {
+        element.hidden = !couponByPush
       })
     }
 

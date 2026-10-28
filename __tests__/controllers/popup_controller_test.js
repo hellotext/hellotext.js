@@ -962,6 +962,7 @@ describe('PopupController', () => {
   const renderCompletionCopy = completed => {
     const deliveryHeadline = document.createElement('header')
     const deliveryDescription = document.createElement('div')
+    const pushDescription = document.createElement('div')
     const noDeliveryHeadline = document.createElement('header')
     const noDeliveryDescription = document.createElement('div')
     const actions = document.createElement('footer')
@@ -969,7 +970,11 @@ describe('PopupController', () => {
     deliveryHeadline.className = 'hellotext--popup__completion-headline'
     deliveryHeadline.innerHTML = '<h4><strong>Your code is on its way</strong></h4>'
     deliveryDescription.className = 'hellotext--popup__completion-description'
+    deliveryDescription.dataset.deliveryDescription = ''
     deliveryDescription.textContent = 'We sent it to {destination}.'
+    pushDescription.className = 'hellotext--popup__completion-description'
+    pushDescription.hidden = true
+    pushDescription.textContent = 'We sent your coupon as a push notification.'
     noDeliveryHeadline.className = 'hellotext--popup__completion-headline'
     noDeliveryHeadline.hidden = true
     noDeliveryHeadline.innerHTML = '<h4><strong>Thanks for signing up</strong></h4>'
@@ -977,17 +982,42 @@ describe('PopupController', () => {
     noDeliveryDescription.hidden = true
     noDeliveryDescription.textContent = 'Your details were saved.'
     actions.dataset.deliveryActions = ''
-    completed.append(deliveryHeadline, deliveryDescription, noDeliveryHeadline, noDeliveryDescription, actions)
+    completed.append(deliveryHeadline, deliveryDescription, pushDescription, noDeliveryHeadline, noDeliveryDescription, actions)
 
     Object.defineProperties(controller, {
       deliveryCopyTargets: { value: [deliveryHeadline, deliveryDescription], configurable: true },
+      pushDeliveryCopyTargets: { value: [pushDescription], configurable: true },
       noDeliveryCopyTargets: { value: [noDeliveryHeadline, noDeliveryDescription], configurable: true },
       hasDeliveryCopyTarget: { value: true, configurable: true },
+      hasPushDeliveryCopyTarget: { value: true, configurable: true },
       hasNoDeliveryCopyTarget: { value: true, configurable: true },
     })
 
-    return { deliveryHeadline, deliveryDescription, noDeliveryHeadline, noDeliveryDescription, actions }
+    return { deliveryHeadline, deliveryDescription, pushDescription, noDeliveryHeadline, noDeliveryDescription, actions }
   }
+
+  it('shows the push copy in place of the verification description when the coupon went by push', () => {
+    const { completed } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+    controller.submissionCouponPush = true
+
+    controller.revealCompletionCopy(true)
+
+    expect(copy.deliveryHeadline.hidden).toBe(false)
+    expect(copy.deliveryDescription.hidden).toBe(true)
+    expect(copy.pushDescription.hidden).toBe(false)
+  })
+
+  it('keeps the verification description when the coupon did not go by push', () => {
+    const { completed } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+    controller.submissionCouponPush = false
+
+    controller.revealCompletionCopy(true)
+
+    expect(copy.deliveryDescription.hidden).toBe(false)
+    expect(copy.pushDescription.hidden).toBe(true)
+  })
 
   it('reveals the server-rendered no-delivery copy and hides delivery actions when delivery is not required', () => {
     const { completed, emailInput, resendButton, changeDestinationButton } = buildController({ hasBubble: false })
