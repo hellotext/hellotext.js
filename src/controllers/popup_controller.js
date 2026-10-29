@@ -128,6 +128,11 @@ export default class extends Controller {
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
     this.hideUnsupportedPushFields()
+    // Another tab may have sent this popup while its HTML was loading, before the
+    // storage listener below existed. Keep it hidden instead of opening it.
+    if (!this.linkedValue && !this.submissionId && Popup.submitted(this.idValue)) {
+      this.dismissed = true
+    }
     this.evaluateDisplay()
 
     this.closeIfSubmittedElsewhere = this.closeIfSubmittedElsewhere.bind(this)

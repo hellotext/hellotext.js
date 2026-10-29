@@ -781,6 +781,25 @@ describe('PopupController', () => {
       expect(element.hidden).toBe(true)
     })
 
+    it('stays hidden when another tab sent it while its HTML was loading', () => {
+      const { element } = buildController({ hasBubble: false })
+      Popup.markSubmitted('popup-id')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:opened')
+    })
+
+    it('opens a sent popup from a short link when it connects', () => {
+      const { element } = buildController({ hasBubble: false, linked: true })
+      Popup.markSubmitted('popup-id')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+    })
+
     it('ignores another tab sending a different popup', () => {
       const { element } = buildController({ hasBubble: false })
       controller.connect()
