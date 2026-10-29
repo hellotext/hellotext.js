@@ -1,6 +1,7 @@
 import { Configuration } from '../core'
 
 import API from '../api'
+import { Cookies } from './cookies'
 import { Navigation } from './navigation'
 import { Query } from './query'
 
@@ -34,6 +35,68 @@ class Popup {
 
   static idIn(search) {
     return new URLSearchParams(search || '').get('hello_popup')
+  }
+
+  /**
+   * Whether this browser already sent the popup. Closing it does not count.
+   *
+   * A long-lived cookie and localStorage both keep the mark, so clearing one of
+   * them does not show the popup again. Reading it writes both back, which also
+   * renews the cookie's lifetime on every visit.
+   *
+   * @param {String} id - The popup's public id.
+   * @returns {Boolean}
+   */
+  static submitted(id) {
+    // The id becomes part of a cookie name, so only public popup ids are stored.
+    if (!POPUP_ID.test(id || '')) return false
+
+    const key = Popup.submittedKey(id)
+    let stored = null
+    try {
+      stored = localStorage.getItem(key)
+    } catch (_) {}
+
+    const submitted = Boolean(Cookies.get(key) || stored)
+    if (submitted) Popup.markSubmitted(id)
+
+    return submitted
+  }
+
+  /**
+   * Remember that this browser sent the popup, so later page loads skip it.
+   *
+   * @param {String} id - The popup's public id.
+   * @returns {void}
+   */
+  static markSubmitted(id) {
+    if (!POPUP_ID.test(id || '')) return
+
+    const key = Popup.submittedKey(id)
+    Cookies.set(key, '1')
+    try {
+      localStorage.setItem(key, '1')
+    } catch (_) {}
+  }
+
+  /**
+   * Forget a submission the visitor cancelled to change their email or phone.
+   *
+   * @param {String} id - The popup's public id.
+   * @returns {void}
+   */
+  static forgetSubmitted(id) {
+    if (!POPUP_ID.test(id || '')) return
+
+    const key = Popup.submittedKey(id)
+    Cookies.delete(key)
+    try {
+      localStorage.removeItem(key)
+    } catch (_) {}
+  }
+
+  static submittedKey(id) {
+    return `hello_popup_submitted_${id}`
   }
 
   static async load(id, options = {}) {

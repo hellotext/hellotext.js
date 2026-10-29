@@ -122,7 +122,9 @@ class Hellotext {
       )
     }
 
-    if (popupConfig && popupConfig.id) {
+    // A popup this browser already sent is not shown again. A short link still
+    // opens it, because the visitor asked for it.
+    if (popupConfig && popupConfig.id && (linkedPopupId || !Popup.submitted(popupConfig.id))) {
       const resolvedPopupConfig = { container: 'body', device: 'auto', ...popupConfig }
       Configuration.popup.assign(resolvedPopupConfig)
       widgetLoads.push(
