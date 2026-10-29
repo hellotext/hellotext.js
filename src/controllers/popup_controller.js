@@ -128,6 +128,7 @@ export default class extends Controller {
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
     this.hideUnsupportedPushFields()
+    this.requireBirthdays()
     // Another tab may have sent this popup while its HTML was loading, before the
     // storage listener below existed. Keep it hidden instead of opening it.
     if (!this.linkedValue && !this.submissionId && Popup.submitted(this.idValue)) {
@@ -664,6 +665,63 @@ export default class extends Controller {
       ?.querySelector('[data-popup-phone-country-label]')
 
     if (label) label.textContent = select.selectedOptions[0]?.dataset.label || ''
+  }
+
+  /**
+   * Keep only what a phone number can hold (digits, spaces, `+ ( ) . -`) as the visitor
+   * types or pastes. Digits from other numeral systems are kept and converted on submit.
+   *
+   * @param {InputEvent} event - Input event dispatched by the phone field.
+   * @returns {void}
+   */
+  filterPhone(event) {
+    const input = event.target
+    const filtered = input.value.replace(/[^\p{Nd}+() .\-]/gu, '')
+
+    if (filtered !== input.value) input.value = filtered
+  }
+
+  /**
+   * A birthday is asked as Day / Month / Year selects that carry `required`; the field
+   * the popup submits is a hidden ISO date. Requiring that field here, instead of in the
+   * markup, lets an older SDK that cannot join the selects still submit the popup.
+   *
+   * @returns {void}
+   */
+  requireBirthdays() {
+    this.element.querySelectorAll('[data-popup-birthday]').forEach(group => {
+      const input = group.querySelector('[data-popup-field-kind="birthday"]')
+      if (input) input.required = Boolean(group.querySelector('select[required]'))
+    })
+  }
+
+  /**
+   * Join the birthday's Day / Month / Year into the ISO date the popup submits. Days the
+   * chosen month does not have are disabled, and a day that no longer fits is cleared,
+   * so the joined date always exists. Until all three are chosen the date stays empty.
+   *
+   * @param {Event} event - Change event dispatched by one of the birthday selects.
+   * @returns {void}
+   */
+  selectBirthday(event) {
+    const group = event.target.closest('[data-popup-birthday]')
+    const input = group?.querySelector('[data-popup-field-kind="birthday"]')
+    if (!input) return
+
+    const part = name => group.querySelector(`[data-popup-birthday-part="${name}"]`)
+    const [day, month, year] = ['day', 'month', 'year'].map(part)
+    // Without a year, February keeps the 29th.
+    const daysInMonth = month.value
+      ? new Date(Date.UTC(Number(year.value) || 2000, Number(month.value), 0)).getUTCDate()
+      : 31
+
+    Array.from(day.options).forEach(option => {
+      if (option.value) option.disabled = Number(option.value) > daysInMonth
+    })
+    if (Number(day.value) > daysInMonth) day.value = ''
+
+    input.value =
+      day.value && month.value && year.value ? `${year.value}-${month.value}-${day.value}` : ''
   }
 
   /**
