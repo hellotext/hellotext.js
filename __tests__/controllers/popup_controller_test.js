@@ -962,6 +962,8 @@ describe('PopupController', () => {
   const renderCompletionCopy = completed => {
     const deliveryHeadline = document.createElement('header')
     const deliveryDescription = document.createElement('div')
+    const pushHeadline = document.createElement('header')
+    const pushDescription = document.createElement('div')
     const noDeliveryHeadline = document.createElement('header')
     const noDeliveryDescription = document.createElement('div')
     const actions = document.createElement('footer')
@@ -970,6 +972,12 @@ describe('PopupController', () => {
     deliveryHeadline.innerHTML = '<h4><strong>Your code is on its way</strong></h4>'
     deliveryDescription.className = 'hellotext--popup__completion-description'
     deliveryDescription.textContent = 'We sent it to {destination}.'
+    pushHeadline.className = 'hellotext--popup__completion-headline'
+    pushHeadline.hidden = true
+    pushHeadline.innerHTML = '<h4><strong>We sent your coupon</strong></h4>'
+    pushDescription.className = 'hellotext--popup__completion-description'
+    pushDescription.hidden = true
+    pushDescription.textContent = 'We sent your coupon as a push notification.'
     noDeliveryHeadline.className = 'hellotext--popup__completion-headline'
     noDeliveryHeadline.hidden = true
     noDeliveryHeadline.innerHTML = '<h4><strong>Thanks for signing up</strong></h4>'
@@ -977,17 +985,61 @@ describe('PopupController', () => {
     noDeliveryDescription.hidden = true
     noDeliveryDescription.textContent = 'Your details were saved.'
     actions.dataset.deliveryActions = ''
-    completed.append(deliveryHeadline, deliveryDescription, noDeliveryHeadline, noDeliveryDescription, actions)
+    completed.append(
+      deliveryHeadline,
+      deliveryDescription,
+      pushHeadline,
+      pushDescription,
+      noDeliveryHeadline,
+      noDeliveryDescription,
+      actions,
+    )
 
     Object.defineProperties(controller, {
       deliveryCopyTargets: { value: [deliveryHeadline, deliveryDescription], configurable: true },
+      pushDeliveryCopyTargets: { value: [pushHeadline, pushDescription], configurable: true },
       noDeliveryCopyTargets: { value: [noDeliveryHeadline, noDeliveryDescription], configurable: true },
       hasDeliveryCopyTarget: { value: true, configurable: true },
+      hasPushDeliveryCopyTarget: { value: true, configurable: true },
       hasNoDeliveryCopyTarget: { value: true, configurable: true },
     })
 
-    return { deliveryHeadline, deliveryDescription, noDeliveryHeadline, noDeliveryDescription, actions }
+    return {
+      deliveryHeadline,
+      deliveryDescription,
+      pushHeadline,
+      pushDescription,
+      noDeliveryHeadline,
+      noDeliveryDescription,
+      actions,
+    }
   }
+
+  it("replaces the merchant's delivery copy with the push copy when the coupon went by push", () => {
+    const { completed } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+    controller.submissionCouponPush = true
+
+    controller.revealCompletionCopy(true)
+
+    expect(copy.deliveryHeadline.hidden).toBe(true)
+    expect(copy.deliveryDescription.hidden).toBe(true)
+    expect(copy.pushHeadline.hidden).toBe(false)
+    expect(copy.pushDescription.hidden).toBe(false)
+  })
+
+  it("keeps the merchant's delivery copy when the coupon did not go by push", () => {
+    const { completed } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+    controller.submissionCouponPush = false
+
+    controller.revealCompletionCopy(true)
+
+    expect(copy.deliveryHeadline.hidden).toBe(false)
+    expect(copy.deliveryDescription.hidden).toBe(false)
+    expect(copy.pushHeadline.hidden).toBe(true)
+    expect(copy.pushDescription.hidden).toBe(true)
+  })
 
   it('reveals the server-rendered no-delivery copy and hides delivery actions when delivery is not required', () => {
     const { completed, emailInput, resendButton, changeDestinationButton } = buildController({ hasBubble: false })
@@ -1020,7 +1072,7 @@ describe('PopupController', () => {
     expect(copy.deliveryHeadline.innerHTML).toBe('<h4><strong>Your code is on its way</strong></h4>')
     expect(copy.noDeliveryDescription.textContent).toBe('Your details were saved.')
     expect(copy.deliveryDescription.textContent).toBe('We sent it to customer@example.com.')
-    expect(completed.querySelectorAll('h4')).toHaveLength(2)
+    expect(completed.querySelectorAll('h4')).toHaveLength(3)
   })
 
   it('keeps the delivery copy visible and interpolated when a delivery is queued', () => {
