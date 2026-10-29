@@ -69,8 +69,8 @@ const PUSH_LOADING_LABEL = 'Enable notifications'
  * - resendButton: Delivery resend action and its localized countdown label.
  * - changeDestinationButton: Action that returns to the delivered-to identity field.
  * - deliveryCopy: Completion headline and description shown when a delivery is queued.
- *   Its `data-delivery-description` element is replaced by pushDeliveryCopy when the coupon went by push.
- * - pushDeliveryCopy: Server-rendered description shown when the popup coupon was sent by push.
+ * - pushDeliveryCopy: Server-rendered completion copy shown in place of deliveryCopy when the
+ *   popup coupon was sent by push, because the merchant's copy names the verification channel.
  * - noDeliveryCopy: Server-rendered completion copy shown when no delivery is required.
  *
  * Values:
@@ -892,13 +892,13 @@ export default class extends Controller {
    * @returns {void}
    */
   revealCompletionCopy(deliveryRequired) {
-    // A coupon already sent by push replaces the verification description, but keeps the headline.
+    // The merchant's delivery copy names the verification channel, so a coupon sent by push
+    // replaces all of it, including the headline that usually carries that sentence.
     const couponByPush = deliveryRequired && this.submissionCouponPush === true
 
     if (this.hasDeliveryCopyTarget) {
       this.deliveryCopyTargets.forEach(element => {
-        const replacedByPush = couponByPush && element.hasAttribute('data-delivery-description')
-        element.hidden = !deliveryRequired || replacedByPush
+        element.hidden = !deliveryRequired || couponByPush
       })
     }
 
