@@ -1,12 +1,16 @@
 import { Configuration } from '../core'
 
 import API from '../api'
+import { Cookies } from './cookies'
 import { Navigation } from './navigation'
 import { Query } from './query'
 
 // Public popup ids are path segments of the popups endpoint; anything else in
 // `hello_popup` could point the request at another endpoint.
 const POPUP_ID = /^[A-Za-z0-9_-]{1,64}$/
+
+// Cookie value of a submission the visitor cancelled to change their email or phone.
+const CANCELLED = '0'
 
 class Popup {
   /**
@@ -34,6 +38,79 @@ class Popup {
 
   static idIn(search) {
     return new URLSearchParams(search || '').get('hello_popup')
+  }
+
+  /**
+   * Whether this browser already sent the popup. Closing it does not count.
+   *
+   * A long-lived cookie and localStorage both keep the mark, so clearing one of
+   * them does not show the popup again. Reading it writes both back, which also
+   * renews the cookie's lifetime on every visit.
+   *
+   * @param {String} id - The popup's public id.
+   * @returns {Boolean}
+   */
+  static submitted(id) {
+    // The id becomes part of a cookie name, so only public popup ids are stored.
+    if (!POPUP_ID.test(id || '')) return false
+
+    const key = Popup.submittedKey(id)
+    const cookie = Cookies.get(key)
+
+    // A cancelled submission leaves CANCELLED in the cookie, which is shared by the root
+    // domain's hosts. It wins over a mark another host copied into its own localStorage.
+    if (cookie === CANCELLED) {
+      try {
+        localStorage.removeItem(key)
+      } catch (_) {}
+      return false
+    }
+
+    let stored = null
+    try {
+      stored = localStorage.getItem(key)
+    } catch (_) {}
+
+    const submitted = Boolean(cookie || stored)
+    if (submitted) Popup.markSubmitted(id)
+
+    return submitted
+  }
+
+  /**
+   * Remember that this browser sent the popup, so later page loads skip it.
+   *
+   * @param {String} id - The popup's public id.
+   * @returns {void}
+   */
+  static markSubmitted(id) {
+    if (!POPUP_ID.test(id || '')) return
+
+    const key = Popup.submittedKey(id)
+    Cookies.set(key, '1')
+    try {
+      localStorage.setItem(key, '1')
+    } catch (_) {}
+  }
+
+  /**
+   * Forget a submission the visitor cancelled to change their email or phone.
+   *
+   * @param {String} id - The popup's public id.
+   * @returns {void}
+   */
+  static forgetSubmitted(id) {
+    if (!POPUP_ID.test(id || '')) return
+
+    const key = Popup.submittedKey(id)
+    Cookies.set(key, CANCELLED)
+    try {
+      localStorage.removeItem(key)
+    } catch (_) {}
+  }
+
+  static submittedKey(id) {
+    return `hello_popup_submitted_${id}`
   }
 
   static async load(id, options = {}) {

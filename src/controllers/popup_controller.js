@@ -3,6 +3,7 @@ import { Controller } from '@hotwired/stimulus'
 import PopupsAPI from '../api/popups'
 import { setSanitizedButtonContent } from '../core/sanitize_html'
 import Hellotext from '../hellotext'
+import { Popup } from '../models/popup'
 
 // Caps the wait for a stalled worker or identity request so the popup always continues.
 const PUSH_SUBSCRIPTION_TIMEOUT = 15000
@@ -127,7 +128,16 @@ export default class extends Controller {
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
     this.hideUnsupportedPushFields()
+    // Another tab may have sent this popup while its HTML was loading, before the
+    // storage listener below existed. Keep it hidden instead of opening it.
+    if (!this.linkedValue && !this.submissionId && Popup.submitted(this.idValue)) {
+      this.dismissed = true
+    }
     this.evaluateDisplay()
+
+    this.closeIfSubmittedElsewhere = this.closeIfSubmittedElsewhere.bind(this)
+    window.addEventListener('storage', this.closeIfSubmittedElsewhere)
+    window.addEventListener('pageshow', this.closeIfSubmittedElsewhere)
   }
 
   /**
@@ -137,6 +147,24 @@ export default class extends Controller {
    */
   disconnect() {
     this.stopResendCooldown()
+    window.removeEventListener('storage', this.closeIfSubmittedElsewhere)
+    window.removeEventListener('pageshow', this.closeIfSubmittedElsewhere)
+  }
+
+  /**
+   * Close this popup when the visitor sent it from another tab, or from another page
+   * before going back to this one from the browser's back-forward cache. A popup this
+   * page sent keeps its completion step, and a short link keeps the popup it opened.
+   *
+   * @param {StorageEvent | PageTransitionEvent} event
+   * @returns {void}
+   */
+  closeIfSubmittedElsewhere(event) {
+    if (event.type === 'storage' && event.key !== Popup.submittedKey(this.idValue)) return
+    if (event.type === 'pageshow' && !event.persisted) return
+    if (this.submissionId || this.linkedValue || this.dismissed) return
+
+    if (Popup.submitted(this.idValue)) this.close()
   }
 
   /**
@@ -280,6 +308,7 @@ export default class extends Controller {
       // Keep the backend's chosen route and action token together. Resend and edit
       // must act on this accepted submission, even if a fallback route was selected.
       const submission = await response.json()
+      Popup.markSubmitted(this.idValue)
       this.submissionId = submission.id
       this.submissionVerificationState = submission.verification_state
       this.submissionActionToken = submission.action_token
@@ -771,6 +800,8 @@ export default class extends Controller {
       )
       if (response.failed) return
 
+      // The cancelled submission no longer counts. Sending the corrected one marks it again.
+      Popup.forgetSubmitted(this.idValue)
       this.stopResendCooldown()
       this.submissionId = null
       this.submissionActionToken = null

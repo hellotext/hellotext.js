@@ -394,6 +394,44 @@ describe("when initializing business metadata", () => {
     )
   })
 
+  describe('when this browser already sent the popup', () => {
+    beforeEach(() => {
+      Popup.markSubmitted('dashboard-popup')
+    })
+
+    afterEach(() => {
+      localStorage.clear()
+      document.cookie = 'hello_popup_submitted_dashboard-popup=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    })
+
+    it('does not load it again', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).not.toHaveBeenCalled()
+      expect(Hellotext.popup).toBeUndefined()
+    })
+
+    it('still loads a different popup', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'new-popup' } }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).toHaveBeenCalledWith('new-popup', expect.any(Object))
+    })
+
+    it('opens it from a short link', async () => {
+      const linkedId = jest.spyOn(Popup, 'linkedId', 'get').mockReturnValue('dashboard-popup')
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).toHaveBeenCalledWith('dashboard-popup', expect.objectContaining({ linked: true }))
+      linkedId.mockRestore()
+    })
+  })
+
   it("skips popup loading when popup is false", async () => {
     mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
 
