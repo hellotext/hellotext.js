@@ -76,6 +76,25 @@ describe('Popup', () => {
       expect(Popup.submitted('popup-id')).toBe(true)
     })
 
+    it('forgets a cancelled submission even when another host kept a copy in its localStorage', () => {
+      Popup.markSubmitted('popup-id')
+      Popup.forgetSubmitted('popup-id')
+      // The bare domain copied the shared cookie into its own localStorage before the cancel.
+      localStorage.setItem(key, '1')
+
+      expect(Popup.submitted('popup-id')).toBe(false)
+      expect(localStorage.getItem(key)).toBeNull()
+    })
+
+    it('remembers the popup again once the corrected submission is sent', () => {
+      Popup.markSubmitted('popup-id')
+      Popup.forgetSubmitted('popup-id')
+
+      Popup.markSubmitted('popup-id')
+
+      expect(Popup.submitted('popup-id')).toBe(true)
+    })
+
     it('stores nothing for an id that is not a public popup id', () => {
       Popup.markSubmitted('bad id;')
 

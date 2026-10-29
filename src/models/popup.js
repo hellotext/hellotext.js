@@ -9,6 +9,9 @@ import { Query } from './query'
 // `hello_popup` could point the request at another endpoint.
 const POPUP_ID = /^[A-Za-z0-9_-]{1,64}$/
 
+// Cookie value of a submission the visitor cancelled to change their email or phone.
+const CANCELLED = '0'
+
 class Popup {
   /**
    * The popup a Hellotext short link asked to open, from `hello_popup`.
@@ -52,12 +55,23 @@ class Popup {
     if (!POPUP_ID.test(id || '')) return false
 
     const key = Popup.submittedKey(id)
+    const cookie = Cookies.get(key)
+
+    // A cancelled submission leaves CANCELLED in the cookie, which is shared by the root
+    // domain's hosts. It wins over a mark another host copied into its own localStorage.
+    if (cookie === CANCELLED) {
+      try {
+        localStorage.removeItem(key)
+      } catch (_) {}
+      return false
+    }
+
     let stored = null
     try {
       stored = localStorage.getItem(key)
     } catch (_) {}
 
-    const submitted = Boolean(Cookies.get(key) || stored)
+    const submitted = Boolean(cookie || stored)
     if (submitted) Popup.markSubmitted(id)
 
     return submitted
@@ -89,7 +103,7 @@ class Popup {
     if (!POPUP_ID.test(id || '')) return
 
     const key = Popup.submittedKey(id)
-    Cookies.delete(key)
+    Cookies.set(key, CANCELLED)
     try {
       localStorage.removeItem(key)
     } catch (_) {}
