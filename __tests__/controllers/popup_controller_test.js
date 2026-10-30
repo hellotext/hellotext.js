@@ -135,6 +135,9 @@ describe('PopupController', () => {
     jest.restoreAllMocks()
     document.body.innerHTML = ''
     Hellotext.push = null
+    // Closing a popup remembers it, so clear the mark before the next popup connects.
+    localStorage.clear()
+    document.cookie = `${Popup.finishedKey('popup-id')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
   })
 
   it('shows the bubble first and opens the dialog when clicked', () => {
@@ -813,8 +816,8 @@ describe('PopupController', () => {
     expect(completed.querySelector('strong').textContent).toBe('customer@example.com')
   })
 
-  describe('remembering a sent popup', () => {
-    const submitted = () => Popup.submitted('popup-id')
+  describe('remembering a sent or closed popup', () => {
+    const finished = () => Popup.finished('popup-id')
     const sendPopup = async ({ emailInput, phoneInput }) => {
       emailInput.value = 'customer@example.com'
       await controller.next()
@@ -824,8 +827,6 @@ describe('PopupController', () => {
 
     afterEach(() => {
       controller.disconnect()
-      localStorage.clear()
-      document.cookie = `${Popup.submittedKey('popup-id')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
     })
 
     it('remembers the popup once the backend accepts the submission', async () => {
@@ -834,7 +835,7 @@ describe('PopupController', () => {
 
       await sendPopup(fields)
 
-      expect(submitted()).toBe(true)
+      expect(finished()).toBe(true)
     })
 
     it('does not remember a submission the backend rejected or that failed to send', async () => {
@@ -848,7 +849,7 @@ describe('PopupController', () => {
       await sendPopup(fields)
       await controller.submit()
 
-      expect(submitted()).toBe(false)
+      expect(finished()).toBe(false)
     })
 
     it('forgets the submission the visitor cancelled to change a destination', async () => {
@@ -859,31 +860,65 @@ describe('PopupController', () => {
       await controller.changeDestination({ preventDefault: jest.fn() })
 
       expect(PopupsAPI.cancel).toHaveBeenCalled()
-      expect(submitted()).toBe(false)
+      expect(finished()).toBe(false)
     })
 
-    it('does not remember a popup the visitor only closed', () => {
+    it('remembers a popup the visitor closed without sending it', () => {
       buildController({ hasBubble: false })
       controller.connect()
 
       controller.close()
 
-      expect(submitted()).toBe(false)
+      expect(finished()).toBe(true)
+    })
+
+    it('remembers a popup the visitor closed with Escape', () => {
+      buildController({ hasBubble: false })
+      controller.connect()
+
+      controller.closeOnEscape(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }))
+
+      expect(finished()).toBe(true)
+    })
+
+    it('stays hidden on a later page once the visitor closed it', () => {
+      buildController({ hasBubble: false })
+      controller.connect()
+      controller.close()
+      controller.disconnect()
+
+      const { element } = buildController({ hasBubble: false })
+      Hellotext.eventEmitter.dispatch.mockClear()
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:opened')
+    })
+
+    it('remembers a popup the visitor closed after cancelling to change a destination', async () => {
+      const fields = buildController({ hasBubble: false })
+      controller.connect()
+      await sendPopup(fields)
+      await controller.changeDestination({ preventDefault: jest.fn() })
+
+      controller.close()
+
+      expect(finished()).toBe(true)
     })
 
     it('closes when the visitor sends the same popup from another tab', () => {
       const { element } = buildController({ hasBubble: false })
       controller.connect()
 
-      Popup.markSubmitted('popup-id')
-      window.dispatchEvent(new StorageEvent('storage', { key: Popup.submittedKey('popup-id') }))
+      Popup.markFinished('popup-id')
+      window.dispatchEvent(new StorageEvent('storage', { key: Popup.finishedKey('popup-id') }))
 
       expect(element.hidden).toBe(true)
     })
 
     it('stays hidden when another tab sent it while its HTML was loading', () => {
       const { element } = buildController({ hasBubble: false })
-      Popup.markSubmitted('popup-id')
+      Popup.markFinished('popup-id')
 
       controller.connect()
 
@@ -893,7 +928,7 @@ describe('PopupController', () => {
 
     it('opens a sent popup from a short link when it connects', () => {
       const { element } = buildController({ hasBubble: false, linked: true })
-      Popup.markSubmitted('popup-id')
+      Popup.markFinished('popup-id')
 
       controller.connect()
 
@@ -904,19 +939,19 @@ describe('PopupController', () => {
       const { element } = buildController({ hasBubble: false })
       controller.connect()
 
-      Popup.markSubmitted('other-popup')
-      window.dispatchEvent(new StorageEvent('storage', { key: Popup.submittedKey('other-popup') }))
+      Popup.markFinished('other-popup')
+      window.dispatchEvent(new StorageEvent('storage', { key: Popup.finishedKey('other-popup') }))
 
       expect(element.hidden).toBe(false)
-      localStorage.removeItem(Popup.submittedKey('other-popup'))
-      document.cookie = `${Popup.submittedKey('other-popup')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+      localStorage.removeItem(Popup.finishedKey('other-popup'))
+      document.cookie = `${Popup.finishedKey('other-popup')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
     })
 
     it('closes when the back-forward cache restores a page after the popup was sent elsewhere', () => {
       const { element } = buildController({ hasBubble: false })
       controller.connect()
 
-      Popup.markSubmitted('popup-id')
+      Popup.markFinished('popup-id')
       window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }))
 
       expect(element.hidden).toBe(true)
@@ -927,7 +962,7 @@ describe('PopupController', () => {
       controller.connect()
 
       await sendPopup(fields)
-      window.dispatchEvent(new StorageEvent('storage', { key: Popup.submittedKey('popup-id') }))
+      window.dispatchEvent(new StorageEvent('storage', { key: Popup.finishedKey('popup-id') }))
       window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }))
 
       expect(fields.element.hidden).toBe(false)
@@ -938,8 +973,8 @@ describe('PopupController', () => {
       const { element } = buildController({ hasBubble: false, linked: true })
       controller.connect()
 
-      Popup.markSubmitted('popup-id')
-      window.dispatchEvent(new StorageEvent('storage', { key: Popup.submittedKey('popup-id') }))
+      Popup.markFinished('popup-id')
+      window.dispatchEvent(new StorageEvent('storage', { key: Popup.finishedKey('popup-id') }))
 
       expect(element.hidden).toBe(false)
     })

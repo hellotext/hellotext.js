@@ -88,11 +88,11 @@ The server renders the bubble and dialog hidden. Once the popup is mounted and i
 - With bubble mode enabled, the launcher appears first. Clicking it opens the dialog and hides the bubble.
 - Without bubble mode, the dialog opens immediately.
 
-Closing the popup hides both the dialog and the launcher. Dismissal is remembered for that controller instance and is not persisted across page reloads.
+Closing the popup hides both the dialog and the launcher.
 
-Once Hellotext accepts a submission, the browser remembers that popup and does not load it again, on any page or later visit. Verification is not required. The mark is kept in a `hello_popup_submitted_POPUP_ID` cookie on the store's root domain and in `localStorage`. Each one restores the other, and every visit renews the cookie. The mark covers only that popup, so another popup still shows. A popup opened from a link still opens.
+Once the visitor closes the popup, with the close button or the Escape key, or Hellotext accepts their submission, the browser remembers that popup and does not load it again, on any page or later visit. Verification is not required. The mark is kept in a `hello_popup_submitted_POPUP_ID` cookie on the store's root domain and in `localStorage`. Each one restores the other, and every visit renews the cookie. The mark covers only that popup, so another popup still shows. A popup opened from a link still opens.
 
-If the same popup is open in another tab, or on a page the browser restores with the back button, it closes when the visitor sends it. A tab that sent it keeps its completion screen. Changing the email or phone from the completion screen cancels the submission and forgets the mark until the visitor sends the popup again.
+If the same popup is open in another tab, or on a page the browser restores with the back button, it closes when the visitor sends or closes it. A tab that sent it keeps its completion screen. Changing the email or phone from the completion screen cancels the submission and forgets the mark until the visitor sends or closes the popup again.
 
 The mark lives in that browser only. A different browser or device, a private window, or clearing the site's data shows the popup again. Browsers also limit how long script cookies and storage last: Chrome keeps the cookie for up to about 400 days, and Safari may clear both after 7 days without a visit.
 

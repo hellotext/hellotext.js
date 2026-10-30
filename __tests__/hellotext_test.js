@@ -396,7 +396,7 @@ describe("when initializing business metadata", () => {
 
   describe('when this browser already sent the popup', () => {
     beforeEach(() => {
-      Popup.markSubmitted('dashboard-popup')
+      Popup.markFinished('dashboard-popup')
     })
 
     afterEach(() => {
