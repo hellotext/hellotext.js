@@ -526,6 +526,97 @@ describe('PopupController', () => {
     expect(PopupsAPI.submit).not.toHaveBeenCalled()
   })
 
+  describe('birthday', () => {
+    // Mirrors the server markup: Day / Month / Year selects and the hidden ISO field.
+    const addBirthday = (stepOne, { required = true } = {}) => {
+      const group = document.createElement('div')
+      group.dataset.popupBirthday = ''
+      const selects = [
+        ['day', Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'))],
+        ['month', Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))],
+        ['year', ['2013', '2000', '1999']],
+      ].map(([part, values]) => {
+        const select = document.createElement('select')
+        select.dataset.popupBirthdayPart = part
+        select.required = required
+        ;['', ...values].forEach(value => select.add(new Option(value || part, value)))
+        group.appendChild(select)
+        return select
+      })
+      const input = document.createElement('input')
+      input.dataset.popupFieldKind = 'birthday'
+      input.dataset.popupFieldKey = 'birthday'
+      input.dataset.popupStepId = 'step-one'
+      group.appendChild(input)
+      stepOne.appendChild(group)
+      controller.inputTargets.push(input)
+
+      const choose = (select, value) => {
+        select.value = value
+        controller.selectBirthday({ target: select })
+      }
+
+      return { input, day: selects[0], month: selects[1], year: selects[2], choose }
+    }
+
+    it('requires the date only when the selects are required', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { input } = addBirthday(stepOne)
+
+      controller.connect()
+
+      expect(input.required).toBe(true)
+      expect(input.checkValidity()).toBe(false)
+    })
+
+    it('leaves an optional birthday optional', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { input } = addBirthday(stepOne, { required: false })
+
+      controller.connect()
+
+      expect(input.required).toBe(false)
+    })
+
+    it('sends the ISO date once day, month and year are chosen', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { input, day, month, year, choose } = addBirthday(stepOne)
+
+      choose(day, '07')
+      choose(month, '03')
+      expect(input.value).toBe('')
+
+      choose(year, '1999')
+
+      expect(input.value).toBe('1999-03-07')
+      expect(controller.submissionPayload().metadata.fields.birthday).toBe('1999-03-07')
+    })
+
+    it('disables days the month does not have and clears a day that no longer fits', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { input, day, month, year, choose } = addBirthday(stepOne)
+      const disabledDays = () => Array.from(day.options).filter(option => option.disabled).map(option => option.value)
+
+      choose(day, '31')
+      choose(month, '02')
+
+      expect(day.value).toBe('')
+      expect(disabledDays()).toEqual(['30', '31'])
+
+      choose(day, '29')
+      choose(year, '1999')
+
+      expect(day.value).toBe('')
+      expect(disabledDays()).toEqual(['29', '30', '31'])
+      expect(input.value).toBe('')
+
+      choose(year, '2000')
+      choose(day, '29')
+
+      expect(input.value).toBe('2000-02-29')
+    })
+  })
+
   describe('phone country selector', () => {
     const addCountrySelector = phoneInput => {
       const wrapper = document.createElement('div')
@@ -637,6 +728,15 @@ describe('PopupController', () => {
       phoneInput.value = ''
 
       expect(controller.submissionPayload().phone).toBe('')
+    })
+
+    it('drops letters and other symbols as the visitor types', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+
+      phoneInput.value = 'd3+(598) 99-12.3 ٤x'
+      controller.filterPhone({ target: phoneInput })
+
+      expect(phoneInput.value).toBe('3+(598) 99-12.3 ٤')
     })
 
     it('shows the chosen country in the closed selector', () => {
