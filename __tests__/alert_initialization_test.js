@@ -1,8 +1,9 @@
 import { Application } from '@hotwired/stimulus'
 import Hellotext from '../src/hellotext'
 import API from '../src/api'
-import { Business, Push } from '../src/models'
+import { Business, Popup, Push } from '../src/models'
 import AlertController from '../src/controllers/alert_controller'
+import PopupController from '../src/controllers/popup_controller'
 
 const html = `
   <article hidden data-controller="hellotext--alert"
@@ -176,5 +177,112 @@ describe('Smart Alert initialization', () => {
     expect(Hellotext.push).toBeNull()
     expect(Hellotext.alert).toBeNull()
     expect(document.querySelector('article')).toBeNull()
+  })
+
+  describe('with a popup', () => {
+    const popupHTML = ({ bubble }) => `
+      <article hidden data-controller="hellotext--popup"
+        data-hellotext--popup-device-value="all"
+        data-hellotext--popup-has-bubble-value="${bubble}"
+        data-hellotext--popup-id-value="popup-id">
+        <button hidden data-hellotext--popup-target="bubble"
+          data-action="hellotext--popup#open"></button>
+        <section hidden data-hellotext--popup-target="dialog">
+          <button data-popup-close data-action="hellotext--popup#close"></button>
+          <section data-hellotext--popup-target="step"></section>
+          <section hidden data-hellotext--popup-target="completed"></section>
+        </section>
+      </article>
+    `
+
+    const withPopup = ({ bubble = false } = {}) => {
+      hydrate(businessData({ popup: { id: 'popup-id' } }))
+      jest.spyOn(API.popups, 'get').mockImplementation(async () => {
+        return new DOMParser()
+          .parseFromString(popupHTML({ bubble }), 'text/html')
+          .querySelector('article')
+      })
+    }
+
+    const flush = () => new Promise(resolve => setTimeout(resolve, 0))
+
+    beforeEach(() => {
+      application.register('hellotext--popup', PopupController)
+    })
+
+    afterEach(() => {
+      Hellotext.popup?.unmount()
+      Hellotext.popup = undefined
+      document.cookie = `${Popup.finishedKey('popup-id')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    })
+
+    it('waits for an open popup, and does not show on this page once the visitor closes it', async () => {
+      withPopup()
+      await initialize()
+      const alert = Hellotext.alert
+      let settled = false
+      const shown = alert.show('homepage').then(result => {
+        settled = true
+        return result
+      })
+      await flush()
+
+      expect(document.querySelector('[data-hellotext--popup-target="dialog"]').hidden).toBe(false)
+      expect(settled).toBe(false)
+      expect(alert.element.hidden).toBe(true)
+
+      document.querySelector('[data-popup-close]').click()
+
+      await expect(shown).resolves.toBe(false)
+      expect(alert.disposed).toBe(true)
+      expect(document.querySelector('[data-controller="hellotext--alert"]')).toBeNull()
+      await expect(alert.show('homepage')).resolves.toBe(false)
+    })
+
+    it('does not show on this page once the visitor completes the popup', async () => {
+      withPopup()
+      await initialize()
+      const shown = Hellotext.alert.show('homepage')
+      await flush()
+
+      const popup = document.querySelector('[data-controller="hellotext--popup"]')
+      application.getControllerForElementAndIdentifier(popup, 'hellotext--popup').showCompleted()
+
+      await expect(shown).resolves.toBe(false)
+      expect(Hellotext.alert.disposed).toBe(true)
+    })
+
+    it('shows next to a popup showing only its bubble, and not after the visitor opens it', async () => {
+      withPopup({ bubble: true })
+      await initialize()
+
+      await expect(Hellotext.alert.show('homepage')).resolves.toBe(true)
+
+      document.querySelector('[data-hellotext--popup-target="bubble"]').click()
+
+      expect(Hellotext.alert.element.hidden).toBe(true)
+      expect(localStorage.length).toBe(0)
+
+      document.querySelector('[data-popup-close]').click()
+
+      expect(Hellotext.alert.disposed).toBe(true)
+    })
+
+    it('does not wait for a popup that does not load', async () => {
+      withPopup()
+      API.popups.get.mockResolvedValue(null)
+      await initialize()
+
+      await expect(Hellotext.alert.show('homepage')).resolves.toBe(true)
+    })
+
+    it('shows on a later page load, once this browser finished the popup', async () => {
+      withPopup()
+      Popup.markFinished('popup-id')
+      await initialize()
+
+      await expect(Hellotext.alert.show('homepage')).resolves.toBe(true)
+      expect(API.popups.get).not.toHaveBeenCalled()
+    })
   })
 })

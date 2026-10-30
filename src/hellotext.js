@@ -127,6 +127,15 @@ class Hellotext {
     if (popupConfig && popupConfig.id && (linkedPopupId || !Popup.finished(popupConfig.id))) {
       const resolvedPopupConfig = { container: 'body', device: 'auto', ...popupConfig }
       Configuration.popup.assign(resolvedPopupConfig)
+
+      // The Smart Alert waits for the popup, so the two never ask for Push at the same time.
+      // A popup the visitor never opens releases it. Once the visitor opens the popup, the
+      // alert is done for this page; completing or closing the popup marks it finished, so
+      // the next page load skips the popup and the alert can show there.
+      const alert = this.alert
+      let popupOpened = false
+      alert?.suspend()
+
       widgetLoads.push(
         Popup.load(resolvedPopupConfig.id, {
           container: resolvedPopupConfig.container,
@@ -137,14 +146,31 @@ class Hellotext {
               this.initializationVersion === initializationVersion
             )
           },
-        }).then(popup => {
-          if (
-            this.business === businessContext &&
-            this.initializationVersion === initializationVersion
-          ) {
-            this.popup = popup
-          }
-        }),
+          onActivity: active => {
+            if (active) {
+              popupOpened = true
+              alert?.suspend()
+            } else if (popupOpened) {
+              alert?.dispose()
+            } else {
+              alert?.resume()
+            }
+          },
+        })
+          .then(popup => {
+            if (!popup.mounted) alert?.resume()
+
+            if (
+              this.business === businessContext &&
+              this.initializationVersion === initializationVersion
+            ) {
+              this.popup = popup
+            }
+          })
+          .catch(error => {
+            alert?.resume()
+            throw error
+          }),
       )
     }
 

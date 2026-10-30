@@ -203,6 +203,18 @@ describe('Popup', () => {
     expect(article.hasAttribute('data-hellotext--popup-linked-value')).toBe(false)
   })
 
+  it('passes on the activity its controller reports', async () => {
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+    const onActivity = jest.fn()
+
+    await Popup.load('popup-id', { onActivity })
+    article.dispatchEvent(new CustomEvent('hellotext--popup:activity', { detail: { active: true } }))
+    article.dispatchEvent(new CustomEvent('hellotext--popup:activity', { detail: { active: false } }))
+
+    expect(onActivity.mock.calls).toEqual([[true], [false]])
+  })
+
   it('unmounts its rendered surface', async () => {
     const article = document.createElement('article')
     API.popups.get.mockResolvedValue(article)

@@ -196,6 +196,14 @@ Push subscription, and returns whether it displayed the alert. A disabled or unk
 is not displayed. `Hellotext.alert` is unavailable when the playbook or Push is disabled,
 or when the browser does not support Push.
 
+A [popup](/docs/popups.md) comes first, so the two never ask for Push at the same time. While
+the popup loads, `show` waits. A popup showing only its bubble, or hidden by device targeting,
+then lets the alert show. Once the visitor opens the popup, the alert does not show on that
+page, even after they complete or close it, and `show` returns `false`. If the alert was already
+showing next to the bubble, it hides without counting as a dismissal. The browser remembers a
+completed or closed popup, so on the next page load the popup stays away and the alert can show,
+unless the visitor allowed notifications in the popup.
+
 Clicking the primary action requests browser notification permission and subscribes through
 `Hellotext.push`. Visitors who already subscribed or denied browser permission are not prompted.
 
