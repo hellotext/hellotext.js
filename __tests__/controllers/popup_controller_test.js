@@ -314,6 +314,92 @@ describe('PopupController', () => {
     expect(pushInput.disabled).toBe(true)
   })
 
+  describe('a required Push field', () => {
+    const addRequiredPush = (stepOne, { checked = false, available = 'true' } = {}) => {
+      const field = document.createElement('article')
+      field.className = 'hellotext--popup-field'
+      const pushInput = document.createElement('input')
+      pushInput.type = 'checkbox'
+      pushInput.required = true
+      pushInput.checked = checked
+      pushInput.dataset.popupFieldKind = 'push'
+      pushInput.dataset.popupStepId = 'step-one'
+      pushInput.dataset.popupPushAvailable = available
+      const nextButton = document.createElement('button')
+      nextButton.dataset.action = 'click->hellotext--popup#next'
+      field.appendChild(pushInput)
+      stepOne.append(field, nextButton)
+      controller.inputTargets.push(pushInput)
+
+      return { pushInput, nextButton }
+    }
+
+    it('keeps its step button disabled until the visitor checks it', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { pushInput, nextButton } = addRequiredPush(stepOne)
+      Hellotext.push = { subscribe: jest.fn() }
+
+      controller.connect()
+
+      expect(nextButton.disabled).toBe(true)
+
+      pushInput.checked = true
+      pushInput.dispatchEvent(new Event('change', { bubbles: true }))
+      expect(nextButton.disabled).toBe(false)
+
+      pushInput.checked = false
+      pushInput.dispatchEvent(new Event('change', { bubbles: true }))
+      expect(nextButton.disabled).toBe(true)
+    })
+
+    it('starts enabled when the required field is checked by default', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { nextButton } = addRequiredPush(stepOne, { checked: true })
+      Hellotext.push = { subscribe: jest.fn() }
+
+      controller.connect()
+
+      expect(nextButton.disabled).toBe(false)
+    })
+
+    it.each([
+      ['the server marks Push unavailable', 'false', { subscribe: jest.fn() }],
+      ['the browser cannot use Push, as in an iPhone tab', 'true', null],
+    ])('does not block the step when %s', (_, available, push) => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { nextButton } = addRequiredPush(stepOne, { available })
+      Hellotext.push = push
+
+      controller.connect()
+
+      expect(nextButton.disabled).toBe(false)
+    })
+
+    it('leaves an optional Push field out of it', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { pushInput, nextButton } = addRequiredPush(stepOne)
+      pushInput.required = false
+      Hellotext.push = { subscribe: jest.fn() }
+
+      controller.connect()
+
+      expect(nextButton.disabled).toBe(false)
+    })
+
+    it('keeps a submission in flight disabled when the field changes', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { pushInput, nextButton } = addRequiredPush(stepOne, { checked: true })
+      Hellotext.push = { subscribe: jest.fn() }
+      controller.connect()
+
+      controller.submitting = true
+      nextButton.disabled = true
+      pushInput.dispatchEvent(new Event('change', { bubbles: true }))
+
+      expect(nextButton.disabled).toBe(true)
+    })
+  })
+
   it('asks for Push permission from the checked step and advances after denial', async () => {
     const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
     const pushInput = document.createElement('input')

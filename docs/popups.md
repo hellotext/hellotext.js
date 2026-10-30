@@ -121,6 +121,8 @@ A link opened from inside the store, for example from the webchat, still opens i
 
 Each step is validated using the browser's native input constraints, including required fields and email format. Invalid fields display their validation messages before the visitor can continue.
 
+A required Push field keeps its step's button disabled until the visitor checks it. Only the checkbox is required: if the visitor then denies the browser permission, the popup continues. A Push field the SDK hides, because the server or the browser cannot use Push (such as an iPhone tab without a Home Screen installation), never blocks the step.
+
 Submitting the form before the last step advances to the next step after validation. The final step validates its inputs and submits the collected flow, including email, phone, custom fields, checkbox choices, and capture metadata.
 
 A phone field shows a country selector. A number typed without a leading `+` is submitted in international form with the selected country's prefix, for example `+54` followed by the digits, instead of assuming the business country. The SDK keeps any leading zero the visitor typed; the server decides per country whether it is part of the number. The field only accepts digits, spaces and `+ ( ) . -`; anything else typed or pasted is dropped.

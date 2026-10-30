@@ -128,6 +128,9 @@ export default class extends Controller {
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
     this.hideUnsupportedPushFields()
+    this.syncRequiredPush = this.syncRequiredPush.bind(this)
+    this.element.addEventListener('change', this.syncRequiredPush)
+    this.syncRequiredPush()
     this.requireBirthdays()
     // Another tab may have sent this popup while its HTML was loading, before the
     // storage listener below existed. Keep it hidden instead of opening it.
@@ -150,6 +153,7 @@ export default class extends Controller {
     this.stopResendCooldown()
     window.removeEventListener('storage', this.closeIfSubmittedElsewhere)
     window.removeEventListener('pageshow', this.closeIfSubmittedElsewhere)
+    this.element.removeEventListener('change', this.syncRequiredPush)
   }
 
   /**
@@ -328,6 +332,7 @@ export default class extends Controller {
       this.submitButtonTargets.forEach(button => {
         button.disabled = false
       })
+      this.syncRequiredPush()
     }
 
     this.showCompleted()
@@ -454,6 +459,37 @@ export default class extends Controller {
     })
 
     return this.pushSubscriptionPromise
+  }
+
+  /**
+   * Keep each step's button disabled while a required Push field on that step is
+   * unchecked, so the visitor has to opt in to Push before going on. A Push field
+   * hidden because the browser cannot use Push is disabled and never blocks the step.
+   * A request in flight keeps its own disabled state.
+   *
+   * @returns {void}
+   */
+  syncRequiredPush() {
+    if (this.submitting || this.pushSubscriptionPromise) return
+
+    this.stepTargets.forEach(step => {
+      const missing = this.inputsForStep(step).some(input => {
+        return (
+          input.dataset.popupFieldKind === 'push' &&
+          input.required &&
+          !input.disabled &&
+          !input.checked
+        )
+      })
+
+      step
+        .querySelectorAll(
+          '[data-hellotext--popup-target~="submitButton"], [data-action~="click->hellotext--popup#next"]',
+        )
+        .forEach(button => {
+          button.disabled = missing
+        })
+    })
   }
 
   /**
