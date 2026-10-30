@@ -213,6 +213,65 @@ describe('PopupController', () => {
     expect(element.hidden).toBe(true)
   })
 
+  describe('reporting activity for the Smart Alert', () => {
+    let reports
+    const record = event => reports.push(event.detail.active)
+
+    beforeEach(() => {
+      reports = []
+      document.addEventListener('hellotext--popup:activity', record)
+    })
+
+    afterEach(() => {
+      document.removeEventListener('hellotext--popup:activity', record)
+    })
+
+    it('is inactive while only the bubble shows, and active once the dialog opens', () => {
+      buildController()
+
+      controller.connect()
+      controller.open()
+
+      expect(reports).toEqual([false, true])
+    })
+
+    it('is active while an automatic popup is open, until the visitor closes it', () => {
+      buildController({ hasBubble: false })
+
+      controller.connect()
+      controller.close()
+
+      expect(reports).toEqual([true, false])
+    })
+
+    it('is inactive when the popup does not target this device', () => {
+      buildController({ device: 'mobile', hasBubble: false })
+
+      controller.connect()
+
+      expect(reports).toEqual([false])
+    })
+
+    it('is inactive once completed, and active again back on a step', () => {
+      buildController({ hasBubble: false })
+
+      controller.connect()
+      controller.showCompleted()
+      controller.showStep(0)
+
+      expect(reports).toEqual([true, false, true])
+    })
+
+    it('is inactive once disconnected', () => {
+      buildController({ hasBubble: false })
+      controller.connect()
+
+      controller.disconnect()
+
+      expect(reports).toEqual([true, false])
+    })
+  })
+
   describe('closing with Escape', () => {
     const escape = (init = {}) => new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, ...init })
 
@@ -477,6 +536,26 @@ describe('PopupController', () => {
         expect(section.hidden).toBe(true)
         expect(completed.hidden).toBe(false)
         expect(Popup.finished('popup-id')).toBe(true)
+      })
+
+      it('holds the Smart Alert back until the visitor allows notifications', async () => {
+        const reports = []
+        const record = event => reports.push(event.detail.active)
+        document.addEventListener('hellotext--popup:activity', record)
+
+        const { retry } = await sendDenied()
+
+        expect(reports.at(-1)).toBe(true)
+
+        global.Notification = { permission: 'granted' }
+        Hellotext.push = {
+          subscribe: jest.fn().mockResolvedValue({ failed: false }),
+          subscriptionForSubmission: jest.fn(() => null),
+        }
+        await controller.retryPush({ preventDefault: jest.fn(), currentTarget: retry })
+
+        expect(reports.at(-1)).toBe(false)
+        document.removeEventListener('hellotext--popup:activity', record)
       })
     })
 

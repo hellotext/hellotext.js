@@ -90,6 +90,8 @@ The server renders the bubble and dialog hidden. Once the popup is mounted and i
 
 Closing the popup hides both the dialog and the launcher.
 
+Once the visitor opens the dialog, the [Smart Alert](/docs/push.md#show-a-smart-alert) does not show on that page. It can show on the next page load, unless the visitor allowed notifications in the popup.
+
 Once the visitor closes the popup, with the close button or the Escape key, or Hellotext accepts their submission, the browser remembers that popup and does not load it again, on any page or later visit. Verification is not required. The mark is kept in a `hello_popup_submitted_POPUP_ID` cookie on the store's root domain and in `localStorage`. Each one restores the other, and every visit renews the cookie. The mark covers only that popup, so another popup still shows. A popup opened from a link still opens.
 
 If the same popup is open in another tab, or on a page the browser restores with the back button, it closes when the visitor sends or closes it. A tab that sent it keeps its completion screen. Changing the email or phone from the completion screen cancels the submission and forgets the mark until the visitor sends or closes the popup again.

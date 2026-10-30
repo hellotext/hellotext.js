@@ -154,10 +154,17 @@ class Popup {
    * immediately on any device instead of following the bubble and device settings.
    * @param {() => Boolean} [options.shouldMount] - Whether this popup still belongs to
    * the current initialization.
+   * @param {(active: Boolean) => void} [options.onActivity] - Called when the visitor starts
+   * or stops going through the mounted popup, as its controller reports.
    */
   constructor(
     data,
-    { container = Configuration.popup.container, linked = false, shouldMount = () => true } = {},
+    {
+      container = Configuration.popup.container,
+      linked = false,
+      shouldMount = () => true,
+      onActivity = () => {},
+    } = {},
   ) {
     this.data = data
     this.container = container
@@ -165,6 +172,7 @@ class Popup {
     this.mounted = false
     this.rendered = Promise.resolve(false)
     this.shouldMount = shouldMount
+    this.onActivity = onActivity
   }
 
   async render() {
@@ -182,6 +190,10 @@ class Popup {
 
     if (this.linked) this.data.html.setAttribute('data-hellotext--popup-linked-value', 'true')
 
+    // Listen before mounting: the controller reports as soon as it connects.
+    this.data.html.addEventListener('hellotext--popup:activity', event => {
+      this.onActivity(event.detail.active)
+    })
     container.appendChild(this.data.html)
     this.mounted = true
 
