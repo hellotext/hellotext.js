@@ -23,6 +23,19 @@ describe('Popup', () => {
     Configuration.popup.container = 'body'
   })
 
+  describe('.browser', () => {
+    it.each([
+      ['android', 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36'],
+      ['edge', 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/130.0 Safari/537.36 Edg/130.0'],
+      ['firefox', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.0; rv:131.0) Gecko/20100101 Firefox/131.0'],
+      ['chrome', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0 Safari/537.36'],
+      ['safari', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15'],
+      ['other', 'SomeBot/1.0'],
+    ])('names %s', (browser, userAgent) => {
+      expect(Popup.browser(userAgent)).toBe(browser)
+    })
+  })
+
   describe('remembering a sent or closed popup', () => {
     const key = 'hello_popup_submitted_popup-id'
     const clearCookie = () => {
