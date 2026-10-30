@@ -148,6 +148,7 @@ export default class extends Controller {
       this.dismissed = true
     }
     this.evaluateDisplay()
+    this.reportActivity()
 
     this.closeIfFinishedElsewhere = this.closeIfFinishedElsewhere.bind(this)
     window.addEventListener('storage', this.closeIfFinishedElsewhere)
@@ -156,6 +157,7 @@ export default class extends Controller {
 
   /**
    * Stop the countdown interval when detached so it does not keep updating old DOM.
+   * A detached popup no longer holds back the Smart Alert.
    *
    * @returns {void}
    */
@@ -164,6 +166,7 @@ export default class extends Controller {
     window.removeEventListener('storage', this.closeIfFinishedElsewhere)
     window.removeEventListener('pageshow', this.closeIfFinishedElsewhere)
     this.element.removeEventListener('change', this.syncRequiredPush)
+    this.reportActivity(false)
   }
 
   /**
@@ -195,6 +198,7 @@ export default class extends Controller {
 
     this.dialogTarget.hidden = false
     Hellotext.eventEmitter.dispatch('popup:opened')
+    this.reportActivity()
   }
 
   /**
@@ -216,6 +220,7 @@ export default class extends Controller {
 
     this.element.hidden = true
     Hellotext.eventEmitter.dispatch('popup:closed')
+    this.reportActivity()
   }
 
   /**
@@ -682,6 +687,7 @@ export default class extends Controller {
 
     this.completedTarget.hidden = true
     if (this.hasPushRequiredTarget) this.pushRequiredTarget.hidden = true
+    this.reportActivity()
   }
 
   /**
@@ -701,6 +707,24 @@ export default class extends Controller {
 
     if (this.hasPushRequiredTarget) this.pushRequiredTarget.hidden = true
     this.completedTarget.hidden = false
+    this.reportActivity()
+  }
+
+  /**
+   * Tell the SDK whether the visitor is still going through this popup: its dialog shows a
+   * form step or the Push-required step. The Smart Alert waits for the popup, so the two never
+   * ask for Push at the same time, and does not show on this page once the visitor is done.
+   *
+   * @fires hellotext--popup:activity
+   * @param {boolean} [active] - Whether the visitor is still going through the popup.
+   * @returns {void}
+   */
+  reportActivity(
+    active = !this.element.hidden && !this.dialogTarget.hidden && this.completedTarget.hidden,
+  ) {
+    this.element.dispatchEvent(
+      new CustomEvent('hellotext--popup:activity', { bubbles: true, detail: { active } }),
+    )
   }
 
   /**
