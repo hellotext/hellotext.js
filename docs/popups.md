@@ -88,11 +88,11 @@ The server renders the bubble and dialog hidden. Once the popup is mounted and i
 - With bubble mode enabled, the launcher appears first. Clicking it opens the dialog and hides the bubble.
 - Without bubble mode, the dialog opens immediately.
 
-Closing the popup hides both the dialog and the launcher. Dismissal is remembered for that controller instance and is not persisted across page reloads.
+Closing the popup hides both the dialog and the launcher.
 
-Once Hellotext accepts a submission, the browser remembers that popup and does not load it again, on any page or later visit. Verification is not required. The mark is kept in a `hello_popup_submitted_POPUP_ID` cookie on the store's root domain and in `localStorage`. Each one restores the other, and every visit renews the cookie. The mark covers only that popup, so another popup still shows. A popup opened from a link still opens.
+Once the visitor closes the popup, with the close button or the Escape key, or Hellotext accepts their submission, the browser remembers that popup and does not load it again, on any page or later visit. Verification is not required. The mark is kept in a `hello_popup_submitted_POPUP_ID` cookie on the store's root domain and in `localStorage`. Each one restores the other, and every visit renews the cookie. The mark covers only that popup, so another popup still shows. A popup opened from a link still opens.
 
-If the same popup is open in another tab, or on a page the browser restores with the back button, it closes when the visitor sends it. A tab that sent it keeps its completion screen. Changing the email or phone from the completion screen cancels the submission and forgets the mark until the visitor sends the popup again.
+If the same popup is open in another tab, or on a page the browser restores with the back button, it closes when the visitor sends or closes it. A tab that sent it keeps its completion screen. Changing the email or phone from the completion screen cancels the submission and forgets the mark until the visitor sends or closes the popup again.
 
 The mark lives in that browser only. A different browser or device, a private window, or clearing the site's data shows the popup again. Browsers also limit how long script cookies and storage last: Chrome keeps the cookie for up to about 400 days, and Safari may clear both after 7 days without a visit.
 
@@ -124,7 +124,7 @@ Each step is validated using the browser's native input constraints, including r
 A required Push field keeps its step's button disabled until the visitor checks it, and the popup's reward waits for Push:
 
 - If the browser does not grant permission, the popup is still sent, so the contact is saved without the reward, and the visitor sees the server-rendered `pushRequired` step with how to allow notifications in their browser (`Popup.browser()`: Chrome, Edge, Firefox, Safari, Android, or a generic fallback).
-- Its button (`retryPush`) asks for permission again; once granted, the popup is sent again with the subscription and the completion step appears. A popup still waiting for Push is not remembered as sent, so it can show again on a later visit.
+- Its button (`retryPush`) asks for permission again; once granted, the popup is sent again with the subscription and the completion step appears. Sending a popup that still waits for Push does not remember it, so a visitor who leaves the page can get it again on a later visit; closing it is remembered as usual.
 - Where Push cannot work (the server marks it unavailable, or the browser cannot use it, such as an iPhone tab without a Home Screen installation), a popup with a required Push field is not shown.
 
 Submitting the form before the last step advances to the next step after validation. The final step validates its inputs and submits the collected flow, including email, phone, custom fields, checkbox choices, and capture metadata.

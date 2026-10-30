@@ -36,7 +36,7 @@ describe('Popup', () => {
     })
   })
 
-  describe('remembering a sent popup', () => {
+  describe('remembering a sent or closed popup', () => {
     const key = 'hello_popup_submitted_popup-id'
     const clearCookie = () => {
       document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
@@ -47,32 +47,32 @@ describe('Popup', () => {
       clearCookie()
     })
 
-    it('is not remembered until the popup is sent', () => {
-      expect(Popup.submitted('popup-id')).toBe(false)
+    it('is not remembered until the popup is sent or closed', () => {
+      expect(Popup.finished('popup-id')).toBe(false)
     })
 
     it('keeps the mark in a cookie and in localStorage', () => {
-      Popup.markSubmitted('popup-id')
+      Popup.markFinished('popup-id')
 
       expect(document.cookie).toContain(`${key}=1`)
       expect(localStorage.getItem(key)).toBe('1')
-      expect(Popup.submitted('popup-id')).toBe(true)
-      expect(Popup.submitted('other-popup')).toBe(false)
+      expect(Popup.finished('popup-id')).toBe(true)
+      expect(Popup.finished('other-popup')).toBe(false)
     })
 
     it('restores the cookie from localStorage when the cookies were cleared', () => {
-      Popup.markSubmitted('popup-id')
+      Popup.markFinished('popup-id')
       clearCookie()
 
-      expect(Popup.submitted('popup-id')).toBe(true)
+      expect(Popup.finished('popup-id')).toBe(true)
       expect(document.cookie).toContain(`${key}=1`)
     })
 
     it('restores localStorage from the cookie when site storage was cleared', () => {
-      Popup.markSubmitted('popup-id')
+      Popup.markFinished('popup-id')
       localStorage.clear()
 
-      expect(Popup.submitted('popup-id')).toBe(true)
+      expect(Popup.finished('popup-id')).toBe(true)
       expect(localStorage.getItem(key)).toBe('1')
     })
 
@@ -84,34 +84,34 @@ describe('Popup', () => {
         throw new Error('SecurityError')
       })
 
-      Popup.markSubmitted('popup-id')
+      Popup.markFinished('popup-id')
 
-      expect(Popup.submitted('popup-id')).toBe(true)
+      expect(Popup.finished('popup-id')).toBe(true)
     })
 
     it('forgets a cancelled submission even when another host kept a copy in its localStorage', () => {
-      Popup.markSubmitted('popup-id')
-      Popup.forgetSubmitted('popup-id')
+      Popup.markFinished('popup-id')
+      Popup.forgetFinished('popup-id')
       // The bare domain copied the shared cookie into its own localStorage before the cancel.
       localStorage.setItem(key, '1')
 
-      expect(Popup.submitted('popup-id')).toBe(false)
+      expect(Popup.finished('popup-id')).toBe(false)
       expect(localStorage.getItem(key)).toBeNull()
     })
 
     it('remembers the popup again once the corrected submission is sent', () => {
-      Popup.markSubmitted('popup-id')
-      Popup.forgetSubmitted('popup-id')
+      Popup.markFinished('popup-id')
+      Popup.forgetFinished('popup-id')
 
-      Popup.markSubmitted('popup-id')
+      Popup.markFinished('popup-id')
 
-      expect(Popup.submitted('popup-id')).toBe(true)
+      expect(Popup.finished('popup-id')).toBe(true)
     })
 
     it('stores nothing for an id that is not a public popup id', () => {
-      Popup.markSubmitted('bad id;')
+      Popup.markFinished('bad id;')
 
-      expect(Popup.submitted('bad id;')).toBe(false)
+      expect(Popup.finished('bad id;')).toBe(false)
       expect(document.cookie).not.toContain('hello_popup_submitted_')
       expect(localStorage.length).toBe(0)
     })

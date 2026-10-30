@@ -142,16 +142,16 @@ export default class extends Controller {
     this.element.addEventListener('change', this.syncRequiredPush)
     this.syncRequiredPush()
     this.requireBirthdays()
-    // Another tab may have sent this popup while its HTML was loading, before the
+    // Another tab may have sent or closed this popup while its HTML was loading, before the
     // storage listener below existed. Keep it hidden instead of opening it.
-    if (!this.linkedValue && !this.submissionId && Popup.submitted(this.idValue)) {
+    if (!this.linkedValue && !this.submissionId && Popup.finished(this.idValue)) {
       this.dismissed = true
     }
     this.evaluateDisplay()
 
-    this.closeIfSubmittedElsewhere = this.closeIfSubmittedElsewhere.bind(this)
-    window.addEventListener('storage', this.closeIfSubmittedElsewhere)
-    window.addEventListener('pageshow', this.closeIfSubmittedElsewhere)
+    this.closeIfFinishedElsewhere = this.closeIfFinishedElsewhere.bind(this)
+    window.addEventListener('storage', this.closeIfFinishedElsewhere)
+    window.addEventListener('pageshow', this.closeIfFinishedElsewhere)
   }
 
   /**
@@ -161,25 +161,25 @@ export default class extends Controller {
    */
   disconnect() {
     this.stopResendCooldown()
-    window.removeEventListener('storage', this.closeIfSubmittedElsewhere)
-    window.removeEventListener('pageshow', this.closeIfSubmittedElsewhere)
+    window.removeEventListener('storage', this.closeIfFinishedElsewhere)
+    window.removeEventListener('pageshow', this.closeIfFinishedElsewhere)
     this.element.removeEventListener('change', this.syncRequiredPush)
   }
 
   /**
-   * Close this popup when the visitor sent it from another tab, or from another page
+   * Close this popup when the visitor sent or closed it in another tab, or on another page
    * before going back to this one from the browser's back-forward cache. A popup this
    * page sent keeps its completion step, and a short link keeps the popup it opened.
    *
    * @param {StorageEvent | PageTransitionEvent} event
    * @returns {void}
    */
-  closeIfSubmittedElsewhere(event) {
-    if (event.type === 'storage' && event.key !== Popup.submittedKey(this.idValue)) return
+  closeIfFinishedElsewhere(event) {
+    if (event.type === 'storage' && event.key !== Popup.finishedKey(this.idValue)) return
     if (event.type === 'pageshow' && !event.persisted) return
     if (this.submissionId || this.linkedValue || this.dismissed) return
 
-    if (Popup.submitted(this.idValue)) this.close()
+    if (Popup.finished(this.idValue)) this.close()
   }
 
   /**
@@ -198,7 +198,8 @@ export default class extends Controller {
   }
 
   /**
-   * Dismiss the entire popup and remember that choice for this controller instance.
+   * Dismiss the entire popup and remember that choice in this browser, so later page
+   * loads skip it like a sent popup. A short link still opens it.
    * Closing changes visibility; it does not cancel a submission or its delivery.
    *
    * @param {Event} [event] - Optional close-button interaction.
@@ -208,6 +209,7 @@ export default class extends Controller {
     if (event) event.preventDefault()
 
     this.dismissed = true
+    Popup.markFinished(this.idValue)
     this.dialogTarget.hidden = true
 
     if (this.hasBubbleTarget) this.bubbleTarget.hidden = true
@@ -326,9 +328,9 @@ export default class extends Controller {
       // Keep the backend's chosen route and action token together. Resend and edit
       // must act on this accepted submission, even if a fallback route was selected.
       const submission = await response.json()
-      // A visitor who has not granted Push yet may come back for the reward, so the popup
-      // is remembered as sent only once it is complete.
-      if (!awaitingPush) Popup.markSubmitted(this.idValue)
+      // A visitor still waiting for Push may come back for the reward, so a sent popup is
+      // remembered only once it is complete. Closing it is still remembered, as always.
+      if (!awaitingPush) Popup.markFinished(this.idValue)
       this.submissionId = submission.id
       this.submissionVerificationState = submission.verification_state
       this.submissionActionToken = submission.action_token
@@ -1011,7 +1013,7 @@ export default class extends Controller {
       if (response.failed) return
 
       // The cancelled submission no longer counts. Sending the corrected one marks it again.
-      Popup.forgetSubmitted(this.idValue)
+      Popup.forgetFinished(this.idValue)
       this.stopResendCooldown()
       this.submissionId = null
       this.submissionActionToken = null
