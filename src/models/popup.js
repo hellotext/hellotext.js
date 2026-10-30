@@ -36,6 +36,24 @@ class Popup {
     return id
   }
 
+  /**
+   * The browser whose notification settings the visitor has to change: android,
+   * edge, firefox, chrome, safari or other. Order matters: Edge and Android
+   * Chrome also report Chrome, and Chrome also reports Safari.
+   *
+   * @param {String} [userAgent]
+   * @returns {String}
+   */
+  static browser(userAgent = typeof navigator === 'undefined' ? '' : navigator.userAgent) {
+    if (/Android/i.test(userAgent)) return 'android'
+    if (/Edg\//.test(userAgent)) return 'edge'
+    if (/Firefox\//.test(userAgent)) return 'firefox'
+    if (/Chrome\//.test(userAgent)) return 'chrome'
+    if (/Safari\//.test(userAgent)) return 'safari'
+
+    return 'other'
+  }
+
   static idIn(search) {
     return new URLSearchParams(search || '').get('hello_popup')
   }

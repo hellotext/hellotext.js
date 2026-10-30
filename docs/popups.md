@@ -121,7 +121,11 @@ A link opened from inside the store, for example from the webchat, still opens i
 
 Each step is validated using the browser's native input constraints, including required fields and email format. Invalid fields display their validation messages before the visitor can continue.
 
-A required Push field keeps its step's button disabled until the visitor checks it. Only the checkbox is required: if the visitor then denies the browser permission, the popup continues. A Push field the SDK hides, because the server or the browser cannot use Push (such as an iPhone tab without a Home Screen installation), never blocks the step.
+A required Push field keeps its step's button disabled until the visitor checks it, and the popup's reward waits for Push:
+
+- If the browser does not grant permission, the popup is still sent, so the contact is saved without the reward, and the visitor sees the server-rendered `pushRequired` step with how to allow notifications in their browser (`Popup.browser()`: Chrome, Edge, Firefox, Safari, Android, or a generic fallback).
+- Its button (`retryPush`) asks for permission again; once granted, the popup is sent again with the subscription and the completion step appears. A popup still waiting for Push is not remembered as sent, so it can show again on a later visit.
+- Where Push cannot work (the server marks it unavailable, or the browser cannot use it, such as an iPhone tab without a Home Screen installation), a popup with a required Push field is not shown.
 
 Submitting the form before the last step advances to the next step after validation. The final step validates its inputs and submits the collected flow, including email, phone, custom fields, checkbox choices, and capture metadata.
 

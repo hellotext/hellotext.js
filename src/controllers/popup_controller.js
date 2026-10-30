@@ -73,6 +73,10 @@ const PUSH_LOADING_LABEL = 'Enable notifications'
  * - pushDeliveryCopy: Server-rendered completion copy shown in place of deliveryCopy when the
  *   popup coupon was sent by push, because the merchant's copy names the verification channel.
  * - noDeliveryCopy: Server-rendered completion copy shown when no delivery is required.
+ * - pushRequired: Step shown when a required Push field was checked but the browser did not
+ *   grant permission. The contact is already saved; the reward waits for Push.
+ * - pushRequiredBrowser: How to allow notifications, one per browser (`data-push-browser`).
+ * - pushRequiredError: Shown when the retry still finds notifications blocked.
  *
  * Values:
  * - capture: Capture metadata supplied by the server and included in submissions.
@@ -96,6 +100,9 @@ export default class extends Controller {
     'deliveryCopy',
     'pushDeliveryCopy',
     'noDeliveryCopy',
+    'pushRequired',
+    'pushRequiredBrowser',
+    'pushRequiredError',
   ]
 
   static values = {
@@ -128,6 +135,9 @@ export default class extends Controller {
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
     this.hideUnsupportedPushFields()
+    // A popup whose reward requires Push is pointless where Push cannot work (an iPhone tab
+    // without a Home Screen installation, or a business without Push), so it is not shown.
+    if (this.requiredPushUnavailable) this.dismissed = true
     this.syncRequiredPush = this.syncRequiredPush.bind(this)
     this.element.addEventListener('change', this.syncRequiredPush)
     this.syncRequiredPush()
@@ -295,8 +305,11 @@ export default class extends Controller {
       button.disabled = true
     })
 
+    let awaitingPush = false
     try {
       await this.subscribeForPushOnCurrentStep()
+      // Sent anyway, so the contact is saved; the server holds the reward until Push is granted.
+      awaitingPush = this.requiredPushPending
 
       const payload = this.submissionPayload()
       const response = await PopupsAPI.submit(
@@ -313,7 +326,9 @@ export default class extends Controller {
       // Keep the backend's chosen route and action token together. Resend and edit
       // must act on this accepted submission, even if a fallback route was selected.
       const submission = await response.json()
-      Popup.markSubmitted(this.idValue)
+      // A visitor who has not granted Push yet may come back for the reward, so the popup
+      // is remembered as sent only once it is complete.
+      if (!awaitingPush) Popup.markSubmitted(this.idValue)
       this.submissionId = submission.id
       this.submissionVerificationState = submission.verification_state
       this.submissionActionToken = submission.action_token
@@ -335,7 +350,65 @@ export default class extends Controller {
       this.syncRequiredPush()
     }
 
-    this.showCompleted()
+    if (awaitingPush) this.showPushRequired()
+    else this.showCompleted()
+  }
+
+  /**
+   * Show how to allow notifications in this browser, after the contact was saved without
+   * the reward because a required Push field was not granted.
+   *
+   * @returns {void}
+   */
+  showPushRequired() {
+    if (!this.hasPushRequiredTarget) return this.showCompleted()
+
+    this.stepTargets.forEach(step => {
+      step.hidden = true
+    })
+    this.completedTarget.hidden = true
+    if (this.hasPushRequiredErrorTarget) this.pushRequiredErrorTarget.hidden = true
+
+    const browser = Popup.browser()
+    const matches = this.pushRequiredBrowserTargets.some(
+      block => block.dataset.pushBrowser === browser,
+    )
+    this.pushRequiredBrowserTargets.forEach(block => {
+      block.hidden = block.dataset.pushBrowser !== (matches ? browser : 'other')
+    })
+
+    this.pushRequiredTarget.hidden = false
+  }
+
+  /**
+   * Ask for Push again from the visitor's click: the browser prompts again when the earlier
+   * prompt was dismissed, and a permission allowed from the site settings is picked up.
+   * Once granted, the popup is sent again with the subscription and the reward is delivered.
+   *
+   * @param {Event} [event] - Click on the retry button.
+   * @returns {Promise<void>}
+   */
+  async retryPush(event) {
+    if (event) event.preventDefault()
+    if (this.submitting || this.pushSubscriptionPromise) return
+
+    if (this.hasPushRequiredErrorTarget) this.pushRequiredErrorTarget.hidden = true
+
+    const permission = typeof Notification === 'undefined' ? 'denied' : Notification.permission
+    if (permission !== 'denied') {
+      this.pushPermissionState = null
+      await this.subscribeForPush(event?.currentTarget ? [event.currentTarget] : [])
+    }
+
+    if (this.pushPermissionState !== 'granted') {
+      if (this.hasPushRequiredErrorTarget) this.pushRequiredErrorTarget.hidden = false
+      return
+    }
+
+    this.pushRequiredTarget.hidden = true
+    await this.submit()
+    // A failed send leaves the visitor on this step, with the popup's error, to try again.
+    if (this.completedTarget.hidden) this.pushRequiredTarget.hidden = false
   }
 
   /**
@@ -393,15 +466,28 @@ export default class extends Controller {
     const optedIn = this.currentStepInputs.some(
       input => input.dataset.popupFieldKind === 'push' && input.checked,
     )
-    if (!optedIn || !Hellotext.push || this.pushPermissionState) return
-
-    if (this.pushSubscriptionPromise) return this.pushSubscriptionPromise
+    if (!optedIn || this.pushPermissionState) return
 
     const currentButtons =
       this.stepTargets[this.stepIndex]?.querySelectorAll(
         '[data-hellotext--popup-target~="submitButton"], [data-action~="click->hellotext--popup#next"]',
       ) || []
-    const buttons = Array.from(currentButtons, button => ({ button, disabled: button.disabled }))
+
+    return this.subscribeForPush(Array.from(currentButtons))
+  }
+
+  /**
+   * Subscribe this browser to Push, showing the loading label on the buttons that asked for it.
+   * Must be called from a click so the browser shows its permission prompt.
+   *
+   * @param {HTMLElement[]} triggers - Buttons disabled and labeled while the prompt is open.
+   * @returns {Promise<void>}
+   */
+  async subscribeForPush(triggers) {
+    if (!Hellotext.push) return
+    if (this.pushSubscriptionPromise) return this.pushSubscriptionPromise
+
+    const buttons = triggers.map(button => ({ button, disabled: button.disabled }))
     buttons.forEach(({ button }) => {
       button.disabled = true
     })
@@ -459,6 +545,34 @@ export default class extends Controller {
     })
 
     return this.pushSubscriptionPromise
+  }
+
+  /**
+   * A required Push field the SDK hid because the server or the browser cannot use Push.
+   *
+   * @returns {boolean}
+   */
+  get requiredPushUnavailable() {
+    return this.inputTargets.some(
+      input => input.dataset.popupFieldKind === 'push' && input.required && input.disabled,
+    )
+  }
+
+  /**
+   * A required Push field the visitor checked, while the browser has not granted Push.
+   *
+   * @returns {boolean}
+   */
+  get requiredPushPending() {
+    const required = this.inputTargets.some(
+      input =>
+        input.dataset.popupFieldKind === 'push' &&
+        input.required &&
+        !input.disabled &&
+        input.checked,
+    )
+
+    return required && this.pushPermissionState !== 'granted'
   }
 
   /**
@@ -565,6 +679,7 @@ export default class extends Controller {
     })
 
     this.completedTarget.hidden = true
+    if (this.hasPushRequiredTarget) this.pushRequiredTarget.hidden = true
   }
 
   /**
@@ -582,6 +697,7 @@ export default class extends Controller {
     this.interpolateCompletionCopy()
     this.configureCompletionActions()
 
+    if (this.hasPushRequiredTarget) this.pushRequiredTarget.hidden = true
     this.completedTarget.hidden = false
   }
 

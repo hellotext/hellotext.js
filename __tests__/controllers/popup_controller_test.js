@@ -365,14 +365,116 @@ describe('PopupController', () => {
     it.each([
       ['the server marks Push unavailable', 'false', { subscribe: jest.fn() }],
       ['the browser cannot use Push, as in an iPhone tab', 'true', null],
-    ])('does not block the step when %s', (_, available, push) => {
-      const { stepOne } = buildController({ hasBubble: false })
+    ])('does not show the popup when %s', (_, available, push) => {
+      const { element, stepOne } = buildController({ hasBubble: false })
       const { nextButton } = addRequiredPush(stepOne, { available })
       Hellotext.push = push
 
       controller.connect()
 
+      expect(element.hidden).toBe(true)
       expect(nextButton.disabled).toBe(false)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:opened')
+    })
+
+    describe('when the browser does not grant Push', () => {
+      const addPushRequiredStep = dialog => {
+        const section = document.createElement('section')
+        section.hidden = true
+        const blocks = ['chrome', 'safari', 'other'].map(browser => {
+          const block = document.createElement('div')
+          block.dataset.pushBrowser = browser
+          section.appendChild(block)
+          return block
+        })
+        const error = document.createElement('p')
+        error.hidden = true
+        const retry = document.createElement('button')
+        section.append(error, retry)
+        dialog.appendChild(section)
+        Object.defineProperties(controller, {
+          pushRequiredTarget: { value: section, configurable: true },
+          hasPushRequiredTarget: { value: true, configurable: true },
+          pushRequiredBrowserTargets: { value: blocks, configurable: true },
+          pushRequiredErrorTarget: { value: error, configurable: true },
+          hasPushRequiredErrorTarget: { value: true, configurable: true },
+        })
+
+        return { section, blocks, error, retry }
+      }
+
+      const sendDenied = async () => {
+        const { dialog, stepOne, completed, emailInput, phoneInput } = buildController({ hasBubble: false })
+        addRequiredPush(stepOne, { checked: true })
+        const pushRequired = addPushRequiredStep(dialog)
+        Hellotext.push = {
+          subscribe: jest.fn().mockRejectedValue(new Error('denied')),
+          subscriptionForSubmission: jest.fn(() => null),
+        }
+        emailInput.value = 'customer@example.com'
+        phoneInput.value = '+59899123456'
+        controller.connect()
+
+        await controller.next()
+        await controller.submit()
+
+        return { completed, ...pushRequired }
+      }
+
+      afterEach(() => {
+        delete global.Notification
+        localStorage.clear()
+      })
+
+      it('saves the contact and shows how to allow notifications in this browser', async () => {
+        jest.spyOn(Popup, 'browser').mockReturnValue('safari')
+
+        const { section, blocks, completed } = await sendDenied()
+
+        expect(PopupsAPI.submit).toHaveBeenCalledTimes(1)
+        expect(section.hidden).toBe(false)
+        expect(completed.hidden).toBe(true)
+        expect(blocks.map(block => block.hidden)).toEqual([true, false, true])
+        // Not remembered as sent: the visitor may come back for the reward.
+        expect(Popup.submitted('popup-id')).toBe(false)
+      })
+
+      it('falls back to the generic instructions for an unlisted browser', async () => {
+        jest.spyOn(Popup, 'browser').mockReturnValue('firefox')
+
+        const { blocks } = await sendDenied()
+
+        expect(blocks.map(block => block.hidden)).toEqual([true, true, false])
+      })
+
+      it('keeps the visitor on the step while notifications stay blocked', async () => {
+        const { section, error, retry } = await sendDenied()
+        global.Notification = { permission: 'denied' }
+
+        await controller.retryPush({ preventDefault: jest.fn(), currentTarget: retry })
+
+        expect(error.hidden).toBe(false)
+        expect(section.hidden).toBe(false)
+        expect(PopupsAPI.submit).toHaveBeenCalledTimes(1)
+      })
+
+      it('sends again with the subscription once the visitor allows notifications', async () => {
+        const { section, completed, retry } = await sendDenied()
+        global.Notification = { permission: 'granted' }
+        Hellotext.push = {
+          subscribe: jest.fn().mockResolvedValue({ failed: false }),
+          subscriptionForSubmission: jest.fn(() => ({ subscription: { endpoint: 'https://push.example.com' } })),
+        }
+
+        await controller.retryPush({ preventDefault: jest.fn(), currentTarget: retry })
+
+        expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+        expect(PopupsAPI.submit).toHaveBeenCalledTimes(2)
+        expect(PopupsAPI.submit.mock.calls[1][1].metadata.push_permission).toBe('granted')
+        expect(section.hidden).toBe(true)
+        expect(completed.hidden).toBe(false)
+        expect(Popup.submitted('popup-id')).toBe(true)
+      })
     })
 
     it('leaves an optional Push field out of it', () => {
