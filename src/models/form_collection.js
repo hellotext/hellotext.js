@@ -9,7 +9,6 @@ import { NotInitializedError } from '../errors'
 class FormCollection {
   constructor() {
     this.forms = []
-    this.visitBusinessId = Hellotext.visitBusinessId
     this.initializationVersion = Hellotext.initializationVersion
 
     this.includes = this.includes.bind(this)
@@ -101,7 +100,7 @@ class FormCollection {
       )
     }
 
-    this.forms.push(new Form(data, null, this.visitBusinessId))
+    this.forms.push(new Form(data))
   }
 
   getById(id) {
@@ -125,10 +124,7 @@ class FormCollection {
   }
 
   get current() {
-    return (
-      Hellotext.visitBusinessId === this.visitBusinessId &&
-      Hellotext.initializationVersion === this.initializationVersion
-    )
+    return Hellotext.initializationVersion === this.initializationVersion
   }
 
   get #formIdsToFetch() {

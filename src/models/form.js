@@ -5,9 +5,8 @@ import { LogoBuilder } from '../builders/logo_builder'
 import { setSanitizedRichText } from '../core/sanitize_html'
 
 class Form {
-  constructor(data, element = null, visitBusinessId = Hellotext.visitBusinessId) {
+  constructor(data, element = null) {
     this.data = data
-    this.visitBusinessId = visitBusinessId
     this.element =
       element ||
       document.querySelector(`[data-hello-form="${this.id}"]`) ||
@@ -106,8 +105,7 @@ class Form {
     }
 
     localStorage.setItem(`hello-form-${this.id}`, JSON.stringify(payload))
-    if (Hellotext.visitBusinessId === this.visitBusinessId)
-      Hellotext.recordActivity('form.completed')
+    Hellotext.recordActivity('form.completed')
     Hellotext.eventEmitter.dispatch('form:completed', payload)
   }
 

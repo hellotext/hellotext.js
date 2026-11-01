@@ -46,21 +46,21 @@ describe('popup visit signals', () => {
     window.localStorage.clear()
     window.sessionStorage.clear()
     Hellotext.activities = new Set()
-    Hellotext.visitBusinessId = undefined
+    Hellotext.visitSignalsLoaded = false
     Hellotext.lastPageUrl = undefined
     Hellotext.lastPageRoute = undefined
     Hellotext.visitStartedAt = undefined
   })
 
   it('keeps activities and page counts across page loads in the same visit', () => {
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
     Hellotext.recordActivity('product.viewed')
 
     Hellotext.activities = new Set()
-    Hellotext.visitBusinessId = undefined
+    Hellotext.visitSignalsLoaded = false
     Hellotext.lastPageUrl = undefined
     Hellotext.lastPageRoute = undefined
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     expect(Hellotext.pageViews).toBe(2)
     expect(Hellotext.visitorType).toBe('new')
@@ -68,7 +68,7 @@ describe('popup visit signals', () => {
   })
 
   it('measures the first page from the document start', () => {
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     expect(Hellotext.pageStartedAt).toBe(window.performance.timeOrigin)
     expect(Hellotext.visitStartedAt).toBe(window.performance.timeOrigin)
@@ -76,33 +76,33 @@ describe('popup visit signals', () => {
 
   it('does not count query changes or ordinary anchors as new pages', () => {
     window.history.replaceState({}, '', '/products?utm_source=email#details')
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     window.history.replaceState({}, '', '/products?color=blue#reviews')
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     expect(Hellotext.pageViews).toBe(1)
   })
 
   it('counts a changed hash route but ignores its query parameters', () => {
     window.history.replaceState({}, '', '/#/products?color=red')
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     window.history.replaceState({}, '', '/#/products?color=blue')
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
     expect(Hellotext.pageViews).toBe(1)
 
     window.history.replaceState({}, '', '/#/checkout')
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
     expect(Hellotext.pageViews).toBe(2)
   })
 
   it('treats hashbang and plain hash routes as the same page', () => {
     window.history.replaceState({}, '', '/#!/products')
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     window.history.replaceState({}, '', '/#/products')
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     expect(Hellotext.pageViews).toBe(1)
   })
@@ -116,7 +116,7 @@ describe('popup visit signals', () => {
     const now = jest.spyOn(Date, 'now').mockReturnValue(1234)
     window.history.replaceState({}, '', '/products')
 
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     expect(Hellotext.pageStartedAt).toBe(1234)
 
@@ -129,13 +129,13 @@ describe('popup visit signals', () => {
   })
 
   it('recognizes a visitor after a new browser session starts', () => {
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     window.sessionStorage.clear()
-    Hellotext.visitBusinessId = undefined
+    Hellotext.visitSignalsLoaded = false
     Hellotext.lastPageUrl = undefined
     Hellotext.lastPageRoute = undefined
-    Hellotext.initializeVisitSignals('business-id')
+    Hellotext.initializeVisitSignals()
 
     expect(Hellotext.visitorType).toBe('returning')
     expect(Hellotext.pageViews).toBe(1)
@@ -687,7 +687,6 @@ describe("when the class is initialized successfully", () => {
 
         const tracked = Hellotext.track('product.viewed')
         Hellotext.business = { id: 'other-business' }
-        Hellotext.visitBusinessId = 'other-business'
         resolve({ json: jest.fn().mockResolvedValue({ received: 'success' }), status: 200 })
 
         await tracked

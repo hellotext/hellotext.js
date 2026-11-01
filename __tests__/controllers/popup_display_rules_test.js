@@ -205,12 +205,12 @@ describe('PopupController display rules', () => {
 
     beforeEach(() => {
       Hellotext.visitCampaign = {}
-      Hellotext.visitBusinessId = 'business-1'
+      Hellotext.visitSignalsLoaded = true
     })
 
     it('keeps the landing campaign after the site navigates past it', () => {
       window.history.replaceState({}, '', '/?utm_campaign=spring')
-      Hellotext.initializeVisitSignals('business-1')
+      Hellotext.initializeVisitSignals()
       window.history.replaceState({}, '', '/products/42')
 
       const { element } = buildController({
@@ -226,7 +226,7 @@ describe('PopupController display rules', () => {
     it('never falls back to the campaign persisted for the browser', () => {
       Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
       window.history.replaceState({}, '', '/?utm_campaign=spring')
-      Hellotext.initializeVisitSignals('business-1')
+      Hellotext.initializeVisitSignals()
       window.history.replaceState({}, '', '/products/42')
 
       const { element } = buildController({
@@ -241,7 +241,7 @@ describe('PopupController display rules', () => {
 
     it('replaces the remembered campaign when a later URL carries its own', () => {
       window.history.replaceState({}, '', '/?utm_source=instagram&utm_medium=social')
-      Hellotext.initializeVisitSignals('business-1')
+      Hellotext.initializeVisitSignals()
       buildController()
       window.history.replaceState({}, '', '/?utm_campaign=spring')
 
@@ -251,15 +251,15 @@ describe('PopupController display rules', () => {
       expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
     })
 
-    it('does not inherit a campaign from another visit or another business', () => {
+    it('does not inherit a campaign from another visit', () => {
       window.history.replaceState({}, '', '/?utm_campaign=spring')
-      Hellotext.initializeVisitSignals('business-1')
+      Hellotext.initializeVisitSignals()
 
-      // A new tab starts with empty session storage, and a second business keeps its own.
+      // A new tab starts a new document with empty session storage.
       window.sessionStorage.clear()
       window.history.replaceState({}, '', '/products/42')
-      Hellotext.visitBusinessId = undefined
-      Hellotext.initializeVisitSignals('business-2')
+      Hellotext.visitSignalsLoaded = false
+      Hellotext.initializeVisitSignals()
 
       buildController()
       expect(controller.pageContext().utm).toEqual({})
@@ -270,7 +270,7 @@ describe('PopupController display rules', () => {
         throw new Error('denied')
       })
       window.history.replaceState({}, '', '/?utm_campaign=spring')
-      Hellotext.initializeVisitSignals('business-1')
+      Hellotext.initializeVisitSignals()
 
       buildController()
       expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
@@ -279,7 +279,7 @@ describe('PopupController display rules', () => {
     it('does not touch persisted attribution while a popup is evaluated', () => {
       const previous = document.cookie
       window.history.replaceState({}, '', '/?utm_campaign=spring')
-      Hellotext.initializeVisitSignals('business-1')
+      Hellotext.initializeVisitSignals()
 
       buildController()
       controller.connect()

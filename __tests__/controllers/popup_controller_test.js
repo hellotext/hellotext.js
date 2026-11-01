@@ -169,7 +169,6 @@ describe('PopupController', () => {
       originalPage = Hellotext.page
       // Set, and expected to stay unread: this is the attribution the browser persisted.
       Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
-      Hellotext.visitBusinessId = 'business-1'
       Hellotext.visitCampaign = {}
       window.sessionStorage.clear()
     })

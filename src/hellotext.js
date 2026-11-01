@@ -37,7 +37,7 @@ class Hellotext {
   static pageViews = 1
   static visitCampaign = {}
   static visitorType = 'new'
-  static visitBusinessId
+  static visitSignalsLoaded = false
   static lastPageUrl
   static lastPageRoute
   static pageStartedAt
@@ -72,7 +72,7 @@ class Hellotext {
 
     Configuration.assign({ push: {}, ...config })
     Session.initialize(this.page)
-    this.initializeVisitSignals(business)
+    this.initializeVisitSignals()
 
     this.forms?.mutationObserver?.disconnect()
     this.forms = new FormCollection()
@@ -247,7 +247,6 @@ class Hellotext {
 
     const business = this.business
     const session = this.session
-    const visitBusinessId = this.visitBusinessId
     const headers = {
       ...((params && params.headers) || {}),
       ...this.headers,
@@ -285,7 +284,6 @@ class Hellotext {
       response.succeeded &&
       this.business === business &&
       this.session === session &&
-      this.visitBusinessId === visitBusinessId &&
       (trackedAt === null || trackedAt >= this.visitStartedAt)
     )
       this.recordActivity(action)
@@ -320,11 +318,13 @@ class Hellotext {
     return new Date(value).getTime()
   }
 
-  static initializeVisitSignals(businessId) {
-    const businessChanged = this.visitBusinessId !== businessId
-    this.visitBusinessId = businessId
+  // The visit is read from storage once per document; a later initialize on the same page
+  // keeps it and only counts a page view when the route changed.
+  static initializeVisitSignals() {
+    const firstInDocument = !this.visitSignalsLoaded
+    this.visitSignalsLoaded = true
 
-    if (businessChanged) {
+    if (firstInDocument) {
       this.pageViews = 0
       this.lastPageUrl = undefined
       this.lastPageRoute = undefined
@@ -362,7 +362,7 @@ class Hellotext {
 
     this.rememberVisitCampaign(UTM.paramsFrom(window.location.search))
 
-    if (businessChanged || this.lastPageRoute !== this.pageRoute()) this.recordPageView()
+    if (firstInDocument || this.lastPageRoute !== this.pageRoute()) this.recordPageView()
   }
 
   /**
@@ -448,7 +448,7 @@ class Hellotext {
   }
 
   static visitStorageKey(name) {
-    return `hellotext:business:${this.visitBusinessId}:${name}`
+    return `hellotext:visit:${name}`
   }
 
   static storage(name) {
