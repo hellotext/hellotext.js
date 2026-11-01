@@ -333,6 +333,29 @@ describe('PopupController display rules', () => {
       expect(recordPageView).toHaveBeenCalledTimes(1)
     })
 
+    // A query can change while the route stays the same. Going back between two campaign links
+    // re-checks the rules, but it is not a new page.
+    it.each([
+      ['popstate', '/sale?utm_campaign=a', '/sale?utm_campaign=b'],
+      ['hashchange', '/#/sale?utm_campaign=a', '/#/sale?utm_campaign=b'],
+    ])('re-evaluates rules on a %s that keeps the route', (event, from, to) => {
+      jest.useFakeTimers()
+      window.history.replaceState({}, '', from)
+      const recordPageView = jest.spyOn(Hellotext, 'recordPageView')
+      const { element } = buildController({ lanes: [lane(['session.utm_campaign', 'is', 'b'])] })
+
+      controller.connect()
+      expect(element.hidden).toBe(true)
+
+      // The browser moves the URL itself on these events, without a History API call.
+      controller.originalReplaceState.call(window.history, {}, '', to)
+      window.dispatchEvent(new Event(event))
+      jest.runOnlyPendingTimers()
+
+      expect(element.hidden).toBe(false)
+      expect(recordPageView).not.toHaveBeenCalled()
+    })
+
     it('re-evaluates page rules after pushState', () => {
       jest.useFakeTimers()
       const { element } = buildController({ lanes: [lane(['page.path', 'contains', '/sale'])] })

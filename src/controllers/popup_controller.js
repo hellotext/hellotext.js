@@ -202,15 +202,14 @@ export default class extends Controller {
 
     this.lastRoute = this.pageRoute()
     this.onNavigation = () => this.scheduleNavigationEvaluation()
-    this.onTurboNavigation = () => this.scheduleNavigationEvaluation(true)
 
     window.addEventListener('popstate', this.onNavigation)
     window.addEventListener('hashchange', this.onNavigation)
-    window.addEventListener('turbo:load', this.onTurboNavigation)
-    window.addEventListener('turbo:render', this.onTurboNavigation)
+    window.addEventListener('turbo:load', this.onNavigation)
+    window.addEventListener('turbo:render', this.onNavigation)
 
     if (this.rules.needsTitle && document.head) {
-      this.titleObserver = new MutationObserver(() => this.scheduleNavigationEvaluation(true))
+      this.titleObserver = new MutationObserver(() => this.scheduleNavigationEvaluation())
       this.titleObserver.observe(document.head, {
         childList: true,
         characterData: true,
@@ -230,32 +229,29 @@ export default class extends Controller {
     this.patchedPushState = (...args) => {
       const result = originalPushState.apply(window.history, args)
 
-      // A SPA can update document.title without changing the URL. History calls are an
-      // explicit navigation boundary, so they must still re-evaluate title rules.
-      if (navigationActive) this.scheduleNavigationEvaluation(true)
+      if (navigationActive) this.scheduleNavigationEvaluation()
       return result
     }
     this.patchedReplaceState = (...args) => {
       const result = originalReplaceState.apply(window.history, args)
 
-      if (navigationActive) this.scheduleNavigationEvaluation(true)
+      if (navigationActive) this.scheduleNavigationEvaluation()
       return result
     }
     window.history.pushState = this.patchedPushState
     window.history.replaceState = this.patchedReplaceState
   }
 
-  scheduleNavigationEvaluation(force = false) {
-    this.navigationEvaluationForced ||= force
+  // Every navigation re-checks the rules, because a query string or title can change while the
+  // route stays the same: going back from `/sale?utm_campaign=b` to `/sale?utm_campaign=a`, or a
+  // SPA retitling its page. Only a changed route counts as a new page and restarts time on page.
+  scheduleNavigationEvaluation() {
     if (this.navigationTimer) return
 
     this.navigationTimer = setTimeout(() => {
       this.navigationTimer = undefined
 
       const route = this.pageRoute()
-      if (!this.navigationEvaluationForced && route === this.lastRoute) return
-
-      this.navigationEvaluationForced = false
       if (route !== this.lastRoute) {
         Hellotext.recordPageView()
         this.connectedAt = Date.now()
@@ -278,12 +274,9 @@ export default class extends Controller {
     if (this.onNavigation) {
       window.removeEventListener('popstate', this.onNavigation)
       window.removeEventListener('hashchange', this.onNavigation)
+      window.removeEventListener('turbo:load', this.onNavigation)
+      window.removeEventListener('turbo:render', this.onNavigation)
       this.onNavigation = undefined
-    }
-    if (this.onTurboNavigation) {
-      window.removeEventListener('turbo:load', this.onTurboNavigation)
-      window.removeEventListener('turbo:render', this.onTurboNavigation)
-      this.onTurboNavigation = undefined
     }
     if (this.navigationTimer) {
       clearTimeout(this.navigationTimer)
@@ -300,7 +293,6 @@ export default class extends Controller {
     this.patchedReplaceState = undefined
     this.originalPushState = undefined
     this.originalReplaceState = undefined
-    this.navigationEvaluationForced = false
   }
 
   /**
