@@ -12,7 +12,6 @@ class Response {
   constructor(success, response) {
     this.response = response
     this.#success = success
-    this.jsonPromise = null
   }
 
   /**
@@ -28,8 +27,7 @@ class Response {
    * @returns {Promise<*>}
    */
   async json() {
-    this.jsonPromise ||= Promise.resolve(this.response.json())
-    return await this.jsonPromise
+    return await this.response.json()
   }
 
   /**
