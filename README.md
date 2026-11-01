@@ -81,7 +81,9 @@ Hellotext.removeEventListener(eventName, callback)
 | Event         | When it fires                                                                                   | Callback payload                                                                                               |
 | ------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `session-set` | The session value is set, including when an existing session is restored during initialization. | The current session value, also available as `Hellotext.session`.                                              |
-| `utm-set`     | UTM parameters are saved.                                                                       | A JSON string containing the saved UTM parameters and `observed_at`. Use `JSON.parse` to read it as an object. |
+| `utm-set`     | The UTM parameters the visitor arrived with are saved.                                          | A JSON string containing the saved UTM parameters and `observed_at`. Use `JSON.parse` to read it as an object. |
+
+UTM parameters on links inside the site (a store's own popup, banner or menu link) do not replace the ones the visitor arrived with and do not fire `utm-set`. They are kept apart and sent with events as `internal_utm_params`. Hellotext's own UTMs always count as an arrival.
 
 See [Understanding Sessions](/docs/sessions.md) and [Tracking Events](/docs/tracking.md).
 

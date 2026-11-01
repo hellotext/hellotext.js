@@ -5,6 +5,8 @@ The session is automatically sent to Hellotext any time the `Hellotext.track` me
 
 Short links redirections attaches a session identifier to the destination url as `hello_session` query parameter. This will identify all the events back to the customer who opened the link.
 
+A short link can also open a popup with the `hello_popup` query parameter, see [Opening a popup from a link](/docs/popups.md#opening-a-popup-from-a-link).
+
 ## Identity Management
 
 By default, Hellotext tracks visitors as anonymous sessions. To link these sessions to known customers, you can use either a Server-to-Server (S2S) approach or the client-side `identify` method.

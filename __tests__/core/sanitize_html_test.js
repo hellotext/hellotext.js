@@ -5,6 +5,7 @@
 import {
   sanitizedRichTextFragment,
   sanitizedWebchatComponentFragment,
+  setSanitizedButtonContent,
   setSanitizedRichText,
 } from '../../src/core/sanitize_html'
 
@@ -71,5 +72,30 @@ describe('setSanitizedRichText', () => {
     setSanitizedRichText(element, '<em>New content</em><script>alert(1)</script>')
 
     expect(element.innerHTML).toBe('<em>New content</em>')
+  })
+})
+
+describe('setSanitizedButtonContent', () => {
+  it('keeps the label and SVG icon while removing executable markup', () => {
+    const button = document.createElement('button')
+    button.textContent = 'Enable notifications...'
+
+    setSanitizedButtonContent(
+      button,
+      [
+        '<span class="label" data-label>Get my 10% OFF</span>',
+        '<svg viewBox="0 0 24 24"><path d="M1 1h2v2z"></path><script>alert(1)</script></svg>',
+        '<img src="https://example.com/icon.png" onerror="alert(1)">',
+        '<script>alert(1)</script>',
+      ].join(''),
+    )
+
+    expect(button.querySelector('span.label').textContent).toBe('Get my 10% OFF')
+    expect(button.querySelector('span.label').hasAttribute('data-label')).toBe(true)
+    expect(button.querySelector('svg path').getAttribute('d')).toBe('M1 1h2v2z')
+    expect(button.querySelector('img').getAttribute('src')).toBe('https://example.com/icon.png')
+    expect(button.querySelector('img').hasAttribute('onerror')).toBe(false)
+    expect(button.querySelector('script')).toBeNull()
+    expect(button.textContent).toBe('Get my 10% OFF')
   })
 })

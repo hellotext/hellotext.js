@@ -190,4 +190,63 @@ describe('Alert', () => {
     expect(localStorage.length).toBe(0)
     await expect(alert.show('product_details')).resolves.toBe(true)
   })
+
+  describe('while a popup suspends it', () => {
+    const flush = () => new Promise(resolve => setTimeout(resolve, 0))
+
+    it('waits to show a section until resumed', async () => {
+      alert = new Alert({ html }, business, push)
+      alert.suspend()
+      let settled = false
+      const shown = alert.show('homepage').then(result => {
+        settled = true
+        return result
+      })
+
+      await flush()
+
+      expect(settled).toBe(false)
+      expect(alert.element.hidden).toBe(true)
+
+      alert.resume()
+
+      await expect(shown).resolves.toBe(true)
+      expect(alert.element.hidden).toBe(false)
+    })
+
+    it('hides a displayed section without recording a dismissal', async () => {
+      alert = new Alert({ html }, business, push)
+      await alert.show('homepage')
+
+      alert.suspend()
+
+      expect(alert.element.hidden).toBe(true)
+      expect(localStorage.length).toBe(0)
+    })
+
+    it('uses the latest section requested while suspended', async () => {
+      alert = new Alert({ html }, business, push)
+      alert.suspend()
+      const homepage = alert.show('homepage')
+      const product = alert.show('product_details')
+
+      alert.resume()
+
+      await expect(homepage).resolves.toBe(false)
+      await expect(product).resolves.toBe(true)
+      expect(alert.element.querySelector('h4').textContent).toBe('Product updates')
+    })
+
+    it('releases a waiting show when disposed', async () => {
+      alert = new Alert({ html }, business, push)
+      await alert.ready
+      alert.suspend()
+      const shown = alert.show('homepage')
+      await flush()
+
+      alert.dispose()
+
+      await expect(shown).resolves.toBe(false)
+    })
+  })
 })

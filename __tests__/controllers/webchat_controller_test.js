@@ -1879,7 +1879,7 @@ describe('WebchatController', () => {
         key === `hellotext:webchat:${controller.idValue}:teaser-seen:old-version` ? 'true' : null,
       )
       setHasTeaserTarget(true)
-      const messages = setTeaserMessages([2])
+      const messages = setTeaserMessages([0])
 
       controller.connect()
 
@@ -1901,29 +1901,42 @@ describe('WebchatController', () => {
       expect(controller.teaserCycleTimeout).toBe(null)
     })
 
-    it('shows the first teaser message and hides later messages on connect', () => {
+    it('waits for the first teaser message delay before presenting it', () => {
       jest.useFakeTimers()
       allowPreConversationTeaser()
-      mockTeaser.classList.add('invisible')
       setHasTeaserTarget(true)
-      const messages = setTeaserMessages([2, 4, 6])
+      setTeaserMessages([2, 4, 6])
 
       controller.connect()
+      const showTeaserMessage = jest.spyOn(controller, 'showTeaserMessage')
 
-      expect(mockTeaser.classList.contains('invisible')).toBe(false)
-      expect(messages[0].classList.contains('hidden')).toBe(false)
-      expect(messages[1].classList.contains('hidden')).toBe(true)
-      expect(messages[2].classList.contains('hidden')).toBe(true)
+      jest.advanceTimersByTime(1999)
+      expect(showTeaserMessage).not.toHaveBeenCalled()
+
+      jest.advanceTimersByTime(1)
+      expect(showTeaserMessage).toHaveBeenCalledTimes(1)
+      expect(showTeaserMessage).toHaveBeenCalledWith(0)
     })
 
-    it('does not schedule timers for a single teaser message', () => {
+    it('waits 30 seconds for a single teaser message and does not repeat it', () => {
       jest.useFakeTimers()
       allowPreConversationTeaser()
       setHasTeaserTarget(true)
-      setTeaserMessages([2])
+      setTeaserMessages([30])
 
       controller.connect()
+      const showTeaserMessage = jest.spyOn(controller, 'showTeaserMessage')
 
+      expect(controller.teaserCycleTimeout).not.toBe(null)
+      jest.advanceTimersByTime(29999)
+      expect(showTeaserMessage).not.toHaveBeenCalled()
+
+      jest.advanceTimersByTime(1)
+      expect(showTeaserMessage).toHaveBeenCalledTimes(1)
+      expect(showTeaserMessage).toHaveBeenCalledWith(0)
+
+      jest.advanceTimersByTime(90000)
+      expect(showTeaserMessage).toHaveBeenCalledTimes(1)
       expect(controller.teaserCycleTimeout).toBe(null)
     })
 
@@ -1931,7 +1944,7 @@ describe('WebchatController', () => {
       jest.useFakeTimers()
       allowPreConversationTeaser()
       setHasTeaserTarget(true)
-      const messages = setTeaserMessages([0, undefined, 1])
+      const messages = setTeaserMessages([0, undefined, 0])
 
       controller.connect()
 
@@ -1953,50 +1966,70 @@ describe('WebchatController', () => {
       expect(messages[2].classList.contains('hidden')).toBe(false)
     })
 
-    it('advances teaser messages using the current message delay and stops after the last', () => {
+    it('waits for each teaser message delay and stops after the last', () => {
       jest.useFakeTimers()
       allowPreConversationTeaser()
       setHasTeaserTarget(true)
-      const messages = setTeaserMessages([1, 2, 3])
+      setTeaserMessages([1, 2, 3])
 
       controller.connect()
-
-      expect(messages[0].classList.contains('hidden')).toBe(false)
+      const showTeaserMessage = jest.spyOn(controller, 'showTeaserMessage')
 
       jest.advanceTimersByTime(999)
-      expect(messages[0].classList.contains('hidden')).toBe(false)
+      expect(showTeaserMessage).not.toHaveBeenCalled()
 
       jest.advanceTimersByTime(1)
-      expect(messages[0].classList.contains('hidden')).toBe(true)
-      expect(messages[1].classList.contains('hidden')).toBe(false)
+      expect(showTeaserMessage).toHaveBeenNthCalledWith(1, 0)
 
       jest.advanceTimersByTime(1999)
-      expect(messages[1].classList.contains('hidden')).toBe(false)
+      expect(showTeaserMessage).toHaveBeenCalledTimes(1)
 
       jest.advanceTimersByTime(1)
-      expect(messages[1].classList.contains('hidden')).toBe(true)
-      expect(messages[2].classList.contains('hidden')).toBe(false)
+      expect(showTeaserMessage).toHaveBeenNthCalledWith(2, 1)
+
+      jest.advanceTimersByTime(2999)
+      expect(showTeaserMessage).toHaveBeenCalledTimes(2)
+
+      jest.advanceTimersByTime(1)
+      expect(showTeaserMessage).toHaveBeenNthCalledWith(3, 2)
 
       jest.advanceTimersByTime(10000)
-      expect(messages[0].classList.contains('hidden')).toBe(true)
-      expect(messages[1].classList.contains('hidden')).toBe(true)
-      expect(messages[2].classList.contains('hidden')).toBe(false)
+      expect(showTeaserMessage).toHaveBeenCalledTimes(3)
       expect(controller.teaserCycleTimeout).toBe(null)
     })
 
-    it('clears pending teaser cycling on disconnect', () => {
+    it('cancels the delayed first teaser on disconnect', () => {
       jest.useFakeTimers()
       allowPreConversationTeaser()
       setHasTeaserTarget(true)
-      const messages = setTeaserMessages([1, 1])
+      setTeaserMessages([1, 1])
       controller.floatingUICleanup = jest.fn()
 
       controller.connect()
+      const showTeaserMessage = jest.spyOn(controller, 'showTeaserMessage')
+
       controller.disconnect()
       jest.advanceTimersByTime(1000)
 
-      expect(messages[0].classList.contains('hidden')).toBe(false)
-      expect(messages[1].classList.contains('hidden')).toBe(true)
+      expect(showTeaserMessage).not.toHaveBeenCalled()
+      expect(controller.teaserCycleTimeout).toBe(null)
+    })
+
+    it('cancels the delayed first teaser when the presentation is dismissed', () => {
+      jest.useFakeTimers()
+      allowPreConversationTeaser()
+      setHasTeaserTarget(true)
+      setTeaserMessages([30])
+
+      controller.connect()
+      const showTeaserMessage = jest.spyOn(controller, 'showTeaserMessage')
+
+      controller.dismissTeaserForSession()
+      jest.advanceTimersByTime(30000)
+
+      expect(showTeaserMessage).not.toHaveBeenCalled()
+      expect(controller.teaserCycleTimeout).toBe(null)
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(teaserSeenKey(), 'true')
     })
 
     it('marks the teaser seen and hides it when the webchat is already open', () => {

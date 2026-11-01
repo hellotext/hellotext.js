@@ -1,9 +1,16 @@
 import { Controller } from '@hotwired/stimulus'
 
 import PopupsAPI from '../api/popups'
+import { setSanitizedButtonContent } from '../core/sanitize_html'
 import Hellotext from '../hellotext'
+import { Popup } from '../models/popup'
 import { PopupDisplayRules } from '../models/popup_display_rules'
 import { UTM } from '../models/utm'
+
+// Caps the wait for a stalled worker or identity request so the popup always continues.
+const PUSH_SUBSCRIPTION_TIMEOUT = 15000
+const PUSH_LOADING_DOT_INTERVAL = 450
+const PUSH_LOADING_LABEL = 'Enable notifications'
 
 /**
  * An input rendered by the popup's server-side field components.
@@ -65,13 +72,21 @@ import { UTM } from '../models/utm'
  * - resendButton: Delivery resend action and its localized countdown label.
  * - changeDestinationButton: Action that returns to the delivered-to identity field.
  * - deliveryCopy: Completion headline and description shown when a delivery is queued.
+ * - pushDeliveryCopy: Server-rendered completion copy shown in place of deliveryCopy when the
+ *   popup coupon was sent by push, because the merchant's copy names the verification channel.
  * - noDeliveryCopy: Server-rendered completion copy shown when no delivery is required.
+ * - pushRequired: Step shown when a required Push field was checked but the browser did not
+ *   grant permission. The contact is already saved; the reward waits for Push.
+ * - pushRequiredBrowser: How to allow notifications, one per browser (`data-push-browser`).
+ * - pushRequiredError: Shown when the retry still finds notifications blocked.
  *
  * Values:
  * - capture: Capture metadata supplied by the server and included in submissions.
  * - device: Popup device targeting.
  * - hasBubble: Whether the popup starts from a bubble.
  * - id: Public popup identifier.
+ * - linked: Set by the SDK when a short link opened the popup. The visitor asked for
+ *   it, so the dialog opens immediately on any device, skipping the bubble.
  * - rules: Page-scoped display rules that survived server-side evaluation.
  */
 export default class extends Controller {
@@ -86,7 +101,11 @@ export default class extends Controller {
     'resendButton',
     'changeDestinationButton',
     'deliveryCopy',
+    'pushDeliveryCopy',
     'noDeliveryCopy',
+    'pushRequired',
+    'pushRequiredBrowser',
+    'pushRequiredError',
   ]
 
   static values = {
@@ -94,6 +113,7 @@ export default class extends Controller {
     device: String,
     hasBubble: Boolean,
     id: String,
+    linked: Boolean,
     rules: Object,
   }
 
@@ -120,16 +140,35 @@ export default class extends Controller {
    */
   connect() {
     Hellotext.eventEmitter.dispatch('popup:mounted')
+    this.hideUnsupportedPushFields()
+    // A popup whose reward requires Push is pointless where Push cannot work (an iPhone tab
+    // without a Home Screen installation, or a business without Push), so it is not shown.
+    if (this.requiredPushUnavailable) this.dismissed = true
+    this.syncRequiredPush = this.syncRequiredPush.bind(this)
+    this.element.addEventListener('change', this.syncRequiredPush)
+    this.syncRequiredPush()
+    this.requireBirthdays()
+    // Another tab may have sent or closed this popup while its HTML was loading, before the
+    // storage listener below existed. Keep it hidden instead of opening it.
+    if (!this.linkedValue && !this.submissionId && Popup.finished(this.idValue)) {
+      this.dismissed = true
+    }
 
     this.deviceMatches = this.matchesDevice()
     this.watchNavigation()
     this.watchActivities()
     this.evaluateDisplay()
     this.watchMeasurements()
+    this.reportActivity()
+
+    this.closeIfFinishedElsewhere = this.closeIfFinishedElsewhere.bind(this)
+    window.addEventListener('storage', this.closeIfFinishedElsewhere)
+    window.addEventListener('pageshow', this.closeIfFinishedElsewhere)
   }
 
   /**
    * Stop the countdown interval when detached so it does not keep updating old DOM.
+   * A detached popup no longer holds back the Smart Alert.
    *
    * @returns {void}
    */
@@ -138,6 +177,10 @@ export default class extends Controller {
     this.stopWatchingMeasurements()
     this.stopWatchingNavigation()
     this.stopWatchingActivities()
+    window.removeEventListener('storage', this.closeIfFinishedElsewhere)
+    window.removeEventListener('pageshow', this.closeIfFinishedElsewhere)
+    this.element.removeEventListener('change', this.syncRequiredPush)
+    this.reportActivity(false)
   }
 
   pageStartedAt() {
@@ -300,6 +343,22 @@ export default class extends Controller {
   }
 
   /**
+   * Close this popup when the visitor sent or closed it in another tab, or on another page
+   * before going back to this one from the browser's back-forward cache. A popup this
+   * page sent keeps its completion step, and a short link keeps the popup it opened.
+   *
+   * @param {StorageEvent | PageTransitionEvent} event
+   * @returns {void}
+   */
+  closeIfFinishedElsewhere(event) {
+    if (event.type === 'storage' && event.key !== Popup.finishedKey(this.idValue)) return
+    if (event.type === 'pageshow' && !event.persisted) return
+    if (this.submissionId || this.linkedValue || this.dismissed) return
+
+    if (Popup.finished(this.idValue)) this.close()
+  }
+
+  /**
    * Replace the launcher with the dialog inside an already eligible popup.
    * Subscribers are notified when the dialog is revealed, not when the bubble appears.
    *
@@ -312,10 +371,12 @@ export default class extends Controller {
 
     this.dialogTarget.hidden = false
     Hellotext.eventEmitter.dispatch('popup:opened')
+    this.reportActivity()
   }
 
   /**
-   * Dismiss the entire popup and remember that choice for this controller instance.
+   * Dismiss the entire popup and remember that choice in this browser, so later page
+   * loads skip it like a sent popup. A short link still opens it.
    * Closing changes visibility; it does not cancel a submission or its delivery.
    *
    * @param {Event} [event] - Optional close-button interaction.
@@ -325,12 +386,36 @@ export default class extends Controller {
     if (event) event.preventDefault()
 
     this.dismissed = true
+    Popup.markFinished(this.idValue)
     this.dialogTarget.hidden = true
 
     if (this.hasBubbleTarget) this.bubbleTarget.hidden = true
 
     this.element.hidden = true
     Hellotext.eventEmitter.dispatch('popup:closed')
+    this.reportActivity()
+  }
+
+  /**
+   * Dismiss the popup with the Escape key, only while the popup and its dialog are showing, so Escape on the
+   * page never hides the launcher bubble or reacts to a key another control already handled.
+   *
+   * @param {KeyboardEvent} event - Escape keydown reaching the window.
+   * @returns {void}
+   */
+  closeOnEscape(event) {
+    // Chrome's autofill fires a bare keydown with no key when a suggestion is picked. Stimulus only filters
+    // real KeyboardEvents by key, so require an actual Escape here.
+    if (
+      event.key !== 'Escape' ||
+      this.element.hidden ||
+      this.dialogTarget.hidden ||
+      event.defaultPrevented ||
+      event.isComposing
+    )
+      return
+
+    this.close(event)
   }
 
   /**
@@ -342,22 +427,30 @@ export default class extends Controller {
    */
   async next(event) {
     if (event) event.preventDefault()
+    if (this.advancingStep) return
 
-    this.clearCustomValidity()
+    this.advancingStep = true
+    try {
+      this.clearCustomValidity()
 
-    if (!this.currentStepValid()) {
-      this.showErrorMessages(this.currentStepInputs)
-      return
+      if (!this.currentStepValid()) {
+        this.showErrorMessages(this.currentStepInputs)
+        return
+      }
+
+      this.clearErrorMessages(this.currentStepInputs)
+
+      await this.subscribeForPushOnCurrentStep()
+
+      if (this.stepIndex < this.stepTargets.length - 1) {
+        this.showStep(this.stepIndex + 1)
+        return
+      }
+
+      await this.submit()
+    } finally {
+      this.advancingStep = false
     }
-
-    this.clearErrorMessages(this.currentStepInputs)
-
-    if (this.stepIndex < this.stepTargets.length - 1) {
-      this.showStep(this.stepIndex + 1)
-      return
-    }
-
-    await this.submit()
   }
 
   /**
@@ -370,6 +463,7 @@ export default class extends Controller {
    */
   async submit(event) {
     if (event) event.preventDefault()
+    if (this.submitting) return
 
     this.clearCustomValidity()
 
@@ -386,11 +480,17 @@ export default class extends Controller {
     this.clearErrorMessages(this.currentStepInputs)
     this.clearGlobalError()
 
+    this.submitting = true
     this.submitButtonTargets.forEach(button => {
       button.disabled = true
     })
 
+    let awaitingPush = false
     try {
+      await this.subscribeForPushOnCurrentStep()
+      // Sent anyway, so the contact is saved; the server holds the reward until Push is granted.
+      awaitingPush = this.requiredPushPending
+
       const payload = this.submissionPayload()
       const response = await PopupsAPI.submit(
         this.idValue,
@@ -406,12 +506,16 @@ export default class extends Controller {
       // Keep the backend's chosen route and action token together. Resend and edit
       // must act on this accepted submission, even if a fallback route was selected.
       const submission = await response.json()
+      // A visitor still waiting for Push may come back for the reward, so a sent popup is
+      // remembered only once it is complete. Closing it is still remembered, as always.
+      if (!awaitingPush) Popup.markFinished(this.idValue)
       this.submissionId = submission.id
       this.submissionVerificationState = submission.verification_state
       this.submissionActionToken = submission.action_token
       this.submissionDeliveryStatus = submission.delivery_status
       this.submissionDeliveryChannel = submission.delivery_channel
       this.submissionDestination = submission.destination
+      this.submissionCouponPush = submission.coupon_push === true
       this.resetSubmissionRequest()
     } catch (_) {
       // The server may have accepted a request whose response was lost. Retain the
@@ -419,22 +523,297 @@ export default class extends Controller {
       this.showGlobalError()
       return
     } finally {
+      this.submitting = false
       this.submitButtonTargets.forEach(button => {
         button.disabled = false
       })
+      this.syncRequiredPush()
     }
 
-    this.showCompleted()
+    if (awaitingPush) this.showPushRequired()
+    else this.showCompleted()
+  }
+
+  /**
+   * Show how to allow notifications in this browser, after the contact was saved without
+   * the reward because a required Push field was not granted.
+   *
+   * @returns {void}
+   */
+  showPushRequired() {
+    if (!this.hasPushRequiredTarget) return this.showCompleted()
+
+    this.stepTargets.forEach(step => {
+      step.hidden = true
+    })
+    this.completedTarget.hidden = true
+    if (this.hasPushRequiredErrorTarget) this.pushRequiredErrorTarget.hidden = true
+
+    const browser = Popup.browser()
+    const matches = this.pushRequiredBrowserTargets.some(
+      block => block.dataset.pushBrowser === browser,
+    )
+    this.pushRequiredBrowserTargets.forEach(block => {
+      block.hidden = block.dataset.pushBrowser !== (matches ? browser : 'other')
+    })
+
+    this.pushRequiredTarget.hidden = false
+  }
+
+  /**
+   * Ask for Push again from the visitor's click: the browser prompts again when the earlier
+   * prompt was dismissed, and a permission allowed from the site settings is picked up.
+   * Once granted, the popup is sent again with the subscription and the reward is delivered.
+   *
+   * @param {Event} [event] - Click on the retry button.
+   * @returns {Promise<void>}
+   */
+  async retryPush(event) {
+    if (event) event.preventDefault()
+    if (this.submitting || this.pushSubscriptionPromise) return
+
+    if (this.hasPushRequiredErrorTarget) this.pushRequiredErrorTarget.hidden = true
+
+    const permission = typeof Notification === 'undefined' ? 'denied' : Notification.permission
+    if (permission !== 'denied') {
+      this.pushPermissionState = null
+      await this.subscribeForPush(event?.currentTarget ? [event.currentTarget] : [])
+    }
+
+    if (this.pushPermissionState !== 'granted') {
+      if (this.hasPushRequiredErrorTarget) this.pushRequiredErrorTarget.hidden = false
+      return
+    }
+
+    this.pushRequiredTarget.hidden = true
+    await this.submit()
+    // A failed send leaves the visitor on this step, with the popup's error, to try again.
+    if (this.completedTarget.hidden) this.pushRequiredTarget.hidden = false
+  }
+
+  /**
+   * Replace the step button text while the browser permission prompt is open. Dots appear one
+   * at a time and disappear, so the visitor can see the popup is waiting for their answer. The
+   * reserved dots keep the button width still while the dots change.
+   *
+   * @param {HTMLElement[]} buttons - Step buttons that are disabled for the request.
+   * @returns {() => void} Restores each button's original content, sanitized, and accessibility state.
+   */
+  showPushLoading(buttons) {
+    const label = this.element.dataset.pushLoadingLabel || PUSH_LOADING_LABEL
+    const saved = buttons.map(button => ({
+      button,
+      content: button.innerHTML,
+      busy: button.getAttribute('aria-busy'),
+    }))
+
+    const shown = document.createElement('span')
+    const reserved = document.createElement('span')
+    reserved.setAttribute('aria-hidden', 'true')
+    reserved.style.visibility = 'hidden'
+    let count = 0
+    const render = () => {
+      count = (count + 1) % 4
+      shown.textContent = '.'.repeat(count)
+      reserved.textContent = '.'.repeat(3 - count)
+    }
+
+    buttons.forEach(button => {
+      button.replaceChildren(document.createTextNode(label), shown, reserved)
+      button.setAttribute('aria-busy', 'true')
+    })
+    render()
+    const interval = setInterval(render, PUSH_LOADING_DOT_INTERVAL)
+
+    return () => {
+      clearInterval(interval)
+      saved.forEach(({ button, content, busy }) => {
+        setSanitizedButtonContent(button, content)
+        if (busy === null) button.removeAttribute('aria-busy')
+        else button.setAttribute('aria-busy', busy)
+      })
+    }
+  }
+
+  /**
+   * Request Push permission directly from the visitor's step-button activation.
+   * Permission denial, dismissal, browser errors, and registration failures never
+   * block popup progress; the backend chooses the available fallback route.
+   *
+   * @returns {Promise<void>}
+   */
+  async subscribeForPushOnCurrentStep() {
+    const optedIn = this.currentStepInputs.some(
+      input => input.dataset.popupFieldKind === 'push' && input.checked,
+    )
+    if (!optedIn || this.pushPermissionState) return
+
+    const currentButtons =
+      this.stepTargets[this.stepIndex]?.querySelectorAll(
+        '[data-hellotext--popup-target~="submitButton"], [data-action~="click->hellotext--popup#next"]',
+      ) || []
+
+    return this.subscribeForPush(Array.from(currentButtons))
+  }
+
+  /**
+   * Subscribe this browser to Push, showing the loading label on the buttons that asked for it.
+   * Must be called from a click so the browser shows its permission prompt.
+   *
+   * @param {HTMLElement[]} triggers - Buttons disabled and labeled while the prompt is open.
+   * @returns {Promise<void>}
+   */
+  async subscribeForPush(triggers) {
+    if (!Hellotext.push) return
+    if (this.pushSubscriptionPromise) return this.pushSubscriptionPromise
+
+    const buttons = triggers.map(button => ({ button, disabled: button.disabled }))
+    buttons.forEach(({ button }) => {
+      button.disabled = true
+    })
+    const stopLoading = this.showPushLoading(buttons.map(({ button }) => button))
+
+    // Calling subscribe before the first await preserves browser user activation.
+    const permissionAtClick =
+      typeof Notification === 'undefined' ? 'default' : Notification.permission
+    let subscription
+    try {
+      subscription = Hellotext.push.subscribe()
+    } catch (_) {
+      this.pushPermissionState = permissionAtClick === 'denied' ? 'denied' : 'registration_failed'
+      stopLoading()
+      buttons.forEach(({ button, disabled }) => {
+        button.disabled = disabled
+      })
+      return
+    }
+
+    let timeout
+    const timedOut = new Promise(resolve => {
+      timeout = setTimeout(() => {
+        this.pushPermissionState ||= 'registration_failed'
+        resolve()
+      }, PUSH_SUBSCRIPTION_TIMEOUT)
+    })
+
+    const settled = subscription
+      .then(response => {
+        this.pushPermissionState = response?.failed
+          ? 'registration_failed'
+          : typeof Notification !== 'undefined' && Notification.permission === 'granted'
+          ? 'granted'
+          : permissionAtClick === 'denied'
+          ? 'denied'
+          : 'dismissed'
+      })
+      .catch(() => {
+        this.pushPermissionState =
+          typeof Notification !== 'undefined' && Notification.permission === 'denied'
+            ? 'denied'
+            : typeof Notification !== 'undefined' && Notification.permission === 'default'
+            ? 'dismissed'
+            : 'registration_failed'
+      })
+
+    this.pushSubscriptionPromise = Promise.race([settled, timedOut]).finally(() => {
+      clearTimeout(timeout)
+      stopLoading()
+      buttons.forEach(({ button, disabled }) => {
+        button.disabled = disabled
+      })
+      this.pushSubscriptionPromise = null
+    })
+
+    return this.pushSubscriptionPromise
+  }
+
+  /**
+   * A required Push field the SDK hid because the server or the browser cannot use Push.
+   *
+   * @returns {boolean}
+   */
+  get requiredPushUnavailable() {
+    return this.inputTargets.some(
+      input => input.dataset.popupFieldKind === 'push' && input.required && input.disabled,
+    )
+  }
+
+  /**
+   * A required Push field the visitor checked, while the browser has not granted Push.
+   *
+   * @returns {boolean}
+   */
+  get requiredPushPending() {
+    const required = this.inputTargets.some(
+      input =>
+        input.dataset.popupFieldKind === 'push' &&
+        input.required &&
+        !input.disabled &&
+        input.checked,
+    )
+
+    return required && this.pushPermissionState !== 'granted'
+  }
+
+  /**
+   * Keep each step's button disabled while a required Push field on that step is
+   * unchecked, so the visitor has to opt in to Push before going on. A Push field
+   * hidden because the browser cannot use Push is disabled and never blocks the step.
+   * A request in flight keeps its own disabled state.
+   *
+   * @returns {void}
+   */
+  syncRequiredPush() {
+    if (this.submitting || this.pushSubscriptionPromise) return
+
+    this.stepTargets.forEach(step => {
+      const missing = this.inputsForStep(step).some(input => {
+        return (
+          input.dataset.popupFieldKind === 'push' &&
+          input.required &&
+          !input.disabled &&
+          !input.checked
+        )
+      })
+
+      step
+        .querySelectorAll(
+          '[data-hellotext--popup-target~="submitButton"], [data-action~="click->hellotext--popup#next"]',
+        )
+        .forEach(button => {
+          button.disabled = missing
+        })
+    })
+  }
+
+  /**
+   * Hide and clear Push fields when the server or browser marks them unavailable.
+   *
+   * @returns {void}
+   */
+  hideUnsupportedPushFields() {
+    this.inputTargets
+      .filter(input => input.dataset.popupFieldKind === 'push')
+      .forEach(input => {
+        if (input.dataset.popupPushAvailable === 'true' && Hellotext.push) return
+
+        input.checked = false
+        // A disabled input stays out of constraint validation once hidden.
+        input.disabled = true
+        const field = input.closest('.hellotext--popup-field') || input.parentElement
+        if (field) field.hidden = true
+      })
   }
 
   /**
    * Apply dismissal and viewport eligibility before revealing any popup surface.
    * Hide the root on rejection so this also works after a previously visible mount.
+   * A popup opened from a short link ignores device targeting.
    *
    * @returns {void}
    */
   evaluateDisplay() {
-    if (this.dismissed || !this.deviceMatches) {
+    if (this.dismissed || (!this.linkedValue && !this.deviceMatches)) {
       this.element.hidden = true
       return
     }
@@ -565,14 +944,15 @@ export default class extends Controller {
   /**
    * Choose the launcher or immediate dialog without resetting entered form values.
    * Set both surface states explicitly because a reconnect can reuse modified DOM.
-   * Bubble display alone does not emit the dialog's popup:opened event.
+   * Bubble display alone does not emit the dialog's popup:opened event. A popup
+   * opened from a short link skips the bubble.
    *
    * @returns {void}
    */
   showInitialState() {
     this.element.hidden = false
 
-    if (this.hasBubbleValue && this.hasBubbleTarget) {
+    if (this.hasBubbleValue && this.hasBubbleTarget && !this.linkedValue) {
       this.bubbleTarget.hidden = false
       this.dialogTarget.hidden = true
       return
@@ -599,6 +979,8 @@ export default class extends Controller {
     })
 
     this.completedTarget.hidden = true
+    if (this.hasPushRequiredTarget) this.pushRequiredTarget.hidden = true
+    this.reportActivity()
   }
 
   /**
@@ -616,7 +998,26 @@ export default class extends Controller {
     this.interpolateCompletionCopy()
     this.configureCompletionActions()
 
+    if (this.hasPushRequiredTarget) this.pushRequiredTarget.hidden = true
     this.completedTarget.hidden = false
+    this.reportActivity()
+  }
+
+  /**
+   * Tell the SDK whether the visitor is still going through this popup: its dialog shows a
+   * form step or the Push-required step. The Smart Alert waits for the popup, so the two never
+   * ask for Push at the same time, and does not show on this page once the visitor is done.
+   *
+   * @fires hellotext--popup:activity
+   * @param {boolean} [active] - Whether the visitor is still going through the popup.
+   * @returns {void}
+   */
+  reportActivity(
+    active = !this.element.hidden && !this.dialogTarget.hidden && this.completedTarget.hidden,
+  ) {
+    this.element.dispatchEvent(
+      new CustomEvent('hellotext--popup:activity', { bubbles: true, detail: { active } }),
+    )
   }
 
   /**
@@ -633,7 +1034,7 @@ export default class extends Controller {
 
     const replacements = {
       destination: identity.value,
-      channel: this.submissionDeliveryChannel || identity.kind,
+      channel: this.completionChannelLabel(this.submissionDeliveryChannel || identity.kind),
     }
 
     this.completionTextTemplates.forEach(({ node, template }) => {
@@ -645,9 +1046,22 @@ export default class extends Controller {
   }
 
   /**
+   * Use localized, visitor-facing delivery copy for the channel placeholder.
+   *
+   * @param {string} channel - The delivery channel returned by the API.
+   * @returns {string} Localized channel phrase when the runtime provides one.
+   */
+  completionChannelLabel(channel) {
+    const label =
+      this.element.dataset[`channelLabel${channel[0]?.toUpperCase()}${channel.slice(1)}`]
+
+    return label || channel
+  }
+
+  /**
    * Format a local identity for completion copy when backend route data is absent.
-   * Phone prefixes and leading-zero removal are used for both completion copy and submission,
-   * so the destination the visitor sees is the destination the backend receives.
+   * With a country selector the number matches what submissionPayload() sends; the
+   * leading-zero removal applies only to the legacy popup prefix.
    *
    * @param {PopupInput} input - Email or phone field containing a string value.
    * @returns {string} Trimmed identity with the configured phone prefix when needed.
@@ -657,9 +1071,149 @@ export default class extends Controller {
     if (!value) return ''
     if (input.dataset.popupFieldKind !== 'phone' || value.startsWith('+')) return value
 
+    const selectedPrefix = this.phoneCountryPrefix(input)
+    if (selectedPrefix) return `${selectedPrefix}${this.phoneDigits(value)}`
+
     const prefix = input.dataset.popupPhonePrefix
 
     return prefix ? `${prefix}${value.replace(/^0+/, '')}` : value
+  }
+
+  /**
+   * Convert digits from other numeral systems (Arabic-Indic, full-width) to ASCII so the
+   * backend can read them, leaving every other character as typed.
+   *
+   * @param {string} value - Phone number as typed.
+   * @returns {string} The same text with ASCII digits.
+   */
+  asciiDigits(value) {
+    const isDigit = char => /\p{Nd}/u.test(char)
+    const asciiDigit = char => {
+      let zero = char.codePointAt(0)
+      const position = zero
+
+      while (isDigit(String.fromCodePoint(zero - 1))) zero -= 1
+
+      return (position - zero) % 10
+    }
+
+    return value.replace(/\p{Nd}/gu, asciiDigit)
+  }
+
+  /**
+   * Keep only the digits of a typed phone number, as ASCII.
+   *
+   * @param {string} value - Phone number as typed.
+   * @returns {string} ASCII digits in their original order.
+   */
+  phoneDigits(value) {
+    return this.asciiDigits(value).replace(/\D/g, '')
+  }
+
+  /**
+   * Read the prefix chosen in the country selector rendered next to a phone field.
+   * Popups served without a selector, such as to older SDKs, have none.
+   *
+   * @param {PopupInput} input - Phone field that may share a wrapper with a country selector.
+   * @returns {string | undefined} International prefix such as "+598".
+   */
+  phoneCountryPrefix(input) {
+    const select = input.closest('[data-popup-phone]')?.querySelector('[data-popup-phone-country]')
+
+    return select?.selectedOptions?.[0]?.dataset.prefix
+  }
+
+  /**
+   * Show the chosen country in the closed selector. The select itself is transparent so
+   * the visible label is the only place the compact "flag +prefix" text can be shown.
+   *
+   * @param {Event} event - Change event dispatched by the country select.
+   * @returns {void}
+   */
+  selectPhoneCountry(event) {
+    const select = event.target
+    const label = select
+      .closest('[data-popup-phone]')
+      ?.querySelector('[data-popup-phone-country-label]')
+
+    if (label) label.textContent = select.selectedOptions[0]?.dataset.label || ''
+  }
+
+  /**
+   * Keep only what a phone number can hold (digits, spaces, `+ ( ) . -`) as the visitor
+   * types or pastes. Digits from other numeral systems are kept and converted on submit.
+   *
+   * @param {InputEvent} event - Input event dispatched by the phone field.
+   * @returns {void}
+   */
+  filterPhone(event) {
+    const input = event.target
+    const filtered = input.value.replace(/[^\p{Nd}+() .\-]/gu, '')
+
+    if (filtered !== input.value) input.value = filtered
+  }
+
+  /**
+   * A birthday is asked as Day / Month / Year selects that carry `required`; the field
+   * the popup submits is a hidden ISO date. Requiring that field here, instead of in the
+   * markup, lets an older SDK that cannot join the selects still submit the popup.
+   *
+   * @returns {void}
+   */
+  requireBirthdays() {
+    this.element.querySelectorAll('[data-popup-birthday]').forEach(group => {
+      const input = group.querySelector('[data-popup-field-kind="birthday"]')
+      if (input) input.required = Boolean(group.querySelector('select[required]'))
+    })
+  }
+
+  /**
+   * Join the birthday's Day / Month / Year into the ISO date the popup submits. Days the
+   * chosen month does not have are disabled, and a day that no longer fits is cleared,
+   * so the joined date always exists. Until all three are chosen the date stays empty.
+   *
+   * @param {Event} event - Change event dispatched by one of the birthday selects.
+   * @returns {void}
+   */
+  selectBirthday(event) {
+    const group = event.target.closest('[data-popup-birthday]')
+    const input = group?.querySelector('[data-popup-field-kind="birthday"]')
+    if (!input) return
+
+    const part = name => group.querySelector(`[data-popup-birthday-part="${name}"]`)
+    const [day, month, year] = ['day', 'month', 'year'].map(part)
+    // Without a year, February keeps the 29th.
+    const daysInMonth = month.value
+      ? new Date(Date.UTC(Number(year.value) || 2000, Number(month.value), 0)).getUTCDate()
+      : 31
+
+    Array.from(day.options).forEach(option => {
+      if (option.value) option.disabled = Number(option.value) > daysInMonth
+    })
+    if (Number(day.value) > daysInMonth) day.value = ''
+
+    input.value =
+      day.value && month.value && year.value ? `${year.value}-${month.value}-${day.value}` : ''
+  }
+
+  /**
+   * Value sent to the API for a field. A phone number typed beside a country selector is
+   * sent in international form so the backend does not assume the Business country.
+   * Leading zeros are kept: whether a national zero belongs to the number depends on the
+   * country, so the backend normalizes it. Everything else is sent as entered.
+   *
+   * @param {PopupInput} input - Field to read without mutating its value.
+   * @returns {string | boolean} Submitted representation of the field.
+   */
+  submissionValue(input) {
+    const value = this.inputValue(input)
+    const prefix = input.dataset.popupFieldKind === 'phone' && this.phoneCountryPrefix(input)
+    const entered = typeof value === 'string' ? value.trim() : ''
+
+    if (!prefix || !entered) return value
+    if (entered.startsWith('+')) return this.asciiDigits(value)
+
+    return `${prefix}${this.phoneDigits(entered)}`
   }
 
   /**
@@ -776,6 +1330,8 @@ export default class extends Controller {
       )
       if (response.failed) return
 
+      // The cancelled submission no longer counts. Sending the corrected one marks it again.
+      Popup.forgetFinished(this.idValue)
       this.stopResendCooldown()
       this.submissionId = null
       this.submissionActionToken = null
@@ -783,6 +1339,7 @@ export default class extends Controller {
       this.submissionDeliveryStatus = null
       this.submissionDeliveryChannel = null
       this.submissionDestination = null
+      this.submissionCouponPush = false
       this.resetSubmissionRequest()
       this.showStep(stepIndex)
       input.focus()
@@ -896,9 +1453,19 @@ export default class extends Controller {
    * @returns {void}
    */
   revealCompletionCopy(deliveryRequired) {
+    // The merchant's delivery copy names the verification channel, so a coupon sent by push
+    // replaces all of it, including the headline that usually carries that sentence.
+    const couponByPush = deliveryRequired && this.submissionCouponPush === true
+
     if (this.hasDeliveryCopyTarget) {
       this.deliveryCopyTargets.forEach(element => {
-        element.hidden = !deliveryRequired
+        element.hidden = !deliveryRequired || couponByPush
+      })
+    }
+
+    if (this.hasPushDeliveryCopyTarget) {
+      this.pushDeliveryCopyTargets.forEach(element => {
+        element.hidden = !couponByPush
       })
     }
 
@@ -1072,10 +1639,7 @@ export default class extends Controller {
       const inputs = this.inputsForStep(step)
 
       inputs.forEach(input => {
-        const value =
-          input.dataset.popupFieldKind === 'phone'
-            ? this.identityValue(input)
-            : this.inputValue(input)
+        const value = this.submissionValue(input)
         const key = input.dataset.popupFieldKey || input.name
 
         stepFields[key] = value
@@ -1091,6 +1655,11 @@ export default class extends Controller {
         fields: stepFields,
       })
     })
+
+    if (this.inputTargets.some(input => input.dataset.popupFieldKind === 'push' && input.checked)) {
+      payload.metadata.push_subscription = Hellotext.push?.subscriptionForSubmission() || null
+      payload.metadata.push_permission = this.pushPermissionState || 'unavailable'
+    }
 
     return payload
   }

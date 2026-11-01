@@ -14,6 +14,12 @@ const WEBCHAT_COMPONENT_SANITIZER_OPTIONS = {
   USE_PROFILES: { html: true, svg: true },
 }
 
+// Server-rendered button content: a text label, optionally with an inline SVG icon.
+const BUTTON_CONTENT_SANITIZER_OPTIONS = {
+  RETURN_DOM_FRAGMENT: true,
+  USE_PROFILES: { html: true, svg: true },
+}
+
 function sanitizedFragment(html, options) {
   const fragment = DOMPurify.sanitize(html, options)
 
@@ -37,4 +43,8 @@ export function sanitizedWebchatComponentFragment(html) {
 
 export function setSanitizedRichText(element, html) {
   element.replaceChildren(sanitizedRichTextFragment(html))
+}
+
+export function setSanitizedButtonContent(element, html) {
+  element.replaceChildren(sanitizedFragment(html, BUTTON_CONTENT_SANITIZER_OPTIONS))
 }

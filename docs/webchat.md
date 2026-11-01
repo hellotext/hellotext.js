@@ -121,6 +121,14 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 })
 ```
 
+### Teasers
+
+Each configured teaser message waits for its own delay before appearing, including the first message. For example, a first message with a 30-second delay appears 30 seconds after the widget mounts; a second message with a 5-second delay replaces it 5 seconds later. A single teaser message also respects its delay.
+
+The first message appears immediately when its delay is zero. The sequence stops after the last message. Opening the chat cancels pending teaser messages.
+
+The server supplies delayed teaser messages hidden, including messages waiting behind an earlier delay. The SDK reveals each message when its timer finishes.
+
 ### Behaviour
 
 Determines what opens the webchat at runtime. The public JavaScript configuration uses camelCase.

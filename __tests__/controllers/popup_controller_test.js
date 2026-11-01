@@ -6,12 +6,15 @@ import PopupController from '../../src/controllers/popup_controller'
 import PopupsAPI from '../../src/api/popups'
 import Hellotext from '../../src/hellotext'
 import { Cookies } from '../../src/models/cookies'
+import { Popup } from '../../src/models/popup'
 
 describe('PopupController', () => {
   let controller
   const buildController = ({
+    device = 'all',
     hasBubble = true,
     id = 'popup-id',
+    linked = false,
   } = {}) => {
     const element = document.createElement('article')
     const bubble = document.createElement('button')
@@ -88,8 +91,9 @@ describe('PopupController', () => {
     controller.hasBubbleTarget = hasBubble
     controller.hasBubbleValue = hasBubble
     controller.captureValue = { capture_id: 'capture-id' }
-    controller.deviceValue = 'all'
+    controller.deviceValue = device
     controller.idValue = id
+    controller.linkedValue = linked
     // Before initialize(): that is where the controller builds its display rules.
     controller.rulesValue = { lanes: [] }
     controller.initialize()
@@ -133,6 +137,10 @@ describe('PopupController', () => {
     jest.useRealTimers()
     jest.restoreAllMocks()
     document.body.innerHTML = ''
+    Hellotext.push = null
+    // Closing a popup remembers it, so clear the mark before the next popup connects.
+    localStorage.clear()
+    document.cookie = `${Popup.finishedKey('popup-id')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
   })
 
   // A rule may target any of the three campaign parameters. The URL the visitor is on answers
@@ -346,6 +354,167 @@ describe('PopupController', () => {
     expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(3, 'popup:closed')
   })
 
+  describe('when a short link opened the popup', () => {
+    it('opens the dialog immediately instead of showing the bubble', () => {
+      const { element, bubble, dialog } = buildController({ hasBubble: true, linked: true })
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+      expect(bubble.hidden).toBe(true)
+      expect(dialog.hidden).toBe(false)
+      expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(1, 'popup:mounted')
+      expect(Hellotext.eventEmitter.dispatch).toHaveBeenNthCalledWith(2, 'popup:opened')
+    })
+
+    it('shows on a device the popup does not target', () => {
+      const { element, dialog } = buildController({ device: 'mobile', hasBubble: false, linked: true })
+
+      controller.connect()
+
+      expect(window.innerWidth).toBeGreaterThanOrEqual(768)
+      expect(element.hidden).toBe(false)
+      expect(dialog.hidden).toBe(false)
+    })
+
+    it('stays closed once the visitor dismissed it', () => {
+      const { element } = buildController({ hasBubble: false, linked: true })
+
+      controller.connect()
+      controller.close()
+      controller.evaluateDisplay()
+
+      expect(element.hidden).toBe(true)
+    })
+  })
+
+  it('hides a popup that does not target this device', () => {
+    const { element } = buildController({ device: 'mobile', hasBubble: false })
+
+    controller.connect()
+
+    expect(element.hidden).toBe(true)
+  })
+
+  describe('reporting activity for the Smart Alert', () => {
+    let reports
+    const record = event => reports.push(event.detail.active)
+
+    beforeEach(() => {
+      reports = []
+      document.addEventListener('hellotext--popup:activity', record)
+    })
+
+    afterEach(() => {
+      document.removeEventListener('hellotext--popup:activity', record)
+    })
+
+    it('is inactive while only the bubble shows, and active once the dialog opens', () => {
+      buildController()
+
+      controller.connect()
+      controller.open()
+
+      expect(reports).toEqual([false, true])
+    })
+
+    it('is active while an automatic popup is open, until the visitor closes it', () => {
+      buildController({ hasBubble: false })
+
+      controller.connect()
+      controller.close()
+
+      expect(reports).toEqual([true, false])
+    })
+
+    it('is inactive when the popup does not target this device', () => {
+      buildController({ device: 'mobile', hasBubble: false })
+
+      controller.connect()
+
+      expect(reports).toEqual([false])
+    })
+
+    it('is inactive once completed, and active again back on a step', () => {
+      buildController({ hasBubble: false })
+
+      controller.connect()
+      controller.showCompleted()
+      controller.showStep(0)
+
+      expect(reports).toEqual([true, false, true])
+    })
+
+    it('is inactive once disconnected', () => {
+      buildController({ hasBubble: false })
+      controller.connect()
+
+      controller.disconnect()
+
+      expect(reports).toEqual([true, false])
+    })
+  })
+
+  describe('closing with Escape', () => {
+    const escape = (init = {}) => new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, ...init })
+
+    it('dismisses the popup while the dialog is showing', () => {
+      const { element, dialog } = buildController({ hasBubble: false })
+
+      controller.connect()
+      controller.closeOnEscape(escape())
+
+      expect(element.hidden).toBe(true)
+      expect(dialog.hidden).toBe(true)
+      expect(Hellotext.eventEmitter.dispatch).toHaveBeenLastCalledWith('popup:closed')
+    })
+
+    it('leaves a bubble popup alone until its dialog is open', () => {
+      const { element, bubble } = buildController({ hasBubble: true })
+
+      controller.connect()
+      controller.closeOnEscape(escape())
+
+      expect(element.hidden).toBe(false)
+      expect(bubble.hidden).toBe(false)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:closed')
+    })
+
+    it('ignores Escape while the whole popup is hidden', () => {
+      const { element } = buildController({ hasBubble: false })
+
+      controller.connect()
+      element.hidden = true
+      Hellotext.eventEmitter.dispatch.mockClear()
+      controller.closeOnEscape(escape())
+
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:closed')
+    })
+
+    it('ignores Escape already handled by another control or an input method', () => {
+      const { element } = buildController({ hasBubble: false })
+
+      controller.connect()
+
+      const handled = escape()
+      handled.preventDefault()
+      controller.closeOnEscape(handled)
+      controller.closeOnEscape(escape({ isComposing: true }))
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('ignores the keyless keydown Chrome fires when an autofill suggestion is picked', () => {
+      const { element } = buildController({ hasBubble: false })
+
+      controller.connect()
+      controller.closeOnEscape(new Event('keydown', { bubbles: true }))
+
+      expect(element.hidden).toBe(false)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:closed')
+    })
+  })
+
   it('validates the current step before moving to the next one', async () => {
     const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
 
@@ -366,6 +535,435 @@ describe('PopupController', () => {
     expect(PopupsAPI.submit).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['the server marks Push unavailable', 'false', { subscribe: jest.fn() }],
+    ['the browser cannot use Push', 'true', null],
+  ])('hides and disables the Push field when %s', (_, available, push) => {
+    const { stepOne } = buildController({ hasBubble: false })
+    const field = document.createElement('article')
+    field.className = 'hellotext--popup-field'
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupPushAvailable = available
+    field.appendChild(pushInput)
+    stepOne.appendChild(field)
+    controller.inputTargets.push(pushInput)
+    Hellotext.push = push
+
+    controller.connect()
+
+    expect(field.hidden).toBe(true)
+    expect(pushInput.checked).toBe(false)
+    expect(pushInput.disabled).toBe(true)
+  })
+
+  describe('a required Push field', () => {
+    const addRequiredPush = (stepOne, { checked = false, available = 'true' } = {}) => {
+      const field = document.createElement('article')
+      field.className = 'hellotext--popup-field'
+      const pushInput = document.createElement('input')
+      pushInput.type = 'checkbox'
+      pushInput.required = true
+      pushInput.checked = checked
+      pushInput.dataset.popupFieldKind = 'push'
+      pushInput.dataset.popupStepId = 'step-one'
+      pushInput.dataset.popupPushAvailable = available
+      const nextButton = document.createElement('button')
+      nextButton.dataset.action = 'click->hellotext--popup#next'
+      field.appendChild(pushInput)
+      stepOne.append(field, nextButton)
+      controller.inputTargets.push(pushInput)
+
+      return { pushInput, nextButton }
+    }
+
+    it('keeps its step button disabled until the visitor checks it', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { pushInput, nextButton } = addRequiredPush(stepOne)
+      Hellotext.push = { subscribe: jest.fn() }
+
+      controller.connect()
+
+      expect(nextButton.disabled).toBe(true)
+
+      pushInput.checked = true
+      pushInput.dispatchEvent(new Event('change', { bubbles: true }))
+      expect(nextButton.disabled).toBe(false)
+
+      pushInput.checked = false
+      pushInput.dispatchEvent(new Event('change', { bubbles: true }))
+      expect(nextButton.disabled).toBe(true)
+    })
+
+    it('starts enabled when the required field is checked by default', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { nextButton } = addRequiredPush(stepOne, { checked: true })
+      Hellotext.push = { subscribe: jest.fn() }
+
+      controller.connect()
+
+      expect(nextButton.disabled).toBe(false)
+    })
+
+    it.each([
+      ['the server marks Push unavailable', 'false', { subscribe: jest.fn() }],
+      ['the browser cannot use Push, as in an iPhone tab', 'true', null],
+    ])('does not show the popup when %s', (_, available, push) => {
+      const { element, stepOne } = buildController({ hasBubble: false })
+      const { nextButton } = addRequiredPush(stepOne, { available })
+      Hellotext.push = push
+
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
+      expect(nextButton.disabled).toBe(false)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:opened')
+    })
+
+    describe('when the browser does not grant Push', () => {
+      const addPushRequiredStep = dialog => {
+        const section = document.createElement('section')
+        section.hidden = true
+        const blocks = ['chrome', 'safari', 'other'].map(browser => {
+          const block = document.createElement('div')
+          block.dataset.pushBrowser = browser
+          section.appendChild(block)
+          return block
+        })
+        const error = document.createElement('p')
+        error.hidden = true
+        const retry = document.createElement('button')
+        section.append(error, retry)
+        dialog.appendChild(section)
+        Object.defineProperties(controller, {
+          pushRequiredTarget: { value: section, configurable: true },
+          hasPushRequiredTarget: { value: true, configurable: true },
+          pushRequiredBrowserTargets: { value: blocks, configurable: true },
+          pushRequiredErrorTarget: { value: error, configurable: true },
+          hasPushRequiredErrorTarget: { value: true, configurable: true },
+        })
+
+        return { section, blocks, error, retry }
+      }
+
+      const sendDenied = async () => {
+        const { dialog, stepOne, completed, emailInput, phoneInput } = buildController({ hasBubble: false })
+        addRequiredPush(stepOne, { checked: true })
+        const pushRequired = addPushRequiredStep(dialog)
+        Hellotext.push = {
+          subscribe: jest.fn().mockRejectedValue(new Error('denied')),
+          subscriptionForSubmission: jest.fn(() => null),
+        }
+        emailInput.value = 'customer@example.com'
+        phoneInput.value = '+59899123456'
+        controller.connect()
+
+        await controller.next()
+        await controller.submit()
+
+        return { completed, ...pushRequired }
+      }
+
+      afterEach(() => {
+        delete global.Notification
+        localStorage.clear()
+      })
+
+      it('saves the contact and shows how to allow notifications in this browser', async () => {
+        jest.spyOn(Popup, 'browser').mockReturnValue('safari')
+
+        const { section, blocks, completed } = await sendDenied()
+
+        expect(PopupsAPI.submit).toHaveBeenCalledTimes(1)
+        expect(section.hidden).toBe(false)
+        expect(completed.hidden).toBe(true)
+        expect(blocks.map(block => block.hidden)).toEqual([true, false, true])
+        // Not remembered as sent: the visitor may come back for the reward.
+        expect(Popup.finished('popup-id')).toBe(false)
+      })
+
+      it('falls back to the generic instructions for an unlisted browser', async () => {
+        jest.spyOn(Popup, 'browser').mockReturnValue('firefox')
+
+        const { blocks } = await sendDenied()
+
+        expect(blocks.map(block => block.hidden)).toEqual([true, true, false])
+      })
+
+      it('keeps the visitor on the step while notifications stay blocked', async () => {
+        const { section, error, retry } = await sendDenied()
+        global.Notification = { permission: 'denied' }
+
+        await controller.retryPush({ preventDefault: jest.fn(), currentTarget: retry })
+
+        expect(error.hidden).toBe(false)
+        expect(section.hidden).toBe(false)
+        expect(PopupsAPI.submit).toHaveBeenCalledTimes(1)
+      })
+
+      it('sends again with the subscription once the visitor allows notifications', async () => {
+        const { section, completed, retry } = await sendDenied()
+        global.Notification = { permission: 'granted' }
+        Hellotext.push = {
+          subscribe: jest.fn().mockResolvedValue({ failed: false }),
+          subscriptionForSubmission: jest.fn(() => ({ subscription: { endpoint: 'https://push.example.com' } })),
+        }
+
+        await controller.retryPush({ preventDefault: jest.fn(), currentTarget: retry })
+
+        expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+        expect(PopupsAPI.submit).toHaveBeenCalledTimes(2)
+        expect(PopupsAPI.submit.mock.calls[1][1].metadata.push_permission).toBe('granted')
+        expect(section.hidden).toBe(true)
+        expect(completed.hidden).toBe(false)
+        expect(Popup.finished('popup-id')).toBe(true)
+      })
+
+      it('holds the Smart Alert back until the visitor allows notifications', async () => {
+        const reports = []
+        const record = event => reports.push(event.detail.active)
+        document.addEventListener('hellotext--popup:activity', record)
+
+        const { retry } = await sendDenied()
+
+        expect(reports.at(-1)).toBe(true)
+
+        global.Notification = { permission: 'granted' }
+        Hellotext.push = {
+          subscribe: jest.fn().mockResolvedValue({ failed: false }),
+          subscriptionForSubmission: jest.fn(() => null),
+        }
+        await controller.retryPush({ preventDefault: jest.fn(), currentTarget: retry })
+
+        expect(reports.at(-1)).toBe(false)
+        document.removeEventListener('hellotext--popup:activity', record)
+      })
+    })
+
+    it('leaves an optional Push field out of it', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { pushInput, nextButton } = addRequiredPush(stepOne)
+      pushInput.required = false
+      Hellotext.push = { subscribe: jest.fn() }
+
+      controller.connect()
+
+      expect(nextButton.disabled).toBe(false)
+    })
+
+    it('keeps a submission in flight disabled when the field changes', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { pushInput, nextButton } = addRequiredPush(stepOne, { checked: true })
+      Hellotext.push = { subscribe: jest.fn() }
+      controller.connect()
+
+      controller.submitting = true
+      nextButton.disabled = true
+      pushInput.dispatchEvent(new Event('change', { bubbles: true }))
+
+      expect(nextButton.disabled).toBe(true)
+    })
+  })
+
+  it('asks for Push permission from the checked step and advances after denial', async () => {
+    const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    emailInput.value = 'customer@example.com'
+    Hellotext.push = { subscribe: jest.fn().mockRejectedValue(new Error('denied')) }
+
+    controller.connect()
+    const advancing = controller.next()
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    await advancing
+
+    expect(stepOne.hidden).toBe(true)
+    expect(stepTwo.hidden).toBe(false)
+  })
+
+  it('advances only once for overlapping Next clicks while Push permission is pending', async () => {
+    const { stepOne, stepTwo, emailInput, phoneInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    const nextButton = document.createElement('button')
+    nextButton.dataset.action = 'click->hellotext--popup#next'
+    stepOne.append(pushInput, nextButton)
+    controller.inputTargets.push(pushInput)
+    emailInput.value = 'customer@example.com'
+    phoneInput.value = '+59898123456'
+    let settleSubscription
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(resolve => { settleSubscription = resolve })) }
+    controller.connect()
+
+    const firstClick = controller.next()
+    expect(nextButton.disabled).toBe(true)
+    const repeatedClick = controller.next()
+    const enterKey = controller.submit()
+    settleSubscription()
+    await Promise.all([firstClick, repeatedClick, enterKey])
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    expect(controller.stepIndex).toBe(1)
+    expect(stepTwo.hidden).toBe(false)
+    expect(PopupsAPI.submit).not.toHaveBeenCalled()
+    expect(nextButton.disabled).toBe(false)
+  })
+
+  it('submits only once for overlapping final-step actions while Push permission is pending', async () => {
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    let settleSubscription
+    Hellotext.push = {
+      subscribe: jest.fn(() => new Promise(resolve => { settleSubscription = resolve })),
+      subscriptionForSubmission: jest.fn(() => null),
+    }
+    controller.connect()
+
+    const firstClick = controller.submit()
+    const repeatedClick = controller.submit()
+    settleSubscription()
+    await Promise.all([firstClick, repeatedClick])
+
+    expect(Hellotext.push.subscribe).toHaveBeenCalledTimes(1)
+    expect(PopupsAPI.submit).toHaveBeenCalledTimes(1)
+  })
+
+  it('requests Push permission only once when the checked step is the final step', async () => {
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    const subscribe = jest.fn().mockRejectedValue(new Error('denied'))
+    Hellotext.push = { subscribe }
+
+    await controller.subscribeForPushOnCurrentStep()
+    await controller.subscribeForPushOnCurrentStep()
+
+    expect(subscribe).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows animated loading dots on the step button while Push permission is pending', async () => {
+    jest.useFakeTimers()
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    const button = document.createElement('button')
+    button.setAttribute('data-hellotext--popup-target', 'submitButton')
+    button.textContent = 'Get my 10% OFF'
+    stepOne.appendChild(button)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    controller.element.dataset.pushLoadingLabel = 'Enable notifications'
+    emailInput.value = 'customer@example.com'
+    let settle
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(resolve => { settle = resolve })) }
+
+    const waiting = controller.subscribeForPushOnCurrentStep()
+    const visibleDots = () => button.querySelector('span').textContent
+
+    expect(button.disabled).toBe(true)
+    expect(button.getAttribute('aria-busy')).toBe('true')
+    expect(button.textContent.startsWith('Enable notifications')).toBe(true)
+    expect(visibleDots()).toBe('.')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('..')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('...')
+    jest.advanceTimersByTime(450)
+    expect(visibleDots()).toBe('')
+
+    settle({ failed: false })
+    await waiting
+    jest.useRealTimers()
+
+    expect(button.textContent).toBe('Get my 10% OFF')
+    expect(button.hasAttribute('aria-busy')).toBe(false)
+    expect(button.disabled).toBe(false)
+  })
+
+  it('sanitizes the step button markup it restores after the Push request settles', () => {
+    buildController({ hasBubble: false })
+    const button = document.createElement('button')
+    button.innerHTML = [
+      '<span class="label">Get my 10% OFF</span>',
+      '<svg aria-hidden="true"><path d="M0 0h1"></path></svg>',
+      '<img src="x" onerror="window.pwned = true">',
+      '<script>window.pwned = true</script>',
+    ].join('')
+
+    const restore = controller.showPushLoading([button])
+    expect(button.textContent.startsWith('Enable notifications')).toBe(true)
+    restore()
+
+    expect(button.querySelector('span.label').textContent).toBe('Get my 10% OFF')
+    expect(button.querySelector('svg path')).not.toBeNull()
+    expect(button.querySelector('img').getAttribute('src')).toBe('x')
+    expect(button.querySelector('img').hasAttribute('onerror')).toBe(false)
+    expect(button.querySelector('script')).toBeNull()
+    expect(window.pwned).toBeUndefined()
+  })
+
+  it('stops waiting for a Push subscription that never settles', async () => {
+    jest.useFakeTimers()
+    const { stepOne, emailInput } = buildController({ hasBubble: false })
+    const pushInput = document.createElement('input')
+    pushInput.type = 'checkbox'
+    pushInput.checked = true
+    pushInput.dataset.popupFieldKind = 'push'
+    pushInput.dataset.popupStepId = 'step-one'
+    pushInput.dataset.popupPushAvailable = 'true'
+    stepOne.appendChild(pushInput)
+    controller.inputTargets.push(pushInput)
+    controller.stepTargets = [stepOne]
+    controller.stepIndex = 0
+    emailInput.value = 'customer@example.com'
+    Hellotext.push = { subscribe: jest.fn(() => new Promise(() => {})) }
+
+    const waiting = controller.subscribeForPushOnCurrentStep()
+    jest.advanceTimersByTime(15000)
+    await waiting
+    jest.useRealTimers()
+
+    expect(controller.pushPermissionState).toBe('registration_failed')
+  })
+
   it('advances instead of submitting when the form submits before the last step', async () => {
     const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
     const event = { preventDefault: jest.fn() }
@@ -379,6 +977,241 @@ describe('PopupController', () => {
     expect(stepOne.hidden).toBe(true)
     expect(stepTwo.hidden).toBe(false)
     expect(PopupsAPI.submit).not.toHaveBeenCalled()
+  })
+
+  describe('birthday', () => {
+    // Mirrors the server markup: Day / Month / Year selects and the hidden ISO field.
+    const addBirthday = (stepOne, { required = true } = {}) => {
+      const group = document.createElement('div')
+      group.dataset.popupBirthday = ''
+      const selects = [
+        ['day', Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'))],
+        ['month', Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))],
+        ['year', ['2013', '2000', '1999']],
+      ].map(([part, values]) => {
+        const select = document.createElement('select')
+        select.dataset.popupBirthdayPart = part
+        select.required = required
+        ;['', ...values].forEach(value => select.add(new Option(value || part, value)))
+        group.appendChild(select)
+        return select
+      })
+      const input = document.createElement('input')
+      input.dataset.popupFieldKind = 'birthday'
+      input.dataset.popupFieldKey = 'birthday'
+      input.dataset.popupStepId = 'step-one'
+      group.appendChild(input)
+      stepOne.appendChild(group)
+      controller.inputTargets.push(input)
+
+      const choose = (select, value) => {
+        select.value = value
+        controller.selectBirthday({ target: select })
+      }
+
+      return { input, day: selects[0], month: selects[1], year: selects[2], choose }
+    }
+
+    it('requires the date only when the selects are required', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { input } = addBirthday(stepOne)
+
+      controller.connect()
+
+      expect(input.required).toBe(true)
+      expect(input.checkValidity()).toBe(false)
+    })
+
+    it('leaves an optional birthday optional', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { input } = addBirthday(stepOne, { required: false })
+
+      controller.connect()
+
+      expect(input.required).toBe(false)
+    })
+
+    it('sends the ISO date once day, month and year are chosen', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { input, day, month, year, choose } = addBirthday(stepOne)
+
+      choose(day, '07')
+      choose(month, '03')
+      expect(input.value).toBe('')
+
+      choose(year, '1999')
+
+      expect(input.value).toBe('1999-03-07')
+      expect(controller.submissionPayload().metadata.fields.birthday).toBe('1999-03-07')
+    })
+
+    it('disables days the month does not have and clears a day that no longer fits', () => {
+      const { stepOne } = buildController({ hasBubble: false })
+      const { input, day, month, year, choose } = addBirthday(stepOne)
+      const disabledDays = () => Array.from(day.options).filter(option => option.disabled).map(option => option.value)
+
+      choose(day, '31')
+      choose(month, '02')
+
+      expect(day.value).toBe('')
+      expect(disabledDays()).toEqual(['30', '31'])
+
+      choose(day, '29')
+      choose(year, '1999')
+
+      expect(day.value).toBe('')
+      expect(disabledDays()).toEqual(['29', '30', '31'])
+      expect(input.value).toBe('')
+
+      choose(year, '2000')
+      choose(day, '29')
+
+      expect(input.value).toBe('2000-02-29')
+    })
+  })
+
+  describe('phone country selector', () => {
+    const addCountrySelector = phoneInput => {
+      const wrapper = document.createElement('div')
+      const label = document.createElement('span')
+      const select = document.createElement('select')
+
+      wrapper.dataset.popupPhone = ''
+      label.dataset.popupPhoneCountryLabel = ''
+      select.dataset.popupPhoneCountry = ''
+      ;[
+        ['UY', '+598', '🇺🇾 +598'],
+        ['AR', '+54', '🇦🇷 +54'],
+        ['IT', '+39', '🇮🇹 +39'],
+      ].forEach(([code, prefix, shortLabel]) => {
+        const option = document.createElement('option')
+        option.value = code
+        option.dataset.prefix = prefix
+        option.dataset.label = shortLabel
+        select.appendChild(option)
+      })
+
+      phoneInput.replaceWith(wrapper)
+      wrapper.append(label, select, phoneInput)
+
+      return { select, label }
+    }
+
+    it('sends a phone typed without a plus in international form using the selected country', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'AR'
+      phoneInput.value = '011 2345-6789'
+
+      const payload = controller.submissionPayload()
+
+      expect(payload.phone).toBe('+5401123456789')
+      expect(payload.metadata.fields.phone).toBe('+5401123456789')
+      expect(payload.metadata.steps[1].fields.phone).toBe('+5401123456789')
+    })
+
+    it('keeps the leading zero for the backend to normalize per country', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'IT'
+      phoneInput.value = '06 6982 3456'
+
+      expect(controller.submissionPayload().phone).toBe('+390669823456')
+    })
+
+    it('shows the same number in the completion copy fallback', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'IT'
+      phoneInput.value = '06 6982 3456'
+
+      expect(controller.identityValue(phoneInput)).toBe('+390669823456')
+    })
+
+    it('converts digits from other numeral systems before sending', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'IT'
+      phoneInput.value = '٠٦٦٩٨٢٣٤٥٦'
+
+      expect(controller.submissionPayload().phone).toBe('+390669823456')
+
+      phoneInput.value = '０６６９８２３４５６'
+
+      expect(controller.submissionPayload().phone).toBe('+390669823456')
+    })
+
+    it('converts the digits of a number typed with a plus and keeps its country code', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'AR'
+      phoneInput.value = '+٣٩٠٦٦٩٨٢٣٤٥٦'
+
+      expect(controller.submissionPayload().phone).toBe('+390669823456')
+    })
+
+    it('keeps a phone the visitor already typed in international form', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      select.value = 'AR'
+      phoneInput.value = '+598 99 123 456'
+
+      expect(controller.submissionPayload().phone).toBe('+598 99 123 456')
+    })
+
+    it('sends the phone as entered when the server rendered no country selector', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+
+      phoneInput.dataset.popupPhonePrefix = '+598'
+      phoneInput.value = '099 123 456'
+
+      expect(controller.submissionPayload().phone).toBe('099 123 456')
+    })
+
+    it('does not invent a prefix for an empty phone', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+
+      addCountrySelector(phoneInput)
+      phoneInput.value = ''
+
+      expect(controller.submissionPayload().phone).toBe('')
+    })
+
+    it('drops letters and other symbols as the visitor types', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+
+      phoneInput.value = 'd3+(598) 99-12.3 ٤x'
+      controller.filterPhone({ target: phoneInput })
+
+      expect(phoneInput.value).toBe('3+(598) 99-12.3 ٤')
+    })
+
+    it('shows the chosen country in the closed selector', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select, label } = addCountrySelector(phoneInput)
+
+      select.value = 'AR'
+      controller.selectPhoneCountry({ target: select })
+
+      expect(label.textContent).toBe('🇦🇷 +54')
+    })
+
+    it('formats the completion identity with the selected country prefix', () => {
+      const { phoneInput } = buildController({ hasBubble: false })
+      const { select } = addCountrySelector(phoneInput)
+
+      phoneInput.dataset.popupPhonePrefix = '+598'
+      select.value = 'AR'
+      phoneInput.value = '011 2345-6789'
+
+      expect(controller.identityValue(phoneInput)).toBe('+5401123456789')
+    })
   })
 
   it('submits collected fields and shows the completed step on the last step', async () => {
@@ -431,6 +1264,170 @@ describe('PopupController', () => {
       'We sent it to customer@example.com via email. It may take a minute to arrive.',
     )
     expect(completed.querySelector('strong').textContent).toBe('customer@example.com')
+  })
+
+  describe('remembering a sent or closed popup', () => {
+    const finished = () => Popup.finished('popup-id')
+    const sendPopup = async ({ emailInput, phoneInput }) => {
+      emailInput.value = 'customer@example.com'
+      await controller.next()
+      phoneInput.value = '+15551234567'
+      await controller.submit()
+    }
+
+    afterEach(() => {
+      controller.disconnect()
+    })
+
+    it('remembers the popup once the backend accepts the submission', async () => {
+      const fields = buildController({ hasBubble: false })
+      controller.connect()
+
+      await sendPopup(fields)
+
+      expect(finished()).toBe(true)
+    })
+
+    it('does not remember a submission the backend rejected or that failed to send', async () => {
+      const fields = buildController({ hasBubble: false })
+      PopupsAPI.submit
+        .mockResolvedValueOnce({ failed: true, status: 422, json: jest.fn().mockResolvedValue({}) })
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      jest.spyOn(controller, 'handleSubmissionError').mockResolvedValue()
+      controller.connect()
+
+      await sendPopup(fields)
+      await controller.submit()
+
+      expect(finished()).toBe(false)
+    })
+
+    it('forgets the submission the visitor cancelled to change a destination', async () => {
+      const fields = buildController({ hasBubble: false })
+      controller.connect()
+      await sendPopup(fields)
+
+      await controller.changeDestination({ preventDefault: jest.fn() })
+
+      expect(PopupsAPI.cancel).toHaveBeenCalled()
+      expect(finished()).toBe(false)
+    })
+
+    it('remembers a popup the visitor closed without sending it', () => {
+      buildController({ hasBubble: false })
+      controller.connect()
+
+      controller.close()
+
+      expect(finished()).toBe(true)
+    })
+
+    it('remembers a popup the visitor closed with Escape', () => {
+      buildController({ hasBubble: false })
+      controller.connect()
+
+      controller.closeOnEscape(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }))
+
+      expect(finished()).toBe(true)
+    })
+
+    it('stays hidden on a later page once the visitor closed it', () => {
+      buildController({ hasBubble: false })
+      controller.connect()
+      controller.close()
+      controller.disconnect()
+
+      const { element } = buildController({ hasBubble: false })
+      Hellotext.eventEmitter.dispatch.mockClear()
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:opened')
+    })
+
+    it('remembers a popup the visitor closed after cancelling to change a destination', async () => {
+      const fields = buildController({ hasBubble: false })
+      controller.connect()
+      await sendPopup(fields)
+      await controller.changeDestination({ preventDefault: jest.fn() })
+
+      controller.close()
+
+      expect(finished()).toBe(true)
+    })
+
+    it('closes when the visitor sends the same popup from another tab', () => {
+      const { element } = buildController({ hasBubble: false })
+      controller.connect()
+
+      Popup.markFinished('popup-id')
+      window.dispatchEvent(new StorageEvent('storage', { key: Popup.finishedKey('popup-id') }))
+
+      expect(element.hidden).toBe(true)
+    })
+
+    it('stays hidden when another tab sent it while its HTML was loading', () => {
+      const { element } = buildController({ hasBubble: false })
+      Popup.markFinished('popup-id')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(true)
+      expect(Hellotext.eventEmitter.dispatch).not.toHaveBeenCalledWith('popup:opened')
+    })
+
+    it('opens a sent popup from a short link when it connects', () => {
+      const { element } = buildController({ hasBubble: false, linked: true })
+      Popup.markFinished('popup-id')
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('ignores another tab sending a different popup', () => {
+      const { element } = buildController({ hasBubble: false })
+      controller.connect()
+
+      Popup.markFinished('other-popup')
+      window.dispatchEvent(new StorageEvent('storage', { key: Popup.finishedKey('other-popup') }))
+
+      expect(element.hidden).toBe(false)
+      localStorage.removeItem(Popup.finishedKey('other-popup'))
+      document.cookie = `${Popup.finishedKey('other-popup')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    })
+
+    it('closes when the back-forward cache restores a page after the popup was sent elsewhere', () => {
+      const { element } = buildController({ hasBubble: false })
+      controller.connect()
+
+      Popup.markFinished('popup-id')
+      window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }))
+
+      expect(element.hidden).toBe(true)
+    })
+
+    it('keeps its own completion step when the popup is remembered', async () => {
+      const fields = buildController({ hasBubble: false })
+      controller.connect()
+
+      await sendPopup(fields)
+      window.dispatchEvent(new StorageEvent('storage', { key: Popup.finishedKey('popup-id') }))
+      window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }))
+
+      expect(fields.element.hidden).toBe(false)
+      expect(fields.completed.hidden).toBe(false)
+    })
+
+    it('keeps a popup a short link opened', () => {
+      const { element } = buildController({ hasBubble: false, linked: true })
+      controller.connect()
+
+      Popup.markFinished('popup-id')
+      window.dispatchEvent(new StorageEvent('storage', { key: Popup.finishedKey('popup-id') }))
+
+      expect(element.hidden).toBe(false)
+    })
   })
 
   it('reuses the idempotency key after a lost response and restores the submit buttons', async () => {
@@ -706,26 +1703,6 @@ describe('PopupController', () => {
     )
   })
 
-  it('submits a prefixed phone value in the identity and metadata fields', () => {
-    const { emailInput, phoneInput } = buildController({ hasBubble: false })
-
-    emailInput.required = false
-    phoneInput.dataset.popupPhonePrefix = '+58'
-    phoneInput.value = '04126625353'
-
-    expect(controller.submissionPayload()).toEqual(
-      expect.objectContaining({
-        phone: '+584126625353',
-        metadata: expect.objectContaining({
-          fields: expect.objectContaining({ phone: '+584126625353' }),
-          steps: expect.arrayContaining([
-            expect.objectContaining({ fields: expect.objectContaining({ phone: '+584126625353' }) }),
-          ]),
-        }),
-      }),
-    )
-  })
-
   it('keeps an empty optional phone blank when it has a country prefix', () => {
     const { emailInput, phoneInput } = buildController({ hasBubble: false })
 
@@ -764,6 +1741,8 @@ describe('PopupController', () => {
   const renderCompletionCopy = completed => {
     const deliveryHeadline = document.createElement('header')
     const deliveryDescription = document.createElement('div')
+    const pushHeadline = document.createElement('header')
+    const pushDescription = document.createElement('div')
     const noDeliveryHeadline = document.createElement('header')
     const noDeliveryDescription = document.createElement('div')
     const actions = document.createElement('footer')
@@ -772,6 +1751,12 @@ describe('PopupController', () => {
     deliveryHeadline.innerHTML = '<h4><strong>Your code is on its way</strong></h4>'
     deliveryDescription.className = 'hellotext--popup__completion-description'
     deliveryDescription.textContent = 'We sent it to {destination}.'
+    pushHeadline.className = 'hellotext--popup__completion-headline'
+    pushHeadline.hidden = true
+    pushHeadline.innerHTML = '<h4><strong>We sent your coupon</strong></h4>'
+    pushDescription.className = 'hellotext--popup__completion-description'
+    pushDescription.hidden = true
+    pushDescription.textContent = 'We sent your coupon as a push notification.'
     noDeliveryHeadline.className = 'hellotext--popup__completion-headline'
     noDeliveryHeadline.hidden = true
     noDeliveryHeadline.innerHTML = '<h4><strong>Thanks for signing up</strong></h4>'
@@ -779,17 +1764,61 @@ describe('PopupController', () => {
     noDeliveryDescription.hidden = true
     noDeliveryDescription.textContent = 'Your details were saved.'
     actions.dataset.deliveryActions = ''
-    completed.append(deliveryHeadline, deliveryDescription, noDeliveryHeadline, noDeliveryDescription, actions)
+    completed.append(
+      deliveryHeadline,
+      deliveryDescription,
+      pushHeadline,
+      pushDescription,
+      noDeliveryHeadline,
+      noDeliveryDescription,
+      actions,
+    )
 
     Object.defineProperties(controller, {
       deliveryCopyTargets: { value: [deliveryHeadline, deliveryDescription], configurable: true },
+      pushDeliveryCopyTargets: { value: [pushHeadline, pushDescription], configurable: true },
       noDeliveryCopyTargets: { value: [noDeliveryHeadline, noDeliveryDescription], configurable: true },
       hasDeliveryCopyTarget: { value: true, configurable: true },
+      hasPushDeliveryCopyTarget: { value: true, configurable: true },
       hasNoDeliveryCopyTarget: { value: true, configurable: true },
     })
 
-    return { deliveryHeadline, deliveryDescription, noDeliveryHeadline, noDeliveryDescription, actions }
+    return {
+      deliveryHeadline,
+      deliveryDescription,
+      pushHeadline,
+      pushDescription,
+      noDeliveryHeadline,
+      noDeliveryDescription,
+      actions,
+    }
   }
+
+  it("replaces the merchant's delivery copy with the push copy when the coupon went by push", () => {
+    const { completed } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+    controller.submissionCouponPush = true
+
+    controller.revealCompletionCopy(true)
+
+    expect(copy.deliveryHeadline.hidden).toBe(true)
+    expect(copy.deliveryDescription.hidden).toBe(true)
+    expect(copy.pushHeadline.hidden).toBe(false)
+    expect(copy.pushDescription.hidden).toBe(false)
+  })
+
+  it("keeps the merchant's delivery copy when the coupon did not go by push", () => {
+    const { completed } = buildController({ hasBubble: false })
+    const copy = renderCompletionCopy(completed)
+    controller.submissionCouponPush = false
+
+    controller.revealCompletionCopy(true)
+
+    expect(copy.deliveryHeadline.hidden).toBe(false)
+    expect(copy.deliveryDescription.hidden).toBe(false)
+    expect(copy.pushHeadline.hidden).toBe(true)
+    expect(copy.pushDescription.hidden).toBe(true)
+  })
 
   it('reveals the server-rendered no-delivery copy and hides delivery actions when delivery is not required', () => {
     const { completed, emailInput, resendButton, changeDestinationButton } = buildController({ hasBubble: false })
@@ -822,7 +1851,7 @@ describe('PopupController', () => {
     expect(copy.deliveryHeadline.innerHTML).toBe('<h4><strong>Your code is on its way</strong></h4>')
     expect(copy.noDeliveryDescription.textContent).toBe('Your details were saved.')
     expect(copy.deliveryDescription.textContent).toBe('We sent it to customer@example.com.')
-    expect(completed.querySelectorAll('h4')).toHaveLength(2)
+    expect(completed.querySelectorAll('h4')).toHaveLength(3)
   })
 
   it('keeps the delivery copy visible and interpolated when a delivery is queued', () => {

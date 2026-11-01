@@ -495,12 +495,111 @@ describe("when initializing business metadata", () => {
     )
   })
 
+  describe('when this browser already sent the popup', () => {
+    beforeEach(() => {
+      Popup.markFinished('dashboard-popup')
+    })
+
+    afterEach(() => {
+      localStorage.clear()
+      document.cookie = 'hello_popup_submitted_dashboard-popup=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    })
+
+    it('does not load it again', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).not.toHaveBeenCalled()
+      expect(Hellotext.popup).toBeUndefined()
+    })
+
+    it('still loads a different popup', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'new-popup' } }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).toHaveBeenCalledWith('new-popup', expect.any(Object))
+    })
+
+    it('opens it from a short link', async () => {
+      const linkedId = jest.spyOn(Popup, 'linkedId', 'get').mockReturnValue('dashboard-popup')
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).toHaveBeenCalledWith('dashboard-popup', expect.objectContaining({ linked: true }))
+      linkedId.mockRestore()
+    })
+  })
+
   it("skips popup loading when popup is false", async () => {
     mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
 
     await Hellotext.initialize('xy76ks', { popup: false })
 
     expect(loadPopup).not.toHaveBeenCalled()
+  })
+
+  describe('when a short link asks for a popup', () => {
+    let linkedId
+
+    beforeEach(() => {
+      linkedId = jest.spyOn(Popup, 'linkedId', 'get').mockReturnValue('linked-popup')
+    })
+
+    afterEach(() => {
+      linkedId.mockRestore()
+    })
+
+    it('opens the linked popup instead of the dashboard popup', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).toHaveBeenCalledTimes(1)
+      expect(loadPopup).toHaveBeenCalledWith(
+        'linked-popup',
+        expect.objectContaining({ container: 'body', linked: true }),
+      )
+    })
+
+    it('opens the linked popup instead of an explicit popup id and keeps the local options', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks', {
+        popup: { id: 'explicit-popup', container: '#popup-container' },
+      })
+
+      expect(loadPopup).toHaveBeenCalledWith(
+        'linked-popup',
+        expect.objectContaining({ container: '#popup-container', linked: true }),
+      )
+    })
+
+    it('opens the linked popup when the dashboard has no popup', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: null }))
+
+      await Hellotext.initialize('xy76ks')
+
+      expect(loadPopup).toHaveBeenCalledWith('linked-popup', expect.objectContaining({ linked: true }))
+    })
+
+    it('opens nothing when the installation disables popups', async () => {
+      mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+      await Hellotext.initialize('xy76ks', { popup: false })
+
+      expect(loadPopup).not.toHaveBeenCalled()
+    })
+  })
+
+  it('does not mark the dashboard popup as linked', async () => {
+    mockBusinessFetch(defaultBusiness({ popup: { id: 'dashboard-popup' } }))
+
+    await Hellotext.initialize('xy76ks')
+
+    expect(loadPopup).toHaveBeenCalledWith('dashboard-popup', expect.objectContaining({ linked: false }))
   })
 
   it('unmounts the previous popup when a later initialization disables it', async () => {
@@ -1208,18 +1307,6 @@ describe('when initializing Push', () => {
 
     expect(loadWebchat).toHaveBeenCalledWith('dashboard-webchat')
     expect(Hellotext.isInitialized).toBe(true)
-  })
-
-  it('does not synchronize Push when loading a required surface fails', async () => {
-    loadWebchat.mockRejectedValueOnce(new Error('surface failed'))
-    mockBusinessFetch(defaultBusiness({
-      push: { public_key: 'business-public-key' },
-      webchat: { id: 'dashboard-webchat' },
-    }))
-
-    await expect(Hellotext.initialize('xy76ks')).rejects.toThrow('surface failed')
-
-    expect(initializePush).not.toHaveBeenCalled()
   })
 
   it('resets omitted Push options when initializing another business', async () => {

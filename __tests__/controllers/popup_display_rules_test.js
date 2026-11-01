@@ -4,6 +4,7 @@
 
 import PopupController from '../../src/controllers/popup_controller'
 import Hellotext from '../../src/hellotext'
+import { Popup } from '../../src/models/popup'
 
 describe('PopupController display rules', () => {
   let controller
@@ -11,10 +12,12 @@ describe('PopupController display rules', () => {
   const buildController = ({ lanes = [], hasBubble = false } = {}) => {
     const element = document.createElement('article')
     const dialog = document.createElement('section')
+    const completed = document.createElement('section')
     const step = document.createElement('section')
 
     step.dataset.stepId = 'step-one'
-    dialog.append(step)
+    completed.hidden = true
+    dialog.append(step, completed)
     element.append(dialog)
     document.body.appendChild(element)
 
@@ -22,6 +25,7 @@ describe('PopupController display rules', () => {
     Object.defineProperty(controller, 'element', { value: element, configurable: true })
 
     controller.dialogTarget = dialog
+    controller.completedTarget = completed
     controller.stepTargets = [step]
     controller.inputTargets = []
     controller.submitButtonTargets = []
@@ -52,6 +56,8 @@ describe('PopupController display rules', () => {
     window.history.replaceState({}, '', '/')
     window.localStorage.clear()
     window.sessionStorage.clear()
+    // Closing a popup now remembers it like a sent one, in a cookie as well as localStorage.
+    document.cookie = `${Popup.finishedKey('popup-id')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
     Hellotext.activities.clear()
     jest.spyOn(Hellotext.eventEmitter, 'dispatch').mockImplementation(() => {})
   })

@@ -136,6 +136,26 @@ class Push {
   }
 
   /**
+   * Return the granted browser subscription for a popup submission, when present.
+   *
+   * @returns {Object|null} Subscription JSON that the server can bind to this session.
+   */
+  subscriptionForSubmission() {
+    if (
+      this.disposed ||
+      typeof Notification === 'undefined' ||
+      Notification.permission !== 'granted' ||
+      !this.subscription
+    )
+      return null
+
+    return {
+      subscription: this.subscription.toJSON(),
+      channel_id: this.channelId,
+    }
+  }
+
+  /**
    * Finishes pending registration before disabling and removing the subscription.
    *
    * @private

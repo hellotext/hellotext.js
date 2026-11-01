@@ -23,6 +23,100 @@ describe('Popup', () => {
     Configuration.popup.container = 'body'
   })
 
+  describe('.browser', () => {
+    it.each([
+      ['android', 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36'],
+      ['edge', 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/130.0 Safari/537.36 Edg/130.0'],
+      ['firefox', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.0; rv:131.0) Gecko/20100101 Firefox/131.0'],
+      ['chrome', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0 Safari/537.36'],
+      ['safari', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15'],
+      ['other', 'SomeBot/1.0'],
+    ])('names %s', (browser, userAgent) => {
+      expect(Popup.browser(userAgent)).toBe(browser)
+    })
+  })
+
+  describe('remembering a sent or closed popup', () => {
+    const key = 'hello_popup_submitted_popup-id'
+    const clearCookie = () => {
+      document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    }
+
+    afterEach(() => {
+      localStorage.clear()
+      clearCookie()
+    })
+
+    it('is not remembered until the popup is sent or closed', () => {
+      expect(Popup.finished('popup-id')).toBe(false)
+    })
+
+    it('keeps the mark in a cookie and in localStorage', () => {
+      Popup.markFinished('popup-id')
+
+      expect(document.cookie).toContain(`${key}=1`)
+      expect(localStorage.getItem(key)).toBe('1')
+      expect(Popup.finished('popup-id')).toBe(true)
+      expect(Popup.finished('other-popup')).toBe(false)
+    })
+
+    it('restores the cookie from localStorage when the cookies were cleared', () => {
+      Popup.markFinished('popup-id')
+      clearCookie()
+
+      expect(Popup.finished('popup-id')).toBe(true)
+      expect(document.cookie).toContain(`${key}=1`)
+    })
+
+    it('restores localStorage from the cookie when site storage was cleared', () => {
+      Popup.markFinished('popup-id')
+      localStorage.clear()
+
+      expect(Popup.finished('popup-id')).toBe(true)
+      expect(localStorage.getItem(key)).toBe('1')
+    })
+
+    it('still uses the cookie when localStorage is unavailable', () => {
+      jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('SecurityError')
+      })
+      jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('SecurityError')
+      })
+
+      Popup.markFinished('popup-id')
+
+      expect(Popup.finished('popup-id')).toBe(true)
+    })
+
+    it('forgets a cancelled submission even when another host kept a copy in its localStorage', () => {
+      Popup.markFinished('popup-id')
+      Popup.forgetFinished('popup-id')
+      // The bare domain copied the shared cookie into its own localStorage before the cancel.
+      localStorage.setItem(key, '1')
+
+      expect(Popup.finished('popup-id')).toBe(false)
+      expect(localStorage.getItem(key)).toBeNull()
+    })
+
+    it('remembers the popup again once the corrected submission is sent', () => {
+      Popup.markFinished('popup-id')
+      Popup.forgetFinished('popup-id')
+
+      Popup.markFinished('popup-id')
+
+      expect(Popup.finished('popup-id')).toBe(true)
+    })
+
+    it('stores nothing for an id that is not a public popup id', () => {
+      Popup.markFinished('bad id;')
+
+      expect(Popup.finished('bad id;')).toBe(false)
+      expect(document.cookie).not.toContain('hello_popup_submitted_')
+      expect(localStorage.length).toBe(0)
+    })
+  })
+
   it.each(['missing', 'loading', 'failed'])('mounts immediately when the stylesheet is %s', async state => {
     if (state !== 'missing') {
       const linkTag = document.createElement('link')
@@ -89,6 +183,36 @@ describe('Popup', () => {
 
     expect(document.querySelector('#popup-container article')).toBeNull()
     expect(popup.mounted).toBe(false)
+  })
+
+  it('marks a popup opened from a short link before mounting it', async () => {
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+
+    await Popup.load('popup-id', { linked: true })
+
+    expect(article.getAttribute('data-hellotext--popup-linked-value')).toEqual('true')
+  })
+
+  it('leaves the server markup alone for a popup the page opened itself', async () => {
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+
+    await Popup.load('popup-id')
+
+    expect(article.hasAttribute('data-hellotext--popup-linked-value')).toBe(false)
+  })
+
+  it('passes on the activity its controller reports', async () => {
+    const article = document.createElement('article')
+    API.popups.get.mockResolvedValue(article)
+    const onActivity = jest.fn()
+
+    await Popup.load('popup-id', { onActivity })
+    article.dispatchEvent(new CustomEvent('hellotext--popup:activity', { detail: { active: true } }))
+    article.dispatchEvent(new CustomEvent('hellotext--popup:activity', { detail: { active: false } }))
+
+    expect(onActivity.mock.calls).toEqual([[true], [false]])
   })
 
   it('unmounts its rendered surface', async () => {

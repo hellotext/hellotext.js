@@ -89,6 +89,28 @@ describe('session', () => {
   })
 })
 
+describe('popup', () => {
+  it('gets the popup a short link asked to open', () => {
+    const windowMock = {
+      location: { search: '?hello_session=session&hello_popup=popup-id' },
+    }
+
+    jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+
+    expect(new Query().popup).toEqual('popup-id')
+  })
+
+  it('is null when the URL does not ask for a popup', () => {
+    const windowMock = {
+      location: { search: '?hello_session=session' },
+    }
+
+    jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
+
+    expect(new Query().popup).toBeNull()
+  })
+})
+
 describe("#toHellotextParameter", () => {
   it("prefixes the argument with hello_", () => {
     const query = new Query()

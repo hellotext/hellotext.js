@@ -194,6 +194,29 @@ describe('Page', () => {
         utm_params: {}
       })
     })
+
+    it('adds the in-site UTM when the visitor clicked one of the site\'s own UTM links', () => {
+      mockUtm.current = { source: 'google', medium: 'cpc' }
+      mockUtm.internal = { source: 'pop_up_tv', medium: 'pop_up_tv', observed_at: '2026-10-24T18:00:00.000Z' }
+
+      const page = new Page()
+
+      expect(page.trackingData).toEqual({
+        page: {
+          url: 'https://example.com/current-page?param=value',
+          title: 'Current Page Title',
+          path: '/current-page'
+        },
+        utm_params: { source: 'google', medium: 'cpc' },
+        internal_utm_params: { source: 'pop_up_tv', medium: 'pop_up_tv', observed_at: '2026-10-24T18:00:00.000Z' }
+      })
+    })
+
+    it('leaves the in-site UTM out when there is none', () => {
+      mockUtm.internal = {}
+
+      expect(new Page().trackingData).not.toHaveProperty('internal_utm_params')
+    })
   })
 
   describe('domain getter', () => {

@@ -48,9 +48,12 @@ class Page {
 
   /**
    * Get page data for tracking
-   * @returns {Object} Object containing page object and utm_params
+   * @returns {Object} Object containing page object, utm_params and, when the
+   * visitor clicked one of the site's own UTM links, internal_utm_params
    */
   get trackingData() {
+    const internalUtmParams = this.utm.internal || {}
+
     return {
       page: {
         url: this.url,
@@ -58,6 +61,7 @@ class Page {
         path: this.path,
       },
       utm_params: this.utmParams,
+      ...(Object.keys(internalUtmParams).length && { internal_utm_params: internalUtmParams }),
     }
   }
 
