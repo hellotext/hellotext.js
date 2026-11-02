@@ -308,6 +308,20 @@ describe('PopupController', () => {
 
       expect(element.hidden).toBe(false)
     })
+
+    // A popup already shown has nothing left to decide, but the visit's campaign still follows
+    // the URL, so the next full page load is judged by the campaign the visitor is on now.
+    it('keeps remembering the campaign after the popup displays', async () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=a')
+
+      const { element } = connectWith(utmRule('session.utm_campaign', 'a'))
+      expect(element.hidden).toBe(false)
+
+      window.history.pushState({}, '', '/sale?utm_campaign=b')
+      await flushTimers()
+
+      expect(Hellotext.visitCampaign).toEqual({ campaign: 'b' })
+    })
   })
 
   describe('browser detection', () => {

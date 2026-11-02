@@ -257,6 +257,10 @@ export default class extends Controller {
         this.connectedAt = Date.now()
       }
       this.lastRoute = route
+      // The visit's campaign follows the URL whether or not this popup still has a display to
+      // decide. One already shown or dismissed here must not leave the next page judged by
+      // the campaign the visitor has since moved on from.
+      this.currentUtmParams()
       if (!this.displayed) this.evaluateDisplay()
     })
   }
