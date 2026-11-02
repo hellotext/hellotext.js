@@ -217,6 +217,46 @@ describe('Page', () => {
 
       expect(new Page().trackingData).not.toHaveProperty('internal_utm_params')
     })
+
+    it('carries the site the visitor came from', () => {
+      Object.defineProperty(document, 'referrer', { value: 'https://www.instagram.com/', configurable: true })
+
+      expect(new Page().trackingData.page.referrer).toBe('https://www.instagram.com/')
+    })
+  })
+
+  describe('referrer getter', () => {
+    const referred = (referrer, url = null) => {
+      Object.defineProperty(document, 'referrer', { value: referrer, configurable: true })
+      return new Page(url).referrer
+    }
+
+    afterEach(() => {
+      Object.defineProperty(document, 'referrer', { value: '', configurable: true })
+    })
+
+    it('keeps only the origin of another site', () => {
+      expect(referred('https://www.google.com/search?q=private+words')).toBe('https://www.google.com/')
+    })
+
+    it('keeps a port that is not the default', () => {
+      expect(referred('http://partner.test:8080/landing')).toBe('http://partner.test:8080/')
+    })
+
+    it('ignores another page of this store, subdomains included', () => {
+      expect(referred('https://example.com/collections/sale')).toBeUndefined()
+      expect(referred('https://checkout.example.com/thanks')).toBeUndefined()
+    })
+
+    it('compares against the tracked page when one is given', () => {
+      expect(referred('https://custom.com/blog', 'https://custom.com/test-path')).toBeUndefined()
+      expect(referred('https://example.com/blog', 'https://custom.com/test-path')).toBe('https://example.com/')
+    })
+
+    it('is undefined without a referrer or with one that cannot be read', () => {
+      expect(referred('')).toBeUndefined()
+      expect(referred('not a url')).toBeUndefined()
+    })
   })
 
   describe('domain getter', () => {
