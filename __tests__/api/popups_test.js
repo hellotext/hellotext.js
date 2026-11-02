@@ -53,6 +53,14 @@ describe('PopupsAPI', () => {
     expect(Hellotext.business.setLocale).toHaveBeenCalledWith('es')
   })
 
+  it('asks for the popup without its display rules when a short link opened it', async () => {
+    await PopupsAPI.get('popup-id', { linked: true })
+    await PopupsAPI.get('popup-id')
+
+    expect(new URL(global.fetch.mock.calls[0][0]).searchParams.get('linked')).toBe('true')
+    expect(new URL(global.fetch.mock.calls[1][0]).searchParams.has('linked')).toBe(false)
+  })
+
   it('resolves the automatic device from the viewport before requesting markup', async () => {
     Configuration.popup.device = 'auto'
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 767 })

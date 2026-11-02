@@ -8,12 +8,19 @@ class PopupsAPI {
     return Configuration.endpoint('public/popups')
   }
 
-  static async get(id) {
+  /**
+   * @param {String} id
+   * @param {Object} [options]
+   * @param {Boolean} [options.linked] - Opened from a short link, so the server renders it
+   * whatever its display rules say.
+   */
+  static async get(id, { linked = false } = {}) {
     const url = new URL(`${this.endpoint}/${id}`)
 
     url.searchParams.append('session', Hellotext.session)
     url.searchParams.append('locale', Locale.toString())
     url.searchParams.append('device', this.runtimeDevice)
+    if (linked) url.searchParams.append('linked', 'true')
 
     const response = await this.fetchPopup(url)
 

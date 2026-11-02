@@ -390,6 +390,20 @@ describe('PopupController', () => {
       expect(dialog.hidden).toBe(false)
     })
 
+    it('opens before its display rules match', () => {
+      const { element, dialog } = buildController({ hasBubble: false, linked: true })
+      controller.rulesValue = {
+        lanes: [[{ type: 'condition', field: 'session.time_on_page', operator: 'at_least', values: [30] }]],
+      }
+      controller.initialize()
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+      expect(dialog.hidden).toBe(false)
+      expect(controller.measurementTimer).toBeUndefined()
+    })
+
     it('stays closed once the visitor dismissed it', () => {
       const { element } = buildController({ hasBubble: false, linked: true })
 
