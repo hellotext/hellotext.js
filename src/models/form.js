@@ -14,7 +14,7 @@ class Form {
   }
 
   async mount({ ifCompleted = true } = {}) {
-    if(ifCompleted && this.hasBeenCompleted) {
+    if (ifCompleted && this.hasBeenCompleted) {
       this.element?.remove()
 
       return Hellotext.eventEmitter.dispatch('form:completed', {
@@ -105,6 +105,7 @@ class Form {
     }
 
     localStorage.setItem(`hello-form-${this.id}`, JSON.stringify(payload))
+    Hellotext.recordActivity('form.completed')
     Hellotext.eventEmitter.dispatch('form:completed', payload)
   }
 
@@ -119,11 +120,14 @@ class Form {
   get localeAuthKey() {
     const firstStep = this.data.steps[0]
 
-    if(firstStep.inputs.some(input => input.kind === 'email') && firstStep.inputs.some(input => input.kind === 'phone')) {
+    if (
+      firstStep.inputs.some(input => input.kind === 'email') &&
+      firstStep.inputs.some(input => input.kind === 'phone')
+    ) {
       return 'phone_and_email'
-    } else if(firstStep.inputs.some(input => input.kind === 'email')) {
+    } else if (firstStep.inputs.some(input => input.kind === 'email')) {
       return 'email'
-    } else if(firstStep.inputs.some(input => input.kind === 'phone')) {
+    } else if (firstStep.inputs.some(input => input.kind === 'phone')) {
       return 'phone'
     } else {
       return 'none'

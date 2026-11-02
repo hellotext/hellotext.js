@@ -133,7 +133,9 @@ export default class extends Controller {
       : currentScrollLeft + this.getPageScrollAmount()
     const fallbackScrollLeft = currentScrollLeft + this.getPageScrollAmount()
 
-    return this.clampScrollLeft(targetScrollLeft > currentScrollLeft + 1 ? targetScrollLeft : fallbackScrollLeft)
+    return this.clampScrollLeft(
+      targetScrollLeft > currentScrollLeft + 1 ? targetScrollLeft : fallbackScrollLeft,
+    )
   }
 
   getPreviousPageScrollLeft() {
@@ -146,7 +148,9 @@ export default class extends Controller {
     if (targetThreshold <= 1) return 0
 
     const cardMetrics = this.getCardMetrics()
-    const previousPageCard = cardMetrics.find(card => card.start >= targetThreshold - 1 && card.start < currentScrollLeft - 1)
+    const previousPageCard = cardMetrics.find(
+      card => card.start >= targetThreshold - 1 && card.start < currentScrollLeft - 1,
+    )
     const previousCard = [...cardMetrics].reverse().find(card => card.start < currentScrollLeft - 1)
 
     return this.getPageAlignedScrollLeft(previousPageCard?.start ?? previousCard?.start ?? 0)
@@ -161,14 +165,16 @@ export default class extends Controller {
   }
 
   getCardMetrics() {
-    return Array.from(this.carouselContainerTarget.querySelectorAll('.message__carousel_card')).map(card => {
-      const start = this.getCardScrollLeft(card)
+    return Array.from(this.carouselContainerTarget.querySelectorAll('.message__carousel_card')).map(
+      card => {
+        const start = this.getCardScrollLeft(card)
 
-      return {
-        start,
-        end: start + card.offsetWidth,
-      }
-    })
+        return {
+          start,
+          end: start + card.offsetWidth,
+        }
+      },
+    )
   }
 
   getCardScrollLeft(card) {
@@ -187,7 +193,10 @@ export default class extends Controller {
   }
 
   clampScrollLeft(scrollLeft) {
-    const maxScroll = Math.max(this.carouselContainerTarget.scrollWidth - this.carouselContainerTarget.clientWidth, 0)
+    const maxScroll = Math.max(
+      this.carouselContainerTarget.scrollWidth - this.carouselContainerTarget.clientWidth,
+      0,
+    )
 
     return Math.min(Math.max(scrollLeft, 0), maxScroll)
   }
@@ -217,7 +226,10 @@ export default class extends Controller {
   updateFades() {
     if (!this.hasCarouselContainerTarget) return
 
-    const maxScroll = Math.max(this.carouselContainerTarget.scrollWidth - this.carouselContainerTarget.clientWidth, 0)
+    const maxScroll = Math.max(
+      this.carouselContainerTarget.scrollWidth - this.carouselContainerTarget.clientWidth,
+      0,
+    )
 
     if (maxScroll <= 1) {
       this.hideFade(this.leftFadeTarget)

@@ -1,7 +1,7 @@
 import Hellotext from "../src/hellotext";
 import API from "../src/api";
 import { Configuration } from "../src/core";
-import { Popup, Push, Session, Webchat, WhatsAppWidget } from "../src/models";
+import { Business, Popup, Push, Session, Webchat, WhatsAppWidget } from "../src/models";
 
 const getCookieValue = name => document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)')?.pop()
 
@@ -40,6 +40,107 @@ afterEach(() => {
   jest.clearAllMocks();
   document.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove())
 });
+
+describe('popup visit signals', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    window.sessionStorage.clear()
+    Hellotext.activities = new Set()
+    Hellotext.visitSignalsLoaded = false
+    Hellotext.lastPageUrl = undefined
+    Hellotext.lastPageRoute = undefined
+    Hellotext.visitStartedAt = undefined
+  })
+
+  it('keeps activities and page counts across page loads in the same visit', () => {
+    Hellotext.initializeVisitSignals()
+    Hellotext.recordActivity('product.viewed')
+
+    Hellotext.activities = new Set()
+    Hellotext.visitSignalsLoaded = false
+    Hellotext.lastPageUrl = undefined
+    Hellotext.lastPageRoute = undefined
+    Hellotext.initializeVisitSignals()
+
+    expect(Hellotext.pageViews).toBe(2)
+    expect(Hellotext.visitorType).toBe('new')
+    expect(Hellotext.activities).toContain('activity.product_viewed')
+  })
+
+  it('measures the first page from the document start', () => {
+    Hellotext.initializeVisitSignals()
+
+    expect(Hellotext.pageStartedAt).toBe(window.performance.timeOrigin)
+    expect(Hellotext.visitStartedAt).toBe(window.performance.timeOrigin)
+  })
+
+  it('does not count query changes or ordinary anchors as new pages', () => {
+    window.history.replaceState({}, '', '/products?utm_source=email#details')
+    Hellotext.initializeVisitSignals()
+
+    window.history.replaceState({}, '', '/products?color=blue#reviews')
+    Hellotext.initializeVisitSignals()
+
+    expect(Hellotext.pageViews).toBe(1)
+  })
+
+  it('counts a changed hash route but ignores its query parameters', () => {
+    window.history.replaceState({}, '', '/#/products?color=red')
+    Hellotext.initializeVisitSignals()
+
+    window.history.replaceState({}, '', '/#/products?color=blue')
+    Hellotext.initializeVisitSignals()
+    expect(Hellotext.pageViews).toBe(1)
+
+    window.history.replaceState({}, '', '/#/checkout')
+    Hellotext.initializeVisitSignals()
+    expect(Hellotext.pageViews).toBe(2)
+  })
+
+  it('treats hashbang and plain hash routes as the same page', () => {
+    window.history.replaceState({}, '', '/#!/products')
+    Hellotext.initializeVisitSignals()
+
+    window.history.replaceState({}, '', '/#/products')
+    Hellotext.initializeVisitSignals()
+
+    expect(Hellotext.pageViews).toBe(1)
+  })
+
+  it('starts timing at initialization when an SPA changed routes before the SDK loaded', () => {
+    const getEntriesByType = window.performance.getEntriesByType
+    Object.defineProperty(window.performance, 'getEntriesByType', {
+      configurable: true,
+      value: jest.fn().mockReturnValue([{ name: 'http://localhost/' }]),
+    })
+    const now = jest.spyOn(Date, 'now').mockReturnValue(1234)
+    window.history.replaceState({}, '', '/products')
+
+    Hellotext.initializeVisitSignals()
+
+    expect(Hellotext.pageStartedAt).toBe(1234)
+
+    Object.defineProperty(window.performance, 'getEntriesByType', {
+      configurable: true,
+      value: getEntriesByType,
+    })
+    now.mockRestore()
+    window.history.replaceState({}, '', '/')
+  })
+
+  it('recognizes a visitor after a new browser session starts', () => {
+    Hellotext.initializeVisitSignals()
+
+    window.sessionStorage.clear()
+    Hellotext.visitSignalsLoaded = false
+    Hellotext.lastPageUrl = undefined
+    Hellotext.lastPageRoute = undefined
+    Hellotext.initializeVisitSignals()
+
+    expect(Hellotext.visitorType).toBe('returning')
+    expect(Hellotext.pageViews).toBe(1)
+  })
+})
 
 describe("when trying to call methods before initializing the class", () => {
   it("raises an error when Hellotext.track is called",  () => {
@@ -556,6 +657,8 @@ describe("when the class is initialized successfully", () => {
     });
 
     describe("when tracking events", () => {
+      beforeEach(() => Hellotext.activities.clear())
+
       it("success attribute is true when response from the server is received successfully", async () => {
         global.fetch = jest.fn().mockResolvedValue({
           json: jest.fn().mockResolvedValue({received: "success"}),
@@ -567,6 +670,70 @@ describe("when the class is initialized successfully", () => {
         expect(response.succeeded).toEqual(true)
       });
 
+      it("records supported popup activity only after the server accepts it", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("product.viewed")
+
+        expect(Hellotext.activities).toContain('activity.product_viewed')
+      });
+
+      it('does not apply an accepted activity to a runtime that changed while it was pending', async () => {
+        let resolve
+        global.fetch = jest.fn().mockReturnValue(new Promise(result => { resolve = result }))
+
+        const tracked = Hellotext.track('product.viewed')
+        Hellotext.business = { id: 'other-business' }
+        resolve({ json: jest.fn().mockResolvedValue({ received: 'success' }), status: 200 })
+
+        await tracked
+
+        expect(Hellotext.activities).not.toContain('activity.product_viewed')
+      })
+
+      it('accepts a Unix-seconds activity from an earlier page in the current visit', async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({ received: 'success' }),
+          status: 200,
+        })
+        Hellotext.visitStartedAt = Date.parse('2026-09-16T12:00:00Z')
+        Hellotext.pageStartedAt = Date.parse('2026-09-16T12:05:00Z')
+
+        await Hellotext.track('product.viewed', {
+          tracked_at: Date.parse('2026-09-16T12:02:00Z') / 1000,
+        })
+
+        expect(Hellotext.activities).toContain('activity.product_viewed')
+      })
+
+      it('rejects an accepted activity timestamped before the current visit', async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({ received: 'success' }),
+          status: 200,
+        })
+        Hellotext.visitStartedAt = Date.parse('2026-09-16T12:00:00Z')
+
+        await Hellotext.track('product.viewed', {
+          tracked_at: Date.parse('2026-09-16T11:59:00Z') / 1000,
+        })
+
+        expect(Hellotext.activities).not.toContain('activity.product_viewed')
+      })
+
+      it("records an accepted cart addition for popup activity rules", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("cart.added")
+
+        expect(Hellotext.activities).toContain('activity.cart_added')
+      });
+
       it("success attribute is false when response from the server is rejected", async () => {
         global.fetch = jest.fn().mockResolvedValue({
           json: jest.fn().mockResolvedValue({}),
@@ -576,6 +743,29 @@ describe("when the class is initialized successfully", () => {
         const response = await Hellotext.track("page.viewed")
 
         expect(response.failed).toEqual(true)
+      });
+
+      it("does not record popup activity when tracking is rejected", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({}),
+          status: 422
+        })
+
+        await Hellotext.track("cart.added")
+
+        expect(Hellotext.activities).not.toContain('activity.cart_added')
+      });
+
+      it("maps both supported purchase actions to purchase completed", async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+          json: jest.fn().mockResolvedValue({received: "success"}),
+          status: 200
+        })
+
+        await Hellotext.track("order.placed")
+        await Hellotext.track("product.purchased")
+
+        expect([...Hellotext.activities]).toEqual(['activity.purchase_completed'])
       });
 
       it("includes UTM parameters in the request body", async () => {

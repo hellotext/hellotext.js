@@ -191,6 +191,7 @@ describe('Popup', () => {
 
     await Popup.load('popup-id', { linked: true })
 
+    expect(API.popups.get).toHaveBeenCalledWith('popup-id', { linked: true })
     expect(article.getAttribute('data-hellotext--popup-linked-value')).toEqual('true')
   })
 

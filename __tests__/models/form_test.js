@@ -95,6 +95,10 @@ describe('mount', () => {
 })
 
 describe('markAsCompleted', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('saves the form as completed in localStorage', () => {
     const form = new Form({ id: 1 })
     form.markAsCompleted()
@@ -107,6 +111,15 @@ describe('markAsCompleted', () => {
 
     form.markAsCompleted()
     expect(emit).toHaveBeenCalled()
+  })
+
+  it('records a form activity for popup display rules', () => {
+    const form = new Form({ id: 1 })
+    const recordActivity = jest.spyOn(Hellotext, 'recordActivity')
+
+    form.markAsCompleted()
+
+    expect(recordActivity).toHaveBeenCalledWith('form.completed')
   })
 })
 

@@ -18,7 +18,8 @@ describe('server-rendered popup completion', () => {
              data-hellotext--popup-capture-value="{}"
              data-hellotext--popup-device-value="all"
              data-hellotext--popup-has-bubble-value="false"
-             data-hellotext--popup-id-value="popup-id">
+             data-hellotext--popup-id-value="popup-id"
+             data-hellotext--popup-rules-value='{"lanes":[]}'>
       <section class="hellotext--popup__dialog" data-hellotext--popup-target="dialog">
         <section data-hellotext--popup-target="step">
           <input type="email" value="customer@example.com"

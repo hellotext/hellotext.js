@@ -5,6 +5,7 @@
 import PopupController from '../../src/controllers/popup_controller'
 import PopupsAPI from '../../src/api/popups'
 import Hellotext from '../../src/hellotext'
+import { Cookies } from '../../src/models/cookies'
 import { Popup } from '../../src/models/popup'
 
 describe('PopupController', () => {
@@ -93,6 +94,8 @@ describe('PopupController', () => {
     controller.deviceValue = device
     controller.idValue = id
     controller.linkedValue = linked
+    // Before initialize(): that is where the controller builds its display rules.
+    controller.rulesValue = { lanes: [] }
     controller.initialize()
 
     return {
@@ -138,6 +141,199 @@ describe('PopupController', () => {
     // Closing a popup remembers it, so clear the mark before the next popup connects.
     localStorage.clear()
     document.cookie = `${Popup.finishedKey('popup-id')}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+  })
+
+  // A rule may target any of the three campaign parameters. The URL the visitor is on answers
+  // for itself, and what it carried is remembered for the rest of the visit — persisted
+  // attribution, which outlives the visit by years, is never the fallback.
+  describe('UTM rules', () => {
+    const utmRule = (field, value) => ({
+      lanes: [[{ type: 'condition', field, operator: 'is', values: [value] }]],
+    })
+    const flushTimers = () => new Promise(resolve => setTimeout(resolve, 0))
+    let originalPage
+
+    // The rule has to be in place before initialize(), which is where the controller builds
+    // it. Assigning rulesValue after that leaves the controller evaluating an empty rule set,
+    // which matches every page and would let these tests pass without reading their rule.
+    const connectWith = rules => {
+      const built = buildController({ hasBubble: false })
+      controller.rulesValue = rules
+      controller.initialize()
+      controller.connect()
+
+      return built
+    }
+
+    beforeEach(() => {
+      originalPage = Hellotext.page
+      // Set, and expected to stay unread: this is the attribution the browser persisted.
+      Hellotext.page = { utmParams: { source: 'google', medium: 'cpc' } }
+      Hellotext.visitCampaign = {}
+      window.sessionStorage.clear()
+    })
+
+    afterEach(() => {
+      controller?.disconnect()
+      Hellotext.page = originalPage
+      Hellotext.visitCampaign = {}
+      window.history.replaceState({}, '', '/')
+    })
+
+    it('matches a campaign the URL carries without a source or medium', () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=spring')
+
+      const { element } = connectWith(utmRule('session.utm_campaign', 'spring'))
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('ignores capitalization while keeping each value as the link wrote it', () => {
+      window.history.replaceState({}, '', '/landing?utm_source=Google&utm_medium=Paid_Social&utm_campaign=Spring')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({
+        source: 'Google',
+        medium: 'Paid_Social',
+        campaign: 'Spring',
+      })
+
+      controller.disconnect()
+      const campaign = connectWith(utmRule('session.utm_campaign', 'spring'))
+
+      expect(campaign.element.hidden).toBe(false)
+    })
+
+    it('keeps an encoded literal plus distinct from a space in campaign values', () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=Black%2BFriday')
+
+      const plus = connectWith(utmRule('session.utm_campaign', 'black+friday'))
+
+      expect(plus.element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ campaign: 'Black+Friday' })
+
+      controller.disconnect()
+      const words = connectWith(utmRule('session.utm_campaign', 'black friday'))
+
+      expect(words.element.hidden).toBe(true)
+    })
+
+    it('keeps the campaign this visit arrived with once the URL drops it', () => {
+      Hellotext.rememberVisitCampaign({ campaign: 'spring' })
+      window.history.replaceState({}, '', '/products/42')
+
+      const { element } = connectWith(utmRule('session.utm_campaign', 'spring'))
+
+      expect(element.hidden).toBe(false)
+    })
+
+    // `hello_utm` records only a complete source and medium pair and survives for years, so
+    // an old campaign must never decide a popup for a visit that arrived some other way.
+    it('never falls back to the attribution persisted for the browser', () => {
+      window.history.replaceState({}, '', '/landing')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(element.hidden).toBe(true)
+      expect(controller.pageContext().utm).toEqual({})
+    })
+
+    it('lets the URL replace the remembered campaign rather than merge with it', () => {
+      Hellotext.rememberVisitCampaign({ source: 'google', medium: 'cpc' })
+      window.history.replaceState({}, '', '/landing?utm_campaign=spring')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(element.hidden).toBe(true)
+      expect(controller.pageContext().utm).toEqual({ campaign: 'spring' })
+    })
+
+    it('ignores parameters that name no campaign', () => {
+      Hellotext.rememberVisitCampaign({ source: 'google', medium: 'cpc' })
+      window.history.replaceState({}, '', '/landing?utm_term=shoes')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(element.hidden).toBe(false)
+    })
+
+    it('falls back when UTM values are blank and reads campaign parameters from a hash route', () => {
+      Hellotext.rememberVisitCampaign({ source: 'Google', medium: 'CPC' })
+      window.history.replaceState({}, '', '/landing?utm_campaign=%20')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'google'))
+      expect(element.hidden).toBe(false)
+
+      controller.disconnect()
+      window.history.replaceState({}, '', '/?affiliate=1#/landing?utm_campaign=spring')
+      const hashRoute = connectWith(utmRule('session.utm_source', 'google'))
+
+      expect(hashRoute.element.hidden).toBe(true)
+    })
+
+    it('prefers a document campaign over campaign parameters inside the hash route', () => {
+      window.history.replaceState(
+        {},
+        '',
+        '/?utm_source=paid#/landing?utm_campaign=spring',
+      )
+
+      const { element } = connectWith(utmRule('session.utm_source', 'paid'))
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ source: 'paid' })
+    })
+
+    it('uses the first duplicate UTM parameter without changing persisted attribution', () => {
+      const set = jest.spyOn(Cookies, 'set')
+      window.history.replaceState({}, '', '/landing?utm_source=First&utm_source=Second')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'first'))
+
+      expect(element.hidden).toBe(false)
+      expect(controller.pageContext().utm).toEqual({ source: 'First' })
+      expect(set).not.toHaveBeenCalled()
+    })
+
+    it('re-reads the URL after a SPA route adds a campaign', async () => {
+      window.history.replaceState({}, '', '/landing')
+
+      const { element } = connectWith(utmRule('session.utm_source', 'newsletter'))
+      expect(element.hidden).toBe(true)
+
+      window.history.pushState({}, '', '/offer?utm_source=newsletter')
+      await flushTimers()
+
+      expect(element.hidden).toBe(false)
+    })
+
+    // A popup already shown has nothing left to decide, but the visit's campaign still follows
+    // the URL, so the next full page load is judged by the campaign the visitor is on now.
+    it('keeps remembering the campaign after the popup displays', async () => {
+      window.history.replaceState({}, '', '/landing?utm_campaign=a')
+
+      const { element } = connectWith(utmRule('session.utm_campaign', 'a'))
+      expect(element.hidden).toBe(false)
+
+      window.history.pushState({}, '', '/sale?utm_campaign=b')
+      await flushTimers()
+
+      expect(Hellotext.visitCampaign).toEqual({ campaign: 'b' })
+    })
+  })
+
+  describe('browser detection', () => {
+    it.each([
+      ['Opera', 'Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0'],
+      ['Samsung Internet', 'Mozilla/5.0 Chrome/120.0.0.0 Mobile Safari/537.36 SamsungBrowser/23.0'],
+    ])('does not classify %s as Chrome', (_browser, userAgent) => {
+      jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(userAgent)
+      buildController()
+
+      expect(controller.browserName()).toBeUndefined()
+    })
   })
 
   it('shows the bubble first and opens the dialog when clicked', () => {
@@ -194,6 +390,20 @@ describe('PopupController', () => {
       expect(dialog.hidden).toBe(false)
     })
 
+    it('opens before its display rules match', () => {
+      const { element, dialog } = buildController({ hasBubble: false, linked: true })
+      controller.rulesValue = {
+        lanes: [[{ type: 'condition', field: 'session.time_on_page', operator: 'at_least', values: [30] }]],
+      }
+      controller.initialize()
+
+      controller.connect()
+
+      expect(element.hidden).toBe(false)
+      expect(dialog.hidden).toBe(false)
+      expect(controller.measurementTimer).toBeUndefined()
+    })
+
     it('stays closed once the visitor dismissed it', () => {
       const { element } = buildController({ hasBubble: false, linked: true })
 
@@ -242,6 +452,40 @@ describe('PopupController', () => {
       controller.close()
 
       expect(reports).toEqual([true, false])
+    })
+
+    // connect() reports the popup inactive while its rules do not match yet, which lets the
+    // Smart Alert resume. A rule that matches later has to say the popup is open now.
+    it('is active once a rule that matches later reveals an automatic popup', () => {
+      jest.useFakeTimers()
+      buildController({ hasBubble: false })
+      controller.rulesValue = {
+        lanes: [[{ type: 'condition', field: 'session.time_on_page', operator: 'at_least', values: [3] }]],
+      }
+      controller.initialize()
+
+      controller.connect()
+      expect(reports).toEqual([false])
+
+      jest.advanceTimersByTime(4000)
+      jest.useRealTimers()
+
+      expect(reports).toEqual([false, true])
+    })
+
+    it('stays inactive when a rule that matches later only reveals the bubble', () => {
+      jest.useFakeTimers()
+      buildController()
+      controller.rulesValue = {
+        lanes: [[{ type: 'condition', field: 'session.time_on_page', operator: 'at_least', values: [3] }]],
+      }
+      controller.initialize()
+
+      controller.connect()
+      jest.advanceTimersByTime(4000)
+      jest.useRealTimers()
+
+      expect(reports).toEqual([false, false])
     })
 
     it('is inactive when the popup does not target this device', () => {
@@ -1306,6 +1550,49 @@ describe('PopupController', () => {
     expect(controller.submitButtonTargets.every(button => !button.disabled)).toBe(true)
   })
 
+  it('returns to the step containing a field the server rejects', async () => {
+    const { emailInput, phoneInput, stepOne, stepTwo } = buildController({ hasBubble: false })
+    PopupsAPI.submit.mockResolvedValueOnce({
+      failed: true,
+      json: jest.fn().mockResolvedValue({
+        errors: [{ parameter: 'email', description: 'Email is already in use.' }],
+      }),
+    })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    await controller.next()
+    phoneInput.value = '+15551234567'
+    await controller.submit()
+
+    expect(controller.stepIndex).toBe(0)
+    expect(stepOne.hidden).toBe(false)
+    expect(stepTwo.hidden).toBe(true)
+    expect(emailInput.validationMessage).toBe('Email is already in use.')
+  })
+
+  it('returns to the step associated with a rejected field outside its layout wrapper', async () => {
+    const { emailInput, phoneInput, stepOne, stepTwo } = buildController({ hasBubble: false })
+    stepOne.removeChild(emailInput)
+    controller.element.appendChild(emailInput)
+    PopupsAPI.submit.mockResolvedValueOnce({
+      failed: true,
+      json: jest.fn().mockResolvedValue({
+        errors: [{ parameter: 'email', description: 'Email is already in use.' }],
+      }),
+    })
+
+    controller.connect()
+    emailInput.value = 'customer@example.com'
+    phoneInput.value = '+15551234567'
+    controller.showStep(1)
+    await controller.submit()
+
+    expect(controller.stepIndex).toBe(0)
+    expect(stepOne.hidden).toBe(false)
+    expect(stepTwo.hidden).toBe(true)
+  })
+
   it('shows a one-minute resend cooldown and the change action for the submitted identity', async () => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-08-24T12:00:00Z'))
@@ -1474,6 +1761,24 @@ describe('PopupController', () => {
 
     expect(completed.querySelector('p').textContent).toBe(
       'We sent it to +584126625353 via phone. It may take a minute to arrive.',
+    )
+  })
+
+  it('keeps an empty optional phone blank when it has a country prefix', () => {
+    const { emailInput, phoneInput } = buildController({ hasBubble: false })
+
+    phoneInput.required = false
+    phoneInput.dataset.popupPhonePrefix = '+58'
+    phoneInput.value = ''
+    emailInput.value = 'customer@example.com'
+
+    expect(controller.submissionPayload()).toEqual(
+      expect.objectContaining({
+        phone: '',
+        metadata: expect.objectContaining({
+          fields: expect.objectContaining({ phone: '' }),
+        }),
+      }),
     )
   })
 
