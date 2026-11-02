@@ -39,6 +39,28 @@ class Page {
   }
 
   /**
+   * The site the visitor came from, as the origin browsers report across sites
+   * (`https://www.instagram.com/`), so no path or query of another site is sent.
+   * Another page of this store, compared by root domain, is not a referring site.
+   * @returns {string|undefined} The referring origin, or undefined when there is none
+   */
+  get referrer() {
+    try {
+      if (typeof document === 'undefined' || !document.referrer) return undefined
+
+      const referrer = new URL(document.referrer)
+      if (!referrer.host) return undefined
+
+      const sameSite =
+        Page.getRootDomain(referrer.hostname) === Page.getRootDomain(new URL(this.url).hostname)
+
+      return sameSite ? undefined : `${referrer.protocol}//${referrer.host}/`
+    } catch (e) {
+      return undefined
+    }
+  }
+
+  /**
    * Get current UTM parameters
    * @returns {Object} The UTM parameters
    */
@@ -59,6 +81,7 @@ class Page {
         url: this.url,
         title: this.title,
         path: this.path,
+        referrer: this.referrer,
       },
       utm_params: this.utmParams,
       ...(Object.keys(internalUtmParams).length && { internal_utm_params: internalUtmParams }),
