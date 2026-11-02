@@ -440,6 +440,40 @@ describe('PopupController', () => {
       expect(reports).toEqual([true, false])
     })
 
+    // connect() reports the popup inactive while its rules do not match yet, which lets the
+    // Smart Alert resume. A rule that matches later has to say the popup is open now.
+    it('is active once a rule that matches later reveals an automatic popup', () => {
+      jest.useFakeTimers()
+      buildController({ hasBubble: false })
+      controller.rulesValue = {
+        lanes: [[{ type: 'condition', field: 'session.time_on_page', operator: 'at_least', values: [3] }]],
+      }
+      controller.initialize()
+
+      controller.connect()
+      expect(reports).toEqual([false])
+
+      jest.advanceTimersByTime(4000)
+      jest.useRealTimers()
+
+      expect(reports).toEqual([false, true])
+    })
+
+    it('stays inactive when a rule that matches later only reveals the bubble', () => {
+      jest.useFakeTimers()
+      buildController()
+      controller.rulesValue = {
+        lanes: [[{ type: 'condition', field: 'session.time_on_page', operator: 'at_least', values: [3] }]],
+      }
+      controller.initialize()
+
+      controller.connect()
+      jest.advanceTimersByTime(4000)
+      jest.useRealTimers()
+
+      expect(reports).toEqual([false, false])
+    })
+
     it('is inactive when the popup does not target this device', () => {
       buildController({ device: 'mobile', hasBubble: false })
 
