@@ -89,6 +89,15 @@ export interface HellotextPush {
 
 export type HellotextAlertSection = 'homepage' | 'product_collection' | 'product_details'
 
+export type HellotextPageSection = HellotextAlertSection
+
+export interface HellotextPage {
+  readonly url: string
+  readonly title: string
+  readonly path: string
+  section: HellotextPageSection | null
+}
+
 export interface HellotextAlertShowOptions {
   force?: boolean
   title?: string
@@ -191,6 +200,7 @@ declare class Hellotext {
   static whatsapp: any
   static push: HellotextPush | null
   static alert: HellotextAlert | null
+  static page: HellotextPage
 }
 
 export declare class User {

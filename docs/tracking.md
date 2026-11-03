@@ -47,6 +47,20 @@ Hellotext.track('page.viewed', {
 })
 ```
 
+#### Page Section
+
+Store integrations know which kind of page the visitor is on. After initializing the SDK, set it once
+per page and every tracked event, Webchat messages included, reports it with the page:
+
+```javascript
+Hellotext.page.section = 'product_details'
+// On the homepage: 'homepage'
+// On a collection page: 'product_collection'
+```
+
+Any other value clears it. The section belongs to the path it was set on, so it clears itself when the
+visitor navigates to another page, and an event tracked with its own `url` has none.
+
 ### Headers 
 
 You can add any custom or additional headers to the request by passing a `headers` object in the parameter.

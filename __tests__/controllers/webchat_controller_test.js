@@ -2322,12 +2322,11 @@ describe('WebchatController', () => {
         jest.useRealTimers()
       })
 
-      it('tracks the open with the widget, page and time', () => {
+      it('tracks the open with the widget and time on the tracked page', () => {
         controller.onPopoverOpened()
 
         expect(Hellotext.track).toHaveBeenCalledWith('webchat.opened', {
           webchat_id: 'test-webchat-id',
-          url: window.location.href,
           tracked_at: new Date(2026, 10, 3, 12).toISOString(),
         })
       })
