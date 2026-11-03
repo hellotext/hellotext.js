@@ -1,9 +1,44 @@
 import { UTM } from './utm'
 
+const SECTIONS = ['homepage', 'product_collection', 'product_details']
+
 class Page {
+  /**
+   * The route a URL is on: its path, plus its hash route (`#/…` or `#!/…`) on hash-routed
+   * sites. A query string or a plain anchor stays on the same route.
+   * @param {string} value - The URL, the current one by default
+   * @returns {string} The route
+   */
+  static route(value = window.location.href) {
+    const url = new URL(value || window.location.href, window.location.href)
+    const hashRoute = url.hash.match(/^#!?\/[^?]*/)?.[0]
+
+    return `${url.pathname}${hashRoute?.replace(/^#!/, '#') || ''}`
+  }
+
   constructor(url = null) {
     this.utm = new UTM()
     this._url = url
+    this._section = null
+  }
+
+  /**
+   * The kind of page this is, as the store's integration reports it. It belongs to the
+   * route it was set on, so it clears itself once the visitor navigates to another page.
+   * @returns {('homepage'|'product_collection'|'product_details'|null)} The page section
+   */
+  get section() {
+    if (!this._section || this._section.route !== Page.route(this.url)) return null
+
+    return this._section.value
+  }
+
+  /**
+   * Sets the page section. Anything other than a known section clears it.
+   * @param {('homepage'|'product_collection'|'product_details'|null)} value - The page section
+   */
+  set section(value) {
+    this._section = SECTIONS.includes(value) ? { value, route: Page.route(this.url) } : null
   }
 
   /**
@@ -48,17 +83,20 @@ class Page {
 
   /**
    * Get page data for tracking
-   * @returns {Object} Object containing page object, utm_params and, when the
-   * visitor clicked one of the site's own UTM links, internal_utm_params
+   * @returns {Object} Object containing page object (with its section, when one is set),
+   * utm_params and, when the visitor clicked one of the site's own UTM links,
+   * internal_utm_params
    */
   get trackingData() {
     const internalUtmParams = this.utm.internal || {}
+    const section = this.section
 
     return {
       page: {
         url: this.url,
         title: this.title,
         path: this.path,
+        ...(section && { section }),
       },
       utm_params: this.utmParams,
       ...(Object.keys(internalUtmParams).length && { internal_utm_params: internalUtmParams }),

@@ -146,6 +146,57 @@ describe('Page', () => {
     })
   })
 
+  describe('section', () => {
+    it('keeps a known section for the page it was set on', () => {
+      const page = new Page()
+
+      page.section = 'product_details'
+
+      expect(page.section).toBe('product_details')
+      expect(page.trackingData.page.section).toBe('product_details')
+    })
+
+    it('clears a section the integrations do not report', () => {
+      const page = new Page()
+      page.section = 'product_details'
+
+      page.section = 'checkout'
+
+      expect(page.section).toBeNull()
+      expect(page.trackingData.page).not.toHaveProperty('section')
+    })
+
+    it('clears itself once the visitor navigates to another page', () => {
+      const page = new Page()
+      page.section = 'homepage'
+
+      window.location.href = 'https://example.com/collections/shirts'
+      window.location.pathname = '/collections/shirts'
+
+      expect(page.section).toBeNull()
+    })
+
+    it('clears itself when a hash route changes', () => {
+      window.location.href = 'https://example.com/#/products/shirt'
+      window.location.pathname = '/'
+      const page = new Page()
+      page.section = 'product_details'
+
+      window.location.href = 'https://example.com/#/checkout'
+
+      expect(page.section).toBeNull()
+    })
+
+    it('keeps the section on the same route with another query or anchor', () => {
+      const page = new Page()
+      page.section = 'product_details'
+
+      window.location.href = 'https://example.com/current-page?color=red#reviews'
+
+      expect(page.section).toBe('product_details')
+    })
+  })
+
   describe('trackingData getter', () => {
     it('returns complete tracking data with default values', () => {
       mockUtm.current = { source: 'facebook', medium: 'social' }

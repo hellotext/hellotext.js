@@ -17,6 +17,26 @@ describe('WebchatMessagesAPI', () => {
 
   afterEach(() => {
     jest.restoreAllMocks()
+    Hellotext.page = undefined
+  })
+
+  it('sends the page the message is sent from', async () => {
+    Hellotext.page = {
+      trackingData: {
+        page: { url: 'https://shop.example.test/products/shirt', title: 'Shirt', path: '/products/shirt', section: 'product_details' },
+      },
+    }
+    const formData = new FormData()
+    formData.append('message[body]', 'Hello')
+
+    await new WebchatMessagesAPI('webchat-id').create(formData)
+
+    const body = global.fetch.mock.calls[0][1].body
+    expect(body.get('message[body]')).toBe('Hello')
+    expect(body.get('message[page][url]')).toBe('https://shop.example.test/products/shirt')
+    expect(body.get('message[page][title]')).toBe('Shirt')
+    expect(body.get('message[page][path]')).toBe('/products/shirt')
+    expect(body.get('message[page][section]')).toBe('product_details')
   })
 
   it('requests catch-up messages after the supplied message id', async () => {
