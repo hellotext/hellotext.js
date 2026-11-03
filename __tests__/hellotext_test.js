@@ -641,7 +641,7 @@ describe("when the class is initialized successfully", () => {
   describe("when hello_session is present in the query params", () => {
     beforeAll(() => {
       const windowMock = {
-        location: { search: "?hello_session=session" },
+        location: { search: "?hello_session=session", href: "https://example.com/?hello_session=session" },
       }
 
       jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
@@ -839,7 +839,7 @@ describe("when the class is initialized successfully", () => {
     const business_id = "xy76ks"
 
     beforeAll(() => {
-      const windowMock = {location: { search: "" },}
+      const windowMock = {location: { search: "", href: "https://example.com/" },}
       jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
     })
 
@@ -979,7 +979,7 @@ describe("when the class is initialized successfully", () => {
 
     beforeAll(() => {
       const windowMock = {
-        location: { search: "?hello_session=test_session" },
+        location: { search: "?hello_session=test_session", href: "https://example.com/?hello_session=test_session" },
       }
 
       jest.spyOn(global, 'window', 'get').mockImplementation(() => windowMock)
