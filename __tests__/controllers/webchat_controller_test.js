@@ -2300,6 +2300,76 @@ describe('WebchatController', () => {
       expect(controller.messageTeaserValue).toBe(null)
       expect(mockTeaser.classList.contains('invisible')).toBe(true)
     })
+
+    describe('tracking the open', () => {
+      let storage
+
+      beforeEach(() => {
+        storage = {}
+        jest.useFakeTimers().setSystemTime(new Date(2026, 10, 3, 12))
+
+        Object.assign(Hellotext, {
+          session: 'session-1',
+          track: jest.fn().mockResolvedValue({ succeeded: true }),
+          readStorage: jest.fn((_, key) => storage[key] ?? null),
+          writeStorage: jest.fn((_, key, value) => {
+            storage[key] = value
+          }),
+        })
+      })
+
+      afterEach(() => {
+        jest.useRealTimers()
+      })
+
+      it('tracks the open with the widget, page and time', () => {
+        controller.onPopoverOpened()
+
+        expect(Hellotext.track).toHaveBeenCalledWith('webchat.opened', {
+          webchat_id: 'test-webchat-id',
+          url: window.location.href,
+          tracked_at: new Date(2026, 10, 3, 12).toISOString(),
+        })
+      })
+
+      it('does not track another open of the session on the same day', async () => {
+        await controller.trackOpen()
+        await controller.trackOpen()
+
+        expect(Hellotext.track).toHaveBeenCalledTimes(1)
+      })
+
+      it('tracks the first open of the next day', async () => {
+        await controller.trackOpen()
+        jest.setSystemTime(new Date(2026, 10, 4, 9))
+        await controller.trackOpen()
+
+        expect(Hellotext.track).toHaveBeenCalledTimes(2)
+      })
+
+      it('tracks the first open of a new session', async () => {
+        await controller.trackOpen()
+        Hellotext.session = 'session-2'
+        await controller.trackOpen()
+
+        expect(Hellotext.track).toHaveBeenCalledTimes(2)
+      })
+
+      it('tracks the next open when the request fails', async () => {
+        Hellotext.track.mockResolvedValueOnce({ succeeded: false })
+
+        await controller.trackOpen()
+        await controller.trackOpen()
+
+        expect(Hellotext.track).toHaveBeenCalledTimes(2)
+      })
+
+      it('keeps the widget working when tracking throws', async () => {
+        Hellotext.track.mockRejectedValueOnce(new Error('offline'))
+
+        await expect(controller.trackOpen()).resolves.toBeUndefined()
+      })
+    })
   })
 
   describe('opening sequence', () => {
