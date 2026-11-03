@@ -58,8 +58,9 @@ Hellotext.page.section = 'product_details'
 // On a collection page: 'product_collection'
 ```
 
-Any other value clears it. The section belongs to the path it was set on, so it clears itself when the
-visitor navigates to another page, and an event tracked with its own `url` has none.
+Any other value clears it. The section belongs to the page it was set on (its path, plus its hash route
+on hash-routed sites), so it clears itself when the visitor navigates to another page, and an event
+tracked with its own `url` has none.
 
 ### Headers 
 

@@ -427,11 +427,7 @@ class Hellotext {
   }
 
   static pageRoute(value = window.location.href) {
-    const currentUrl = window.location?.href || document.location?.href || 'http://localhost/'
-    const url = new URL(value || currentUrl, currentUrl)
-    const hashRoute = url.hash.match(/^#!?\/[^?]*/)?.[0]
-
-    return `${url.pathname}${hashRoute?.replace(/^#!/, '#') || ''}`
+    return Page.route(value)
   }
 
   static readStoredActivities() {
