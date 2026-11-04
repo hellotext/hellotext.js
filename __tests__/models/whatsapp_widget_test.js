@@ -4,7 +4,7 @@
 
 import API from '../../src/api'
 import { Configuration } from '../../src/core'
-import { WhatsAppWidget } from '../../src/models'
+import { Session, WhatsAppWidget } from '../../src/models'
 
 describe('WhatsAppWidget', () => {
   const createStylesheet = ({ loaded = true } = {}) => {
@@ -75,6 +75,63 @@ describe('WhatsAppWidget', () => {
         expect(widget.mounted).toBe(true)
         expect(article.classList.contains('hellotext--with-webchat')).toBe(true)
         expect(document.querySelector('.hellotext--webchat:not(.hellotext--whatsapp-widget)').classList.contains('hellotext--with-whatsapp-widget')).toBe(true)
+      })
+    })
+  })
+
+  describe('links', () => {
+    const clickUrl = 'https://api.hellotext.test/v1/public/widgets/whatsapp/widget-id/click'
+
+    const widgetHtml = () => {
+      const article = document.createElement('article')
+      article.setAttribute('data-hellotext--whatsapp-widget-click-url-value', clickUrl)
+      article.innerHTML = `
+        <a class="hellotext--webchat-teaser-message" href="${clickUrl}?number=15551234567&text=Hola+desde+la+tienda">Hola</a>
+        <a class="hellotext--webchat-trigger" href="${clickUrl}?number=15551234567&text=Hola+desde+la+tienda"></a>
+        <a class="other" href="https://shop.example.test/help">Help</a>
+      `
+
+      return article
+    }
+
+    const query = href => Object.fromEntries(new URL(href).searchParams)
+
+    it('leads every widget link through the click endpoint with the session', () => {
+      createStylesheet()
+      jest.spyOn(Session, 'session', 'get').mockReturnValue('session-id')
+      const article = widgetHtml()
+      API.whatsappWidgets.get.mockResolvedValue(article)
+
+      return WhatsAppWidget.load('widget-id').then(widget => widget.rendered).then(() => {
+        ;['.hellotext--webchat-trigger', '.hellotext--webchat-teaser-message'].forEach(selector => {
+          const href = article.querySelector(selector).getAttribute('href')
+
+          expect(href.startsWith(`${clickUrl}?`)).toBe(true)
+          expect(query(href)).toEqual({ number: '15551234567', text: 'Hola desde la tienda', session: 'session-id' })
+        })
+      })
+    })
+
+    it('leaves links that do not lead to the click endpoint alone', () => {
+      createStylesheet()
+      jest.spyOn(Session, 'session', 'get').mockReturnValue('session-id')
+      const article = widgetHtml()
+      API.whatsappWidgets.get.mockResolvedValue(article)
+
+      return WhatsAppWidget.load('widget-id').then(widget => widget.rendered).then(() => {
+        expect(article.querySelector('.other').getAttribute('href')).toBe('https://shop.example.test/help')
+      })
+    })
+
+    it('keeps the rendered links without a session', () => {
+      createStylesheet()
+      jest.spyOn(Session, 'session', 'get').mockReturnValue(undefined)
+      const article = widgetHtml()
+      API.whatsappWidgets.get.mockResolvedValue(article)
+
+      return WhatsAppWidget.load('widget-id').then(widget => widget.rendered).then(() => {
+        expect(article.querySelector('.hellotext--webchat-trigger').getAttribute('href'))
+          .toBe(`${clickUrl}?number=15551234567&text=Hola+desde+la+tienda`)
       })
     })
   })

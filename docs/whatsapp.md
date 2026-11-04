@@ -35,4 +35,4 @@ Hellotext.initialize('PUBLIC_BUSINESS_ID', {
 | body | The prefilled WhatsApp compose text. Overrides the dashboard Message component body. | String | Dashboard |
 | appearance | Appearance overrides for the configured widget. | Object | Dashboard |
 
-The widget opens WhatsApp directly through `wa.me`.
+The widget opens WhatsApp through `wa.me`. Its links lead there through Hellotext, which records the click and adds a reference to the prefilled message so the conversation can be traced back to the widget. Hellotext also counts the visitor's view of the widget with their session.

@@ -56,6 +56,26 @@ describe('WhatsAppWidgetsAPI', () => {
     })
   })
 
+  it('sends the session so the view is counted', () => {
+    jest.spyOn(Hellotext, 'session', 'get').mockReturnValue('session-id')
+
+    return WhatsAppWidgetsAPI.get('widget-id').then(() => {
+      const url = new URL(global.fetch.mock.calls[0][0])
+
+      expect(url.searchParams.get('session')).toBe('session-id')
+    })
+  })
+
+  it('sends no session when there is none', () => {
+    jest.spyOn(Hellotext, 'session', 'get').mockReturnValue(undefined)
+
+    return WhatsAppWidgetsAPI.get('widget-id').then(() => {
+      const url = new URL(global.fetch.mock.calls[0][0])
+
+      expect(url.searchParams.has('session')).toBe(false)
+    })
+  })
+
   it('returns null when the widget request fails', () => {
     global.fetch.mockResolvedValue({ ok: false })
 
