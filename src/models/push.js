@@ -1,3 +1,4 @@
+import Hellotext from '../hellotext'
 import API from '../api'
 import { Configuration } from '../core'
 
@@ -64,11 +65,15 @@ class Push {
    * Creates or reuses a Push subscription. Call from a user click handler.
    * Concurrent calls share the same pending request.
    *
+   * @param {Object} [options={}]
+   * @param {(permission: NotificationPermission) => void} [options.onPermission] - Receives the
+   *   browser's permission answer as soon as it is known, before the subscription is created and
+   *   registered. A call that joins a pending request is not given the answer.
    * @returns {Promise<import('../api/response').Response|void>} Server registration response,
    *   or no value when disposed.
    *   Rejects when permission is denied or a browser or network operation fails.
    */
-  subscribe() {
+  subscribe({ onPermission } = {}) {
     if (this.disposed) return Promise.resolve()
     if (this.unsubscribePromise) return Promise.reject(new Error('Push unsubscribe is in progress'))
     if (this.subscribePromise) return this.subscribePromise
@@ -79,7 +84,7 @@ class Push {
         ? Notification.requestPermission()
         : Promise.resolve(Notification.permission)
 
-    this.subscribePromise = this.createSubscription(permission).finally(() => {
+    this.subscribePromise = this.createSubscription(permission, onPermission).finally(() => {
       this.subscribePromise = null
     })
 
@@ -91,10 +96,14 @@ class Push {
    *
    * @private
    * @param {Promise<NotificationPermission>} permission - Pending notification permission result.
+   * @param {(permission: NotificationPermission) => void} [onPermission] - Receives the result.
    * @returns {Promise<import('../api/response').Response|void>}
    */
-  async createSubscription(permission) {
-    if ((await permission) !== 'granted') throw new Error('Push permission was not granted')
+  async createSubscription(permission, onPermission) {
+    const answer = await permission
+    onPermission?.(answer)
+
+    if (answer !== 'granted') throw new Error('Push permission was not granted')
 
     const registration = await this.getRegistration()
     if (this.disposed) return
@@ -118,7 +127,9 @@ class Push {
   /**
    * Disables the server identity and removes the browser subscription.
    * Keeps the subscription when the server request fails so the caller can retry.
+   * Fires push:unsubscribed once the visitor has no subscription, including when there was none.
    *
+   * @fires push:unsubscribed
    * @returns {Promise<import('../api/response').Response|null|void>} Server response, null when
    *   no subscription exists, or no value when disposed. Rejects when a browser or network
    *   operation fails.
@@ -169,7 +180,10 @@ class Push {
     const registration = await this.getRegistration()
     const subscription = (await registration.pushManager.getSubscription()) || this.subscription
     if (this.disposed) return
-    if (!subscription) return null
+    if (!subscription) {
+      Hellotext.eventEmitter.dispatch('push:unsubscribed')
+      return null
+    }
     if (!this.owns(subscription)) {
       throw new Error('The existing Push subscription belongs to a different application')
     }
@@ -185,6 +199,7 @@ class Push {
     await subscription.unsubscribe()
     this.subscription = null
     this.clearRetryTimeout()
+    Hellotext.eventEmitter.dispatch('push:unsubscribed')
 
     return response
   }

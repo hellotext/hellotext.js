@@ -83,7 +83,9 @@ export interface HellotextPushConfig {
 export interface HellotextPush {
   readonly ready: Promise<void>
   readonly subscribed: boolean
-  subscribe(): Promise<Response | void>
+  subscribe(options?: {
+    onPermission?: (permission: NotificationPermission) => void
+  }): Promise<Response | void>
   unsubscribe(): Promise<Response | null | void>
 }
 

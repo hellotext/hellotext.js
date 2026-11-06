@@ -15,16 +15,23 @@ class PushAlertsAPI {
    *
    * @param {Object} data - Alert interaction.
    * @param {import('../../../index').HellotextAlertSection} data.section - Displayed section.
-   * @param {'shown'|'dismissed'|'accepted'} data.kind - Interaction to record.
+   * @param {'shown'|'dismissed'|'accepted'|'granted'|'denied'|'registered'} data.kind - Interaction to record.
    * @param {{url: string, title: string, path: string}} data.page - Page snapshot from display.
+   * @param {string} [data.pushIdentity] - Push identity the server saved, for a registration.
    * @returns {Promise<Response>} Whether the server accepted the interaction.
    */
-  static async create({ section, kind, page }) {
+  static async create({ section, kind, page, pushIdentity }) {
     const response = await fetch(this.endpoint, {
       method: 'POST',
       keepalive: true,
       headers: Hellotext.headers,
-      body: JSON.stringify({ session: Hellotext.session, section, kind, page }),
+      body: JSON.stringify({
+        session: Hellotext.session,
+        section,
+        kind,
+        page,
+        push_identity: pushIdentity,
+      }),
     })
 
     return new Response(response.ok, response)

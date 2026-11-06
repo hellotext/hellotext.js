@@ -4,6 +4,7 @@
 
 import API, { Response } from '../../src/api'
 import { Configuration } from '../../src/core'
+import Hellotext from '../../src/hellotext'
 import { Push } from '../../src/models/push'
 
 const deferred = () => {
@@ -157,6 +158,48 @@ describe('Push', () => {
     await expect(response.json()).resolves.toEqual({ id: 'identity-id' })
   })
 
+  it('gives onPermission the answer before subscribing and registering', async () => {
+    Notification.permission = 'default'
+    const onPermission = jest.fn()
+
+    await push.subscribe({ onPermission })
+
+    expect(onPermission).toHaveBeenCalledTimes(1)
+    expect(onPermission).toHaveBeenCalledWith('granted')
+    expect(onPermission.mock.invocationCallOrder[0]).toBeLessThan(registration.pushManager.subscribe.mock.invocationCallOrder[0])
+    expect(onPermission.mock.invocationCallOrder[0]).toBeLessThan(API.pushIdentities.create.mock.invocationCallOrder[0])
+  })
+
+  it.each(['denied', 'default'])('gives onPermission the %s answer and rejects', async answer => {
+    Notification.permission = 'default'
+    Notification.requestPermission.mockResolvedValue(answer)
+    const onPermission = jest.fn()
+
+    await expect(push.subscribe({ onPermission })).rejects.toThrow('Push permission was not granted')
+
+    expect(onPermission).toHaveBeenCalledWith(answer)
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled()
+  })
+
+  it('gives onPermission an existing answer without prompting', async () => {
+    const onPermission = jest.fn()
+
+    await push.subscribe({ onPermission })
+
+    expect(Notification.requestPermission).not.toHaveBeenCalled()
+    expect(onPermission).toHaveBeenCalledWith('granted')
+  })
+
+  it('does not give the answer to a call that joins a pending request', async () => {
+    const first = jest.fn()
+    const second = jest.fn()
+
+    await Promise.all([push.subscribe({ onPermission: first }), push.subscribe({ onPermission: second })])
+
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).not.toHaveBeenCalled()
+  })
+
   it.each(['http', 'network'])('retries a failed %s request using the same browser subscription', async failure => {
     jest.useFakeTimers()
     if (failure === 'http') {
@@ -230,6 +273,8 @@ describe('Push', () => {
   })
 
   it('preserves the browser subscription when disabling the server identity fails', async () => {
+    const unsubscribed = jest.fn()
+    Hellotext.on('push:unsubscribed', unsubscribed)
     storedSubscription = subscription
     await push.initialize()
     API.pushIdentities.destroy.mockResolvedValueOnce(responseFor(false))
@@ -238,6 +283,23 @@ describe('Push', () => {
 
     expect(subscription.unsubscribe).not.toHaveBeenCalled()
     expect(push.subscribed).toBe(true)
+    expect(unsubscribed).not.toHaveBeenCalled()
+    Hellotext.removeEventListener('push:unsubscribed', unsubscribed)
+  })
+
+  it.each([
+    ['after removing the subscription', true],
+    ['when there was no subscription to remove', false],
+  ])('fires push:unsubscribed %s', async (_case, subscribed) => {
+    const unsubscribed = jest.fn()
+    Hellotext.on('push:unsubscribed', unsubscribed)
+    if (subscribed) storedSubscription = subscription
+    await push.initialize()
+
+    await push.unsubscribe()
+
+    expect(unsubscribed).toHaveBeenCalledTimes(1)
+    Hellotext.removeEventListener('push:unsubscribed', unsubscribed)
   })
 
   it.each([

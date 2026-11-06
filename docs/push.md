@@ -158,6 +158,14 @@ if (Hellotext.push) {
 
 The same method can be called when the visitor already has a Hellotext subscription; you do not need a separate "subscribe again" implementation.
 
+To act on the visitor's answer before the subscription is registered, pass `onPermission`. It receives `granted`, `denied`, or `default` when the prompt was closed without an answer:
+
+```js
+await Hellotext.push.subscribe({
+  onPermission: permission => console.log('Push permission:', permission),
+})
+```
+
 ## 4. Connect your Unsubscribe button
 
 Run the following code from your Unsubscribe button's click handler. Wait for the result before showing confirmation. A `null` result means there was no subscription to remove and can be treated as already unsubscribed:
@@ -178,6 +186,15 @@ if (Hellotext.push) {
 }
 ```
 
+Once the visitor has no subscription, including when there was none to remove, Hellotext fires
+`push:unsubscribed`:
+
+```js
+Hellotext.on('push:unsubscribed', () => {
+  console.log('Push turned off')
+})
+```
+
 ## Show a Smart Alert
 
 Enable the Smart Alert playbook in Hellotext and configure its sections. After initializing
@@ -195,6 +212,11 @@ automatically detect the page type. `show` waits for the stylesheet, controller,
 Push subscription, and returns whether it displayed the alert. A disabled or unknown section
 is not displayed. `Hellotext.alert` is unavailable when the playbook or Push is disabled,
 or when the browser does not support Push.
+
+If the page closes after the visitor allows notifications from the alert, but before their
+subscription is saved, the next page that loads the alert finishes it without asking again.
+`show` waits for that to finish, so the alert does not appear while it does. Permission the
+visitor gave another tool on your site never subscribes them this way.
 
 A [popup](/docs/popups.md) comes first, so the two never ask for Push at the same time. While
 the popup loads, `show` waits. A popup showing only its bubble, or hidden by device targeting,

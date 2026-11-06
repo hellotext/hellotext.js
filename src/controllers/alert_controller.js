@@ -16,18 +16,21 @@ export default class extends Controller {
   static targets = ['title', 'description', 'primaryAction', 'secondaryAction']
 
   /**
-   * Initializes display state and binds the cross-tab storage handler.
+   * Initializes display state and binds the cross-tab storage and unsubscribe handlers.
    *
    * @returns {void}
    */
   initialize() {
     this.showRequest = 0
     this.submitting = false
+    this.registrationResumed = Promise.resolve()
     this.onStorage = this.onStorage.bind(this)
+    this.onUnsubscribed = this.onUnsubscribed.bind(this)
   }
 
   /**
-   * Announces readiness and listens for dismissals in other tabs.
+   * Announces readiness, listens for dismissals in other tabs and for unsubscribes, and
+   * finishes a registration an earlier page left pending.
    *
    * @fires hellotext--alert:connected
    * @returns {void}
@@ -35,16 +38,30 @@ export default class extends Controller {
   connect() {
     this.dispatch('connected', { detail: { controller: this } })
     window.addEventListener('storage', this.onStorage)
+    Hellotext.eventEmitter.addSubscriber('push:unsubscribed', this.onUnsubscribed)
+
+    this.registrationResumed = this.resumeRegistration()
   }
 
   /**
-   * Cancels pending display and removes the storage listener.
+   * Cancels pending display and removes the storage and unsubscribe listeners.
    *
    * @returns {void}
    */
   disconnect() {
     this.close()
     window.removeEventListener('storage', this.onStorage)
+    Hellotext.eventEmitter.removeSubscriber('push:unsubscribed', this.onUnsubscribed)
+  }
+
+  /**
+   * Drops a pending registration once the visitor unsubscribes, so a later page never
+   * subscribes them again without a click.
+   *
+   * @returns {void}
+   */
+  onUnsubscribed() {
+    if (this.alert) this.pendingRegistration = null
   }
 
   /**
@@ -60,7 +77,8 @@ export default class extends Controller {
   }
 
   /**
-   * Displays an enabled section after Push subscription restoration finishes.
+   * Displays an enabled section after Push subscription restoration and any resumed
+   * registration finish.
    * Text overrides apply only to this call and are rendered as plain text.
    * Force bypasses the cooldown without changing dismissal history; section availability,
    * existing subscriptions, and denied notification permission still prevent display.
@@ -85,6 +103,7 @@ export default class extends Controller {
     }
 
     await this.alert.push.ready?.catch(() => {})
+    await this.registrationResumed
 
     if (request !== this.showRequest || this.alert.disposed || !this.element.isConnected)
       return false
@@ -155,6 +174,8 @@ export default class extends Controller {
    * Disables both buttons while pending and hides once subscribed or permission is denied.
    * Subscription failures are reported through an event so the page can handle them.
    * Acceptance records the primary action, independently of the browser permission result.
+   * The permission answer is recorded as soon as the browser gives it, before registration,
+   * and a successful registration records the Push identity the server saved.
    *
    * @fires alert:accepted
    * @fires hellotext--alert:error
@@ -169,13 +190,19 @@ export default class extends Controller {
     this.secondaryActionTarget.disabled = true
     this.element.setAttribute('aria-busy', 'true')
 
+    // Client-side navigation can show another section before the request settles.
+    const acceptance = { section: this.kind, page: this.page }
+
     try {
       this.record('accepted')
       Hellotext.eventEmitter.dispatch('alert:accepted', { kind: this.kind })
 
       // Call before any await so the browser permission prompt retains the click's activation.
-      const response = await this.alert.push.subscribe()
+      const response = await this.alert.push.subscribe({
+        onPermission: permission => this.recordPermission(permission, acceptance),
+      })
 
+      if (response?.succeeded) this.recordRegistration(response, acceptance)
       if (this.unavailable) this.close()
       if (response?.failed) this.dispatch('error', { detail: { response } })
       return response
@@ -198,17 +225,135 @@ export default class extends Controller {
    * Recording failures leave the alert interaction unchanged.
    *
    * @private
-   * @param {'shown'|'dismissed'|'accepted'} kind - Interaction to record.
+   * @param {'shown'|'dismissed'|'accepted'|'granted'|'denied'|'registered'} kind - Interaction to record.
+   * @param {Object} [snapshot] - Section and page to record, defaulting to the displayed ones.
+   * @param {import('../../index').HellotextAlertSection} [snapshot.section]
+   * @param {{url: string, title: string, path: string}} [snapshot.page]
+   * @param {string} [snapshot.pushIdentity] - Saved Push identity, for a registration.
    * @returns {Promise<void>}
    */
-  async record(kind) {
+  async record(kind, { section = this.kind, page = this.page, pushIdentity } = {}) {
     try {
-      const response = await API.pushAlerts.create({ section: this.kind, kind, page: this.page })
+      const response = await API.pushAlerts.create({ section, kind, page, pushIdentity })
 
       if (response.failed) console.warn('Hellotext Smart Alert submission failed:', response)
     } catch (error) {
       console.warn('Hellotext Smart Alert submission failed:', error)
     }
+  }
+
+  /**
+   * Records the browser's answer to the permission prompt the acceptance opened,
+   * under the acceptance's section and page.
+   * A prompt closed without an answer leaves permission at default and records nothing.
+   *
+   * @private
+   * @param {NotificationPermission} permission - The browser's answer.
+   * @param {{section: import('../../index').HellotextAlertSection, page: Object}} acceptance
+   * @returns {void}
+   */
+  recordPermission(permission, acceptance) {
+    if (permission === 'granted') this.pendingRegistration = acceptance
+    if (permission === 'granted' || permission === 'denied') this.record(permission, acceptance)
+  }
+
+  /**
+   * Records the Push identity the server saved for the acceptance's subscription,
+   * under the acceptance's section and page. Reads a copy of the response body, so the
+   * response subscribe() returns stays readable.
+   *
+   * @private
+   * @param {import('../api/response').Response} response - Successful identity registration.
+   * @param {{section: import('../../index').HellotextAlertSection, page: Object}} acceptance
+   * @returns {Promise<void>}
+   */
+  async recordRegistration(response, acceptance) {
+    this.pendingRegistration = null
+
+    try {
+      const { id } = await response.data.clone().json()
+
+      if (id) this.record('registered', { ...acceptance, pushIdentity: id })
+    } catch (error) {
+      console.warn('Hellotext Smart Alert submission failed:', error)
+    }
+  }
+
+  /**
+   * Finishes a registration an earlier page left pending: the visitor granted permission
+   * from this alert, but the page closed or registration failed before Hellotext saved
+   * the subscription. Only a grant from this alert leaves the mark, so permission the
+   * visitor gave another application on the site never subscribes them to Hellotext.
+   * Permission is already granted, so no prompt or click is needed. A failure keeps the
+   * mark for the next page.
+   *
+   * @private
+   * @returns {Promise<void>}
+   */
+  async resumeRegistration() {
+    if (!this.alert) return
+
+    const acceptance = this.pendingRegistration
+    if (!acceptance) return
+
+    await this.alert.push.ready?.catch(() => {})
+    // The visitor may have unsubscribed in another tab meanwhile.
+    if (this.alert.disposed || !this.pendingRegistration) return
+
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      this.pendingRegistration = null
+      return
+    }
+
+    try {
+      const response = await this.alert.push.subscribe()
+
+      if (response?.succeeded) this.recordRegistration(response, acceptance)
+    } catch (_error) {
+      // Keep the mark so the next page tries again.
+    }
+  }
+
+  /**
+   * The acceptance whose granted permission still awaits a saved subscription, kept across
+   * pages in this origin's storage.
+   *
+   * @private
+   * @returns {{section: import('../../index').HellotextAlertSection, page: Object}|null}
+   */
+  get pendingRegistration() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.registrationKey))
+
+      return typeof saved?.section === 'string' ? saved : null
+    } catch (_error) {
+      return null
+    }
+  }
+
+  /**
+   * Saves or, with null, clears the pending acceptance.
+   *
+   * @private
+   * @param {{section: import('../../index').HellotextAlertSection, page: Object}|null} acceptance
+   */
+  set pendingRegistration(acceptance) {
+    try {
+      if (acceptance) localStorage.setItem(this.registrationKey, JSON.stringify(acceptance))
+      else localStorage.removeItem(this.registrationKey)
+    } catch (_error) {
+      // Without storage, a registration cut short is not resumed.
+    }
+  }
+
+  /**
+   * Storage key of the pending registration for this business on the current origin.
+   *
+   * @private
+   * @returns {string}
+   */
+  get registrationKey() {
+    return `${this.storageKey}:registration`
   }
 
   /**

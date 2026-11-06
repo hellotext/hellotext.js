@@ -37,6 +37,17 @@ describe('PushAlertsAPI', () => {
     expect(response.succeeded).toBe(true)
   })
 
+  it('posts the saved Push identity with a registration', async () => {
+    await API.pushAlerts.create({ section: 'homepage', kind: 'registered', pushIdentity: 'identity-id' })
+
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({
+      session: 'session-id',
+      section: 'homepage',
+      kind: 'registered',
+      push_identity: 'identity-id',
+    })
+  })
+
   it('uses the latest SDK session for each request', async () => {
     await API.pushAlerts.create({ section: 'homepage', kind: 'shown' })
     jest.spyOn(Hellotext, 'session', 'get').mockReturnValue('next-session-id')

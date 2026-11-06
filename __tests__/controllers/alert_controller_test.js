@@ -14,6 +14,12 @@ const sections = ['homepage', 'product_collection', 'product_details'].map(kind 
   secondary_action: `${kind} dismiss`,
 }))
 
+const registration = (id = 'push-identity') => ({
+  succeeded: true,
+  data: { clone: () => ({ json: async () => ({ id }) }) },
+})
+const flush = () => new Promise(resolve => setTimeout(resolve, 0))
+
 const alertHTML = (content = sections) => {
   const element = document.createElement('article')
   element.setAttribute('hidden', '')
@@ -44,6 +50,15 @@ describe('Smart Alert interactions', () => {
   const primary = () => alert.element.querySelector('[data-hellotext--alert-target="primaryAction"]')
   const secondary = () => alert.element.querySelector('[data-hellotext--alert-target="secondaryAction"]')
   const saved = () => JSON.parse(localStorage.getItem(`hellotext:alert:${business.id}`))
+  const pending = () => JSON.parse(localStorage.getItem(`hellotext:alert:${business.id}:registration`))
+  const leavePending = acceptance =>
+    localStorage.setItem(`hellotext:alert:${business.id}:registration`, JSON.stringify(acceptance))
+  const reload = async () => {
+    alert.dispose()
+    alert = new Alert({ html: alertHTML() }, business, push)
+    await alert.ready
+    await flush()
+  }
 
   beforeEach(async () => {
     previousPage = Hellotext.page
@@ -62,7 +77,7 @@ describe('Smart Alert interactions', () => {
       disposed: false,
       subscribe: jest.fn().mockImplementation(async () => {
         push.subscribed = true
-        return { succeeded: true }
+        return registration()
       }),
     }
     application = Application.start()
@@ -380,7 +395,7 @@ describe('Smart Alert interactions', () => {
     expect(saved()).toBeNull()
 
     push.subscribed = true
-    complete({ succeeded: true })
+    complete(registration())
     await Promise.resolve()
     expect(alert.element.hidden).toBe(true)
     expect(primary().disabled).toBe(false)
@@ -438,6 +453,194 @@ describe('Smart Alert interactions', () => {
     expect(events.accepted).toHaveBeenCalledTimes(1)
     expect(events.accepted).toHaveBeenCalledWith({ kind: 'homepage' })
     expect(events.dismissed).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['granted', ['shown', 'accepted', 'granted', 'registered']],
+    ['denied', ['shown', 'accepted', 'denied']],
+  ])('records the %s permission answer the browser gives', async (permission, kinds) => {
+    push.subscribe.mockImplementation(async ({ onPermission }) => {
+      Notification.permission = permission
+      onPermission(permission)
+      if (permission === 'denied') throw new Error('Push permission was not granted')
+
+      push.subscribed = true
+      return registration()
+    })
+    await alert.show('product_details')
+    await alert.controller.subscribe()
+    await flush()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(kinds)
+    expect(API.pushAlerts.create).toHaveBeenCalledWith({ section: 'product_details', kind: permission, page: Hellotext.page.trackingData.page })
+  })
+
+  it('records the permission answer before the registration finishes', async () => {
+    push.subscribe.mockImplementation(({ onPermission }) => {
+      onPermission('granted')
+      return new Promise(() => {})
+    })
+    await alert.show('homepage')
+    alert.controller.subscribe()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted', 'granted'])
+  })
+
+  it('records the Push identity the server saved with the registration', async () => {
+    push.subscribe.mockImplementation(async ({ onPermission }) => {
+      onPermission('granted')
+      push.subscribed = true
+      return registration('saved-identity')
+    })
+    await alert.show('homepage')
+    await alert.controller.subscribe()
+    await flush()
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({
+      section: 'homepage',
+      kind: 'registered',
+      page: Hellotext.page.trackingData.page,
+      pushIdentity: 'saved-identity',
+    })
+  })
+
+  it.each(['failed response', 'rejection'])('records no registration after a %s', async failure => {
+    push.subscribe.mockImplementation(async ({ onPermission }) => {
+      onPermission('granted')
+      if (failure === 'rejection') throw new Error('Sync failed')
+
+      return { failed: true }
+    })
+    await alert.show('homepage')
+    await alert.controller.subscribe()
+    await flush()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted', 'granted'])
+  })
+
+  it('records the permission answer under the acceptance after another section is shown', async () => {
+    let answer
+    let complete
+    push.subscribe.mockImplementation(({ onPermission }) => new Promise(resolve => {
+      answer = onPermission
+      complete = resolve
+    }))
+    Hellotext.page = new Page('https://shop.example.com/products/shirt')
+    const page = Hellotext.page.trackingData.page
+    await alert.show('product_details')
+    const subscribing = alert.controller.subscribe()
+
+    Hellotext.page = new Page('https://shop.example.com/')
+    await alert.show('homepage')
+
+    answer('granted')
+    push.subscribed = true
+    complete(registration())
+    await subscribing
+    await flush()
+    expect(API.pushAlerts.create).toHaveBeenCalledWith({ section: 'product_details', kind: 'granted', page })
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_details', kind: 'registered', page, pushIdentity: 'push-identity' })
+  })
+
+  it('keeps a granted acceptance pending until its registration is saved', async () => {
+    let complete
+    push.subscribe.mockImplementation(({ onPermission }) => new Promise(resolve => {
+      onPermission('granted')
+      complete = resolve
+    }))
+    await alert.show('product_details')
+    const subscribing = alert.controller.subscribe()
+    expect(pending()).toEqual({ section: 'product_details', page: Hellotext.page.trackingData.page })
+
+    push.subscribed = true
+    complete(registration())
+    await subscribing
+    expect(pending()).toBeNull()
+  })
+
+  it('finishes a pending registration on the next page without a click', async () => {
+    const page = { url: 'https://shop.example.com/products/shirt', title: 'Shirt', path: '/products/shirt' }
+    leavePending({ section: 'product_details', page })
+    Notification.permission = 'granted'
+
+    await reload()
+
+    expect(push.subscribe).toHaveBeenCalledWith()
+    expect(API.pushAlerts.create.mock.calls).toEqual([
+      [{ section: 'product_details', kind: 'registered', page, pushIdentity: 'push-identity' }],
+    ])
+    expect(pending()).toBeNull()
+    await expect(alert.show('homepage')).resolves.toBe(false)
+  })
+
+  it('waits for a pending registration before showing', async () => {
+    let complete
+    push.subscribe.mockImplementation(() => new Promise(resolve => { complete = resolve }))
+    leavePending({ section: 'homepage', page: {} })
+    Notification.permission = 'granted'
+    await reload()
+
+    const showing = alert.show('homepage')
+    await flush()
+    expect(alert.element.hidden).toBe(true)
+
+    push.subscribed = true
+    complete(registration())
+    await expect(showing).resolves.toBe(false)
+  })
+
+  it('drops a pending registration when the visitor unsubscribes', async () => {
+    leavePending({ section: 'homepage', page: {} })
+    Hellotext.eventEmitter.dispatch('push:unsubscribed')
+    expect(pending()).toBeNull()
+
+    Notification.permission = 'granted'
+    await reload()
+
+    expect(push.subscribe).not.toHaveBeenCalled()
+  })
+
+  it('does not resume when the visitor unsubscribes while restoration is pending', async () => {
+    let resolveReady
+    push.ready = new Promise(resolve => { resolveReady = resolve })
+    leavePending({ section: 'homepage', page: {} })
+    Notification.permission = 'granted'
+    await reload()
+
+    Hellotext.eventEmitter.dispatch('push:unsubscribed')
+    resolveReady()
+    await flush()
+
+    expect(push.subscribe).not.toHaveBeenCalled()
+    expect(pending()).toBeNull()
+  })
+
+  it.each(['default', 'denied'])('drops a pending registration once permission is %s', async permission => {
+    leavePending({ section: 'homepage', page: {} })
+    Notification.permission = permission
+
+    await reload()
+
+    expect(push.subscribe).not.toHaveBeenCalled()
+    expect(pending()).toBeNull()
+  })
+
+  it('keeps a pending registration when finishing it fails', async () => {
+    push.subscribe.mockRejectedValue(new Error('Worker unavailable'))
+    leavePending({ section: 'homepage', page: {} })
+    Notification.permission = 'granted'
+
+    await reload()
+
+    expect(push.subscribe).toHaveBeenCalledTimes(1)
+    expect(API.pushAlerts.create).not.toHaveBeenCalled()
+    expect(pending()).toEqual({ section: 'homepage', page: {} })
+  })
+
+  it('records no permission answer when the prompt closes unanswered', async () => {
+    push.subscribe.mockImplementation(async ({ onPermission }) => {
+      onPermission('default')
+      throw new Error('Push permission was not granted')
+    })
+    await alert.show('homepage')
+    await alert.controller.subscribe()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted'])
   })
 
   it('keeps actions available after a subscription failure and emits the error', async () => {
