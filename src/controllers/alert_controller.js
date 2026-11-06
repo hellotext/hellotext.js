@@ -155,6 +155,7 @@ export default class extends Controller {
    * Disables both buttons while pending and hides once subscribed or permission is denied.
    * Subscription failures are reported through an event so the page can handle them.
    * Acceptance records the primary action, independently of the browser permission result.
+   * Once the request settles, the permission answer is recorded as well.
    *
    * @fires alert:accepted
    * @fires hellotext--alert:error
@@ -183,6 +184,7 @@ export default class extends Controller {
       if (this.unavailable) this.close()
       this.dispatch('error', { detail: { error } })
     } finally {
+      this.recordPermission()
       this.submitting = false
 
       this.primaryActionTarget.disabled = false
@@ -198,7 +200,7 @@ export default class extends Controller {
    * Recording failures leave the alert interaction unchanged.
    *
    * @private
-   * @param {'shown'|'dismissed'|'accepted'} kind - Interaction to record.
+   * @param {'shown'|'dismissed'|'accepted'|'granted'|'denied'} kind - Interaction to record.
    * @returns {Promise<void>}
    */
   async record(kind) {
@@ -209,6 +211,19 @@ export default class extends Controller {
     } catch (error) {
       console.warn('Hellotext Smart Alert submission failed:', error)
     }
+  }
+
+  /**
+   * Records the browser's answer to the permission prompt the acceptance opened.
+   * A prompt closed without an answer leaves permission at default and records nothing.
+   *
+   * @private
+   * @returns {void}
+   */
+  recordPermission() {
+    const permission = Notification.permission
+
+    if (permission === 'granted' || permission === 'denied') this.record(permission)
   }
 
   /**

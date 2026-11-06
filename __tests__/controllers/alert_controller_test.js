@@ -440,6 +440,27 @@ describe('Smart Alert interactions', () => {
     expect(events.dismissed).not.toHaveBeenCalled()
   })
 
+  it.each(['granted', 'denied'])('records the %s permission answer once the request settles', async permission => {
+    push.subscribe.mockImplementation(async () => {
+      Notification.permission = permission
+      if (permission === 'denied') throw new Error('Push permission was not granted')
+
+      push.subscribed = true
+      return { succeeded: true }
+    })
+    await alert.show('product_details')
+    await alert.controller.subscribe()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted', permission])
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_details', kind: permission, page: Hellotext.page.trackingData.page })
+  })
+
+  it('records no permission answer when the prompt closes unanswered', async () => {
+    push.subscribe.mockRejectedValue(new Error('Push permission was not granted'))
+    await alert.show('homepage')
+    await alert.controller.subscribe()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted'])
+  })
+
   it('keeps actions available after a subscription failure and emits the error', async () => {
     const error = new Error('Subscription failed')
     const onError = jest.fn()
