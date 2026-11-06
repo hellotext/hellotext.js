@@ -204,6 +204,11 @@ Push subscription, and returns whether it displayed the alert. A disabled or unk
 is not displayed. `Hellotext.alert` is unavailable when the playbook or Push is disabled,
 or when the browser does not support Push.
 
+If the page closes after the visitor allows notifications from the alert, but before their
+subscription is saved, the next page that loads the alert finishes it without asking again.
+`show` waits for that to finish, so the alert does not appear while it does. Permission the
+visitor gave another tool on your site never subscribes them this way.
+
 A [popup](/docs/popups.md) comes first, so the two never ask for Push at the same time. While
 the popup loads, `show` waits. A popup showing only its bubble, or hidden by device targeting,
 then lets the alert show. Once the visitor opens the popup, the alert does not show on that

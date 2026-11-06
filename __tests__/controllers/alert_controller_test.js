@@ -50,6 +50,15 @@ describe('Smart Alert interactions', () => {
   const primary = () => alert.element.querySelector('[data-hellotext--alert-target="primaryAction"]')
   const secondary = () => alert.element.querySelector('[data-hellotext--alert-target="secondaryAction"]')
   const saved = () => JSON.parse(localStorage.getItem(`hellotext:alert:${business.id}`))
+  const pending = () => JSON.parse(localStorage.getItem(`hellotext:alert:${business.id}:registration`))
+  const leavePending = acceptance =>
+    localStorage.setItem(`hellotext:alert:${business.id}:registration`, JSON.stringify(acceptance))
+  const reload = async () => {
+    alert.dispose()
+    alert = new Alert({ html: alertHTML() }, business, push)
+    await alert.ready
+    await flush()
+  }
 
   beforeEach(async () => {
     previousPage = Hellotext.page
@@ -527,6 +536,75 @@ describe('Smart Alert interactions', () => {
     await flush()
     expect(API.pushAlerts.create).toHaveBeenCalledWith({ section: 'product_details', kind: 'granted', page })
     expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_details', kind: 'registered', page, pushIdentity: 'push-identity' })
+  })
+
+  it('keeps a granted acceptance pending until its registration is saved', async () => {
+    let complete
+    push.subscribe.mockImplementation(({ onPermission }) => new Promise(resolve => {
+      onPermission('granted')
+      complete = resolve
+    }))
+    await alert.show('product_details')
+    const subscribing = alert.controller.subscribe()
+    expect(pending()).toEqual({ section: 'product_details', page: Hellotext.page.trackingData.page })
+
+    push.subscribed = true
+    complete(registration())
+    await subscribing
+    expect(pending()).toBeNull()
+  })
+
+  it('finishes a pending registration on the next page without a click', async () => {
+    const page = { url: 'https://shop.example.com/products/shirt', title: 'Shirt', path: '/products/shirt' }
+    leavePending({ section: 'product_details', page })
+    Notification.permission = 'granted'
+
+    await reload()
+
+    expect(push.subscribe).toHaveBeenCalledWith()
+    expect(API.pushAlerts.create.mock.calls).toEqual([
+      [{ section: 'product_details', kind: 'registered', page, pushIdentity: 'push-identity' }],
+    ])
+    expect(pending()).toBeNull()
+    await expect(alert.show('homepage')).resolves.toBe(false)
+  })
+
+  it('waits for a pending registration before showing', async () => {
+    let complete
+    push.subscribe.mockImplementation(() => new Promise(resolve => { complete = resolve }))
+    leavePending({ section: 'homepage', page: {} })
+    Notification.permission = 'granted'
+    await reload()
+
+    const showing = alert.show('homepage')
+    await flush()
+    expect(alert.element.hidden).toBe(true)
+
+    push.subscribed = true
+    complete(registration())
+    await expect(showing).resolves.toBe(false)
+  })
+
+  it.each(['default', 'denied'])('drops a pending registration once permission is %s', async permission => {
+    leavePending({ section: 'homepage', page: {} })
+    Notification.permission = permission
+
+    await reload()
+
+    expect(push.subscribe).not.toHaveBeenCalled()
+    expect(pending()).toBeNull()
+  })
+
+  it('keeps a pending registration when finishing it fails', async () => {
+    push.subscribe.mockRejectedValue(new Error('Worker unavailable'))
+    leavePending({ section: 'homepage', page: {} })
+    Notification.permission = 'granted'
+
+    await reload()
+
+    expect(push.subscribe).toHaveBeenCalledTimes(1)
+    expect(API.pushAlerts.create).not.toHaveBeenCalled()
+    expect(pending()).toEqual({ section: 'homepage', page: {} })
   })
 
   it('records no permission answer when the prompt closes unanswered', async () => {

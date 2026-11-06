@@ -23,11 +23,13 @@ export default class extends Controller {
   initialize() {
     this.showRequest = 0
     this.submitting = false
+    this.registrationResumed = Promise.resolve()
     this.onStorage = this.onStorage.bind(this)
   }
 
   /**
-   * Announces readiness and listens for dismissals in other tabs.
+   * Announces readiness, listens for dismissals in other tabs, and finishes a registration
+   * an earlier page left pending.
    *
    * @fires hellotext--alert:connected
    * @returns {void}
@@ -35,6 +37,8 @@ export default class extends Controller {
   connect() {
     this.dispatch('connected', { detail: { controller: this } })
     window.addEventListener('storage', this.onStorage)
+
+    this.registrationResumed = this.resumeRegistration()
   }
 
   /**
@@ -60,7 +64,8 @@ export default class extends Controller {
   }
 
   /**
-   * Displays an enabled section after Push subscription restoration finishes.
+   * Displays an enabled section after Push subscription restoration and any resumed
+   * registration finish.
    * Text overrides apply only to this call and are rendered as plain text.
    * Force bypasses the cooldown without changing dismissal history; section availability,
    * existing subscriptions, and denied notification permission still prevent display.
@@ -85,6 +90,7 @@ export default class extends Controller {
     }
 
     await this.alert.push.ready?.catch(() => {})
+    await this.registrationResumed
 
     if (request !== this.showRequest || this.alert.disposed || !this.element.isConnected)
       return false
@@ -234,6 +240,7 @@ export default class extends Controller {
    * @returns {void}
    */
   recordPermission(permission, acceptance) {
+    if (permission === 'granted') this.pendingRegistration = acceptance
     if (permission === 'granted' || permission === 'denied') this.record(permission, acceptance)
   }
 
@@ -248,6 +255,8 @@ export default class extends Controller {
    * @returns {Promise<void>}
    */
   async recordRegistration(response, acceptance) {
+    this.pendingRegistration = null
+
     try {
       const { id } = await response.data.clone().json()
 
@@ -255,6 +264,82 @@ export default class extends Controller {
     } catch (error) {
       console.warn('Hellotext Smart Alert submission failed:', error)
     }
+  }
+
+  /**
+   * Finishes a registration an earlier page left pending: the visitor granted permission
+   * from this alert, but the page closed or registration failed before Hellotext saved
+   * the subscription. Only a grant from this alert leaves the mark, so permission the
+   * visitor gave another application on the site never subscribes them to Hellotext.
+   * Permission is already granted, so no prompt or click is needed. A failure keeps the
+   * mark for the next page.
+   *
+   * @private
+   * @returns {Promise<void>}
+   */
+  async resumeRegistration() {
+    if (!this.alert) return
+
+    const acceptance = this.pendingRegistration
+    if (!acceptance) return
+
+    await this.alert.push.ready?.catch(() => {})
+    if (this.alert.disposed) return
+
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      this.pendingRegistration = null
+      return
+    }
+
+    try {
+      const response = await this.alert.push.subscribe()
+
+      if (response?.succeeded) this.recordRegistration(response, acceptance)
+    } catch (_error) {
+      // Keep the mark so the next page tries again.
+    }
+  }
+
+  /**
+   * The acceptance whose granted permission still awaits a saved subscription, kept across
+   * pages in this origin's storage.
+   *
+   * @private
+   * @returns {{section: import('../../index').HellotextAlertSection, page: Object}|null}
+   */
+  get pendingRegistration() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.registrationKey))
+
+      return typeof saved?.section === 'string' ? saved : null
+    } catch (_error) {
+      return null
+    }
+  }
+
+  /**
+   * Saves or, with null, clears the pending acceptance.
+   *
+   * @private
+   * @param {{section: import('../../index').HellotextAlertSection, page: Object}|null} acceptance
+   */
+  set pendingRegistration(acceptance) {
+    try {
+      if (acceptance) localStorage.setItem(this.registrationKey, JSON.stringify(acceptance))
+      else localStorage.removeItem(this.registrationKey)
+    } catch (_error) {
+      // Without storage, a registration cut short is not resumed.
+    }
+  }
+
+  /**
+   * Storage key of the pending registration for this business on the current origin.
+   *
+   * @private
+   * @returns {string}
+   */
+  get registrationKey() {
+    return `${this.storageKey}:registration`
   }
 
   /**
