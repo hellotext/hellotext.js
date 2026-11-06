@@ -17,15 +17,56 @@ export default class extends Controller {
 
   initialize() {
     this.form = new Form(this.dataValue, this.element)
+    this.onInput = this.trackStart.bind(this)
   }
 
   connect() {
     super.connect()
     this.element.addEventListener('submit', this.submit.bind(this))
+    this.element.addEventListener('input', this.onInput)
 
     if (document.activeElement.tagName !== 'INPUT') {
       this.inputTargets[0].focus()
     }
+  }
+
+  disconnect() {
+    this.element.removeEventListener('input', this.onInput)
+  }
+
+  // Reports the first input once per session, form and day, which is how the
+  // website form report counts the visitors who started filling it in. Focus
+  // alone doesn't count: the form focuses its first input when it connects. A
+  // failed report is sent again on the next input.
+  async trackStart() {
+    if (this.trackingStart) return
+
+    const key = `hellotext--form--${this.form.id}--tracked-start`
+    const marker = `${Hellotext.session}:${this.localDate}`
+    if (Hellotext.readStorage('localStorage', key) === marker) return
+
+    this.trackingStart = true
+
+    try {
+      const response = await Hellotext.track('form.started', {
+        form_id: this.form.id,
+        tracked_at: new Date().toISOString(),
+      })
+
+      if (response?.succeeded) Hellotext.writeStorage('localStorage', key, marker)
+    } catch (_) {
+      // Tracking must never break the form.
+    } finally {
+      this.trackingStart = false
+    }
+  }
+
+  get localDate() {
+    const now = new Date()
+
+    return [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+      .map(part => String(part).padStart(2, '0'))
+      .join('-')
   }
 
   async submit(e) {
