@@ -454,6 +454,24 @@ describe('Smart Alert interactions', () => {
     expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_details', kind: permission, page: Hellotext.page.trackingData.page })
   })
 
+  it('records the permission answer under the acceptance after another section is shown', async () => {
+    let complete
+    push.subscribe.mockImplementation(() => new Promise(resolve => { complete = resolve }))
+    Hellotext.page = new Page('https://shop.example.com/products/shirt')
+    const page = Hellotext.page.trackingData.page
+    await alert.show('product_details')
+    const subscribing = alert.controller.subscribe()
+
+    Hellotext.page = new Page('https://shop.example.com/')
+    await alert.show('homepage')
+
+    Notification.permission = 'granted'
+    push.subscribed = true
+    complete({ succeeded: true })
+    await subscribing
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_details', kind: 'granted', page })
+  })
+
   it('records no permission answer when the prompt closes unanswered', async () => {
     push.subscribe.mockRejectedValue(new Error('Push permission was not granted'))
     await alert.show('homepage')

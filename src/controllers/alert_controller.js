@@ -170,6 +170,9 @@ export default class extends Controller {
     this.secondaryActionTarget.disabled = true
     this.element.setAttribute('aria-busy', 'true')
 
+    // Client-side navigation can show another section before the request settles.
+    const acceptance = { section: this.kind, page: this.page }
+
     try {
       this.record('accepted')
       Hellotext.eventEmitter.dispatch('alert:accepted', { kind: this.kind })
@@ -184,7 +187,7 @@ export default class extends Controller {
       if (this.unavailable) this.close()
       this.dispatch('error', { detail: { error } })
     } finally {
-      this.recordPermission()
+      this.recordPermission(acceptance)
       this.submitting = false
 
       this.primaryActionTarget.disabled = false
@@ -201,11 +204,14 @@ export default class extends Controller {
    *
    * @private
    * @param {'shown'|'dismissed'|'accepted'|'granted'|'denied'} kind - Interaction to record.
+   * @param {Object} [snapshot] - Section and page to record, defaulting to the displayed ones.
+   * @param {import('../../index').HellotextAlertSection} [snapshot.section]
+   * @param {{url: string, title: string, path: string}} [snapshot.page]
    * @returns {Promise<void>}
    */
-  async record(kind) {
+  async record(kind, { section = this.kind, page = this.page } = {}) {
     try {
-      const response = await API.pushAlerts.create({ section: this.kind, kind, page: this.page })
+      const response = await API.pushAlerts.create({ section, kind, page })
 
       if (response.failed) console.warn('Hellotext Smart Alert submission failed:', response)
     } catch (error) {
@@ -214,16 +220,18 @@ export default class extends Controller {
   }
 
   /**
-   * Records the browser's answer to the permission prompt the acceptance opened.
+   * Records the browser's answer to the permission prompt the acceptance opened,
+   * under the acceptance's section and page.
    * A prompt closed without an answer leaves permission at default and records nothing.
    *
    * @private
+   * @param {{section: import('../../index').HellotextAlertSection, page: Object}} acceptance
    * @returns {void}
    */
-  recordPermission() {
+  recordPermission(acceptance) {
     const permission = Notification.permission
 
-    if (permission === 'granted' || permission === 'denied') this.record(permission)
+    if (permission === 'granted' || permission === 'denied') this.record(permission, acceptance)
   }
 
   /**
