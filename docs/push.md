@@ -158,6 +158,14 @@ if (Hellotext.push) {
 
 The same method can be called when the visitor already has a Hellotext subscription; you do not need a separate "subscribe again" implementation.
 
+To act on the visitor's answer before the subscription is registered, pass `onPermission`. It receives `granted`, `denied`, or `default` when the prompt was closed without an answer:
+
+```js
+await Hellotext.push.subscribe({
+  onPermission: permission => console.log('Push permission:', permission),
+})
+```
+
 ## 4. Connect your Unsubscribe button
 
 Run the following code from your Unsubscribe button's click handler. Wait for the result before showing confirmation. A `null` result means there was no subscription to remove and can be treated as already unsubscribed:

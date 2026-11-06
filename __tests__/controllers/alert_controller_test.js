@@ -449,9 +449,10 @@ describe('Smart Alert interactions', () => {
   it.each([
     ['granted', ['shown', 'accepted', 'granted', 'registered']],
     ['denied', ['shown', 'accepted', 'denied']],
-  ])('records the %s permission answer once the request settles', async (permission, kinds) => {
-    push.subscribe.mockImplementation(async () => {
+  ])('records the %s permission answer the browser gives', async (permission, kinds) => {
+    push.subscribe.mockImplementation(async ({ onPermission }) => {
       Notification.permission = permission
+      onPermission(permission)
       if (permission === 'denied') throw new Error('Push permission was not granted')
 
       push.subscribed = true
@@ -464,9 +465,19 @@ describe('Smart Alert interactions', () => {
     expect(API.pushAlerts.create).toHaveBeenCalledWith({ section: 'product_details', kind: permission, page: Hellotext.page.trackingData.page })
   })
 
+  it('records the permission answer before the registration finishes', async () => {
+    push.subscribe.mockImplementation(({ onPermission }) => {
+      onPermission('granted')
+      return new Promise(() => {})
+    })
+    await alert.show('homepage')
+    alert.controller.subscribe()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted', 'granted'])
+  })
+
   it('records the Push identity the server saved with the registration', async () => {
-    push.subscribe.mockImplementation(async () => {
-      Notification.permission = 'granted'
+    push.subscribe.mockImplementation(async ({ onPermission }) => {
+      onPermission('granted')
       push.subscribed = true
       return registration('saved-identity')
     })
@@ -482,8 +493,8 @@ describe('Smart Alert interactions', () => {
   })
 
   it.each(['failed response', 'rejection'])('records no registration after a %s', async failure => {
-    push.subscribe.mockImplementation(async () => {
-      Notification.permission = 'granted'
+    push.subscribe.mockImplementation(async ({ onPermission }) => {
+      onPermission('granted')
       if (failure === 'rejection') throw new Error('Sync failed')
 
       return { failed: true }
@@ -495,8 +506,12 @@ describe('Smart Alert interactions', () => {
   })
 
   it('records the permission answer under the acceptance after another section is shown', async () => {
+    let answer
     let complete
-    push.subscribe.mockImplementation(() => new Promise(resolve => { complete = resolve }))
+    push.subscribe.mockImplementation(({ onPermission }) => new Promise(resolve => {
+      answer = onPermission
+      complete = resolve
+    }))
     Hellotext.page = new Page('https://shop.example.com/products/shirt')
     const page = Hellotext.page.trackingData.page
     await alert.show('product_details')
@@ -505,7 +520,7 @@ describe('Smart Alert interactions', () => {
     Hellotext.page = new Page('https://shop.example.com/')
     await alert.show('homepage')
 
-    Notification.permission = 'granted'
+    answer('granted')
     push.subscribed = true
     complete(registration())
     await subscribing
@@ -515,7 +530,10 @@ describe('Smart Alert interactions', () => {
   })
 
   it('records no permission answer when the prompt closes unanswered', async () => {
-    push.subscribe.mockRejectedValue(new Error('Push permission was not granted'))
+    push.subscribe.mockImplementation(async ({ onPermission }) => {
+      onPermission('default')
+      throw new Error('Push permission was not granted')
+    })
     await alert.show('homepage')
     await alert.controller.subscribe()
     expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted'])

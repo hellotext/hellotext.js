@@ -155,8 +155,8 @@ export default class extends Controller {
    * Disables both buttons while pending and hides once subscribed or permission is denied.
    * Subscription failures are reported through an event so the page can handle them.
    * Acceptance records the primary action, independently of the browser permission result.
-   * Once the request settles, the permission answer is recorded as well, and a successful
-   * registration records the Push identity the server saved.
+   * The permission answer is recorded as soon as the browser gives it, before registration,
+   * and a successful registration records the Push identity the server saved.
    *
    * @fires alert:accepted
    * @fires hellotext--alert:error
@@ -179,7 +179,9 @@ export default class extends Controller {
       Hellotext.eventEmitter.dispatch('alert:accepted', { kind: this.kind })
 
       // Call before any await so the browser permission prompt retains the click's activation.
-      const response = await this.alert.push.subscribe()
+      const response = await this.alert.push.subscribe({
+        onPermission: permission => this.recordPermission(permission, acceptance),
+      })
 
       if (response?.succeeded) this.recordRegistration(response, acceptance)
       if (this.unavailable) this.close()
@@ -189,7 +191,6 @@ export default class extends Controller {
       if (this.unavailable) this.close()
       this.dispatch('error', { detail: { error } })
     } finally {
-      this.recordPermission(acceptance)
       this.submitting = false
 
       this.primaryActionTarget.disabled = false
@@ -228,12 +229,11 @@ export default class extends Controller {
    * A prompt closed without an answer leaves permission at default and records nothing.
    *
    * @private
+   * @param {NotificationPermission} permission - The browser's answer.
    * @param {{section: import('../../index').HellotextAlertSection, page: Object}} acceptance
    * @returns {void}
    */
-  recordPermission(acceptance) {
-    const permission = Notification.permission
-
+  recordPermission(permission, acceptance) {
     if (permission === 'granted' || permission === 'denied') this.record(permission, acceptance)
   }
 
