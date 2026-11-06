@@ -196,3 +196,13 @@ Remove a listener by passing the same callback:
 ```js
 Hellotext.removeEventListener('popup:opened', onPopupOpened)
 ```
+
+### Step reporting
+
+The popup reports its steps to Hellotext through `Hellotext.track`, with the popup's and the step's public ids, for the popup report:
+
+- `popup.step_viewed` - The dialog shows the step: when it opens, after a bubble click, or when the visitor reaches the step. Showing the bubble alone does not report it.
+- `popup.step_started` - The first input in one of the step's fields. Focus alone does not report it.
+- `popup.step_completed` - The step passed validation and the visitor moved on to the next one. The last step never reports it: sending the popup completes it, and Hellotext counts the submission.
+
+Each one is sent once per session, popup, step and local day. A report that fails is sent again the next time, and a failed report never stops the popup.

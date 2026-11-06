@@ -131,6 +131,7 @@ describe('PopupController', () => {
     })
     jest.spyOn(PopupsAPI, 'cancel').mockResolvedValue({ failed: false, succeeded: true })
     jest.spyOn(Hellotext.eventEmitter, 'dispatch')
+    jest.spyOn(Hellotext, 'track').mockResolvedValue({ succeeded: true })
   })
 
   afterEach(() => {
@@ -1946,4 +1947,106 @@ describe('PopupController', () => {
     expect(phoneInput.checkValidity()).toBe(false)
   })
 
+  describe('step tracking', () => {
+    const flush = () => new Promise(resolve => setTimeout(resolve, 0))
+    const type = input => input.dispatchEvent(new Event('input', { bubbles: true }))
+    const stepReport = (action, stepId) => [
+      action,
+      { popup_id: 'popup-id', step_id: stepId, tracked_at: expect.any(String) },
+    ]
+
+    beforeEach(() => {
+      jest.spyOn(Hellotext, 'session', 'get').mockReturnValue('session-id')
+    })
+
+    afterEach(() => {
+      controller?.disconnect()
+    })
+
+    it('reports the first step viewed when the dialog opens, not when the bubble shows', async () => {
+      buildController({ hasBubble: true })
+
+      controller.showInitialState()
+      await flush()
+
+      expect(Hellotext.track).not.toHaveBeenCalled()
+
+      controller.open()
+      await flush()
+
+      expect(Hellotext.track).toHaveBeenCalledWith(...stepReport('popup.step_viewed', 'step-one'))
+    })
+
+    it('reports the start of a step on the first input in one of its fields', async () => {
+      const { emailInput } = buildController({ hasBubble: false })
+
+      controller.connect()
+      emailInput.focus()
+      await flush()
+
+      expect(Hellotext.track).not.toHaveBeenCalledWith(...stepReport('popup.step_started', 'step-one'))
+
+      type(emailInput)
+      type(emailInput)
+      await flush()
+
+      expect(
+        Hellotext.track.mock.calls.filter(([action]) => action === 'popup.step_started'),
+      ).toEqual([stepReport('popup.step_started', 'step-one')])
+    })
+
+    it('reports a step completed when the visitor moves on, and never the last step', async () => {
+      const { emailInput, phoneInput } = buildController({ hasBubble: false })
+
+      controller.connect()
+      emailInput.value = 'customer@example.com'
+      await controller.next()
+      await flush()
+
+      expect(Hellotext.track).toHaveBeenCalledWith(...stepReport('popup.step_completed', 'step-one'))
+      expect(Hellotext.track).toHaveBeenCalledWith(...stepReport('popup.step_viewed', 'step-two'))
+
+      phoneInput.value = '+59899123456'
+      await controller.next()
+      await flush()
+
+      expect(PopupsAPI.submit).toHaveBeenCalled()
+      expect(Hellotext.track).not.toHaveBeenCalledWith(...stepReport('popup.step_completed', 'step-two'))
+    })
+
+    it('reports a step once per session and day, and again after a failed report', async () => {
+      jest.useFakeTimers({ doNotFake: ['setTimeout', 'nextTick', 'setImmediate', 'queueMicrotask'] })
+      jest.setSystemTime(new Date(2026, 10, 6, 12))
+      Hellotext.track.mockResolvedValueOnce({ succeeded: false })
+      buildController({ hasBubble: false })
+
+      controller.connect()
+      await flush()
+      controller.showStep(0)
+      await flush()
+      controller.showStep(0)
+      await flush()
+
+      expect(Hellotext.track).toHaveBeenCalledTimes(2)
+
+      jest.setSystemTime(new Date(2026, 10, 7, 12))
+      controller.showStep(0)
+      await flush()
+
+      expect(Hellotext.track).toHaveBeenCalledTimes(3)
+    })
+
+    it('keeps the popup working when the report fails', async () => {
+      Hellotext.track.mockRejectedValue(new Error('offline'))
+      const { stepOne, stepTwo, emailInput } = buildController({ hasBubble: false })
+
+      controller.connect()
+      emailInput.value = 'customer@example.com'
+      await controller.next()
+      await flush()
+
+      expect(stepOne.hidden).toBe(true)
+      expect(stepTwo.hidden).toBe(false)
+    })
+  })
 })

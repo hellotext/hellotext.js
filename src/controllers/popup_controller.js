@@ -12,6 +12,13 @@ const PUSH_SUBSCRIPTION_TIMEOUT = 15000
 const PUSH_LOADING_DOT_INTERVAL = 450
 const PUSH_LOADING_LABEL = 'Enable notifications'
 
+// The popup report counts, for each step, the browsers that saw it, started filling it in and
+// moved on from it. Sending the last step is the submission, which the server counts as that
+// step's completion, so the last step never reports popup.step_completed.
+const STEP_VIEWED = 'popup.step_viewed'
+const STEP_STARTED = 'popup.step_started'
+const STEP_COMPLETED = 'popup.step_completed'
+
 /**
  * An input rendered by the popup's server-side field components.
  *
@@ -126,6 +133,7 @@ export default class extends Controller {
    */
   initialize() {
     this.stepIndex = 0
+    this.trackingSteps = new Set()
     this.resendLabel = this.hasResendButtonTarget ? this.resendButtonTarget.textContent.trim() : ''
     this.rules = new PopupDisplayRules(this.rulesValue)
     this.connectedAt = this.pageStartedAt()
@@ -146,6 +154,8 @@ export default class extends Controller {
     if (this.requiredPushUnavailable) this.dismissed = true
     this.syncRequiredPush = this.syncRequiredPush.bind(this)
     this.element.addEventListener('change', this.syncRequiredPush)
+    this.trackStepStart = this.trackStepStart.bind(this)
+    this.element.addEventListener('input', this.trackStepStart)
     this.syncRequiredPush()
     this.requireBirthdays()
     // Another tab may have sent or closed this popup while its HTML was loading, before the
@@ -180,6 +190,7 @@ export default class extends Controller {
     window.removeEventListener('storage', this.closeIfFinishedElsewhere)
     window.removeEventListener('pageshow', this.closeIfFinishedElsewhere)
     this.element.removeEventListener('change', this.syncRequiredPush)
+    this.element.removeEventListener('input', this.trackStepStart)
     this.reportActivity(false)
   }
 
@@ -368,6 +379,7 @@ export default class extends Controller {
     this.dialogTarget.hidden = false
     Hellotext.eventEmitter.dispatch('popup:opened')
     this.reportActivity()
+    this.trackStepView()
   }
 
   /**
@@ -439,6 +451,7 @@ export default class extends Controller {
       await this.subscribeForPushOnCurrentStep()
 
       if (this.stepIndex < this.stepTargets.length - 1) {
+        this.trackStep(STEP_COMPLETED, this.stepTargets[this.stepIndex])
         this.showStep(this.stepIndex + 1)
         return
       }
@@ -972,6 +985,7 @@ export default class extends Controller {
 
     this.dialogTarget.hidden = false
     Hellotext.eventEmitter.dispatch('popup:opened')
+    this.trackStepView()
   }
 
   /**
@@ -991,6 +1005,7 @@ export default class extends Controller {
     this.completedTarget.hidden = true
     if (this.hasPushRequiredTarget) this.pushRequiredTarget.hidden = true
     this.reportActivity()
+    this.trackStepView()
   }
 
   /**
@@ -1011,6 +1026,76 @@ export default class extends Controller {
     if (this.hasPushRequiredTarget) this.pushRequiredTarget.hidden = true
     this.completedTarget.hidden = false
     this.reportActivity()
+  }
+
+  /**
+   * Report that the visitor sees the current step: the dialog shows it, not the bubble or the
+   * completion.
+   *
+   * @returns {void}
+   */
+  trackStepView() {
+    if (this.element.hidden || this.dialogTarget.hidden || !this.completedTarget.hidden) return
+
+    this.trackStep(STEP_VIEWED, this.stepTargets[this.stepIndex])
+  }
+
+  /**
+   * Report the visitor's first input in a step. Focus alone doesn't count.
+   *
+   * @param {InputEvent} event - Input from one of the popup's fields.
+   * @returns {void}
+   */
+  trackStepStart(event) {
+    const stepId = event.target?.dataset?.popupStepId
+    if (!stepId) return
+
+    this.trackStep(
+      STEP_STARTED,
+      this.stepTargets.find(step => step.dataset.stepId === stepId),
+    )
+  }
+
+  /**
+   * Report a step's view, start or completion once per session, popup, step and local day. The
+   * mark is written only when the server received the report, so a failed report is sent again
+   * the next time. Tracking never breaks the popup.
+   *
+   * @param {string} action - popup.step_viewed, popup.step_started or popup.step_completed.
+   * @param {HTMLElement} [step] - Step carrying a data-step-id attribute.
+   * @returns {Promise<void>}
+   */
+  async trackStep(action, step) {
+    const stepId = step?.dataset.stepId
+    if (!stepId) return
+
+    const key = `hellotext--popup--${this.idValue}--${stepId}--${action}`
+    const marker = `${Hellotext.session}:${this.localDate}`
+    if (this.trackingSteps.has(key) || Hellotext.readStorage('localStorage', key) === marker) return
+
+    this.trackingSteps.add(key)
+
+    try {
+      const response = await Hellotext.track(action, {
+        popup_id: this.idValue,
+        step_id: stepId,
+        tracked_at: new Date().toISOString(),
+      })
+
+      if (response?.succeeded) Hellotext.writeStorage('localStorage', key, marker)
+    } catch (_) {
+      // Tracking must never break the popup.
+    } finally {
+      this.trackingSteps.delete(key)
+    }
+  }
+
+  get localDate() {
+    const now = new Date()
+
+    return [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+      .map(part => String(part).padStart(2, '0'))
+      .join('-')
   }
 
   /**
