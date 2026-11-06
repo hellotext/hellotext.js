@@ -14,6 +14,12 @@ const sections = ['homepage', 'product_collection', 'product_details'].map(kind 
   secondary_action: `${kind} dismiss`,
 }))
 
+const registration = (id = 'push-identity') => ({
+  succeeded: true,
+  data: { clone: () => ({ json: async () => ({ id }) }) },
+})
+const flush = () => new Promise(resolve => setTimeout(resolve, 0))
+
 const alertHTML = (content = sections) => {
   const element = document.createElement('article')
   element.setAttribute('hidden', '')
@@ -62,7 +68,7 @@ describe('Smart Alert interactions', () => {
       disposed: false,
       subscribe: jest.fn().mockImplementation(async () => {
         push.subscribed = true
-        return { succeeded: true }
+        return registration()
       }),
     }
     application = Application.start()
@@ -380,7 +386,7 @@ describe('Smart Alert interactions', () => {
     expect(saved()).toBeNull()
 
     push.subscribed = true
-    complete({ succeeded: true })
+    complete(registration())
     await Promise.resolve()
     expect(alert.element.hidden).toBe(true)
     expect(primary().disabled).toBe(false)
@@ -440,18 +446,52 @@ describe('Smart Alert interactions', () => {
     expect(events.dismissed).not.toHaveBeenCalled()
   })
 
-  it.each(['granted', 'denied'])('records the %s permission answer once the request settles', async permission => {
+  it.each([
+    ['granted', ['shown', 'accepted', 'granted', 'registered']],
+    ['denied', ['shown', 'accepted', 'denied']],
+  ])('records the %s permission answer once the request settles', async (permission, kinds) => {
     push.subscribe.mockImplementation(async () => {
       Notification.permission = permission
       if (permission === 'denied') throw new Error('Push permission was not granted')
 
       push.subscribed = true
-      return { succeeded: true }
+      return registration()
     })
     await alert.show('product_details')
     await alert.controller.subscribe()
-    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted', permission])
-    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_details', kind: permission, page: Hellotext.page.trackingData.page })
+    await flush()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(kinds)
+    expect(API.pushAlerts.create).toHaveBeenCalledWith({ section: 'product_details', kind: permission, page: Hellotext.page.trackingData.page })
+  })
+
+  it('records the Push identity the server saved with the registration', async () => {
+    push.subscribe.mockImplementation(async () => {
+      Notification.permission = 'granted'
+      push.subscribed = true
+      return registration('saved-identity')
+    })
+    await alert.show('homepage')
+    await alert.controller.subscribe()
+    await flush()
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({
+      section: 'homepage',
+      kind: 'registered',
+      page: Hellotext.page.trackingData.page,
+      pushIdentity: 'saved-identity',
+    })
+  })
+
+  it.each(['failed response', 'rejection'])('records no registration after a %s', async failure => {
+    push.subscribe.mockImplementation(async () => {
+      Notification.permission = 'granted'
+      if (failure === 'rejection') throw new Error('Sync failed')
+
+      return { failed: true }
+    })
+    await alert.show('homepage')
+    await alert.controller.subscribe()
+    await flush()
+    expect(API.pushAlerts.create.mock.calls.map(([data]) => data.kind)).toEqual(['shown', 'accepted', 'granted'])
   })
 
   it('records the permission answer under the acceptance after another section is shown', async () => {
@@ -467,9 +507,11 @@ describe('Smart Alert interactions', () => {
 
     Notification.permission = 'granted'
     push.subscribed = true
-    complete({ succeeded: true })
+    complete(registration())
     await subscribing
-    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_details', kind: 'granted', page })
+    await flush()
+    expect(API.pushAlerts.create).toHaveBeenCalledWith({ section: 'product_details', kind: 'granted', page })
+    expect(API.pushAlerts.create).toHaveBeenLastCalledWith({ section: 'product_details', kind: 'registered', page, pushIdentity: 'push-identity' })
   })
 
   it('records no permission answer when the prompt closes unanswered', async () => {

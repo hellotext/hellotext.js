@@ -155,7 +155,8 @@ export default class extends Controller {
    * Disables both buttons while pending and hides once subscribed or permission is denied.
    * Subscription failures are reported through an event so the page can handle them.
    * Acceptance records the primary action, independently of the browser permission result.
-   * Once the request settles, the permission answer is recorded as well.
+   * Once the request settles, the permission answer is recorded as well, and a successful
+   * registration records the Push identity the server saved.
    *
    * @fires alert:accepted
    * @fires hellotext--alert:error
@@ -180,6 +181,7 @@ export default class extends Controller {
       // Call before any await so the browser permission prompt retains the click's activation.
       const response = await this.alert.push.subscribe()
 
+      if (response?.succeeded) this.recordRegistration(response, acceptance)
       if (this.unavailable) this.close()
       if (response?.failed) this.dispatch('error', { detail: { response } })
       return response
@@ -203,15 +205,16 @@ export default class extends Controller {
    * Recording failures leave the alert interaction unchanged.
    *
    * @private
-   * @param {'shown'|'dismissed'|'accepted'|'granted'|'denied'} kind - Interaction to record.
+   * @param {'shown'|'dismissed'|'accepted'|'granted'|'denied'|'registered'} kind - Interaction to record.
    * @param {Object} [snapshot] - Section and page to record, defaulting to the displayed ones.
    * @param {import('../../index').HellotextAlertSection} [snapshot.section]
    * @param {{url: string, title: string, path: string}} [snapshot.page]
+   * @param {string} [snapshot.pushIdentity] - Saved Push identity, for a registration.
    * @returns {Promise<void>}
    */
-  async record(kind, { section = this.kind, page = this.page } = {}) {
+  async record(kind, { section = this.kind, page = this.page, pushIdentity } = {}) {
     try {
-      const response = await API.pushAlerts.create({ section, kind, page })
+      const response = await API.pushAlerts.create({ section, kind, page, pushIdentity })
 
       if (response.failed) console.warn('Hellotext Smart Alert submission failed:', response)
     } catch (error) {
@@ -232,6 +235,26 @@ export default class extends Controller {
     const permission = Notification.permission
 
     if (permission === 'granted' || permission === 'denied') this.record(permission, acceptance)
+  }
+
+  /**
+   * Records the Push identity the server saved for the acceptance's subscription,
+   * under the acceptance's section and page. Reads a copy of the response body, so the
+   * response subscribe() returns stays readable.
+   *
+   * @private
+   * @param {import('../api/response').Response} response - Successful identity registration.
+   * @param {{section: import('../../index').HellotextAlertSection, page: Object}} acceptance
+   * @returns {Promise<void>}
+   */
+  async recordRegistration(response, acceptance) {
+    try {
+      const { id } = await response.data.clone().json()
+
+      if (id) this.record('registered', { ...acceptance, pushIdentity: id })
+    } catch (error) {
+      console.warn('Hellotext Smart Alert submission failed:', error)
+    }
   }
 
   /**
