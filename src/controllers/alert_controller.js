@@ -16,7 +16,7 @@ export default class extends Controller {
   static targets = ['title', 'description', 'primaryAction', 'secondaryAction']
 
   /**
-   * Initializes display state and binds the cross-tab storage handler.
+   * Initializes display state and binds the cross-tab storage and unsubscribe handlers.
    *
    * @returns {void}
    */
@@ -25,11 +25,12 @@ export default class extends Controller {
     this.submitting = false
     this.registrationResumed = Promise.resolve()
     this.onStorage = this.onStorage.bind(this)
+    this.onUnsubscribed = this.onUnsubscribed.bind(this)
   }
 
   /**
-   * Announces readiness, listens for dismissals in other tabs, and finishes a registration
-   * an earlier page left pending.
+   * Announces readiness, listens for dismissals in other tabs and for unsubscribes, and
+   * finishes a registration an earlier page left pending.
    *
    * @fires hellotext--alert:connected
    * @returns {void}
@@ -37,18 +38,30 @@ export default class extends Controller {
   connect() {
     this.dispatch('connected', { detail: { controller: this } })
     window.addEventListener('storage', this.onStorage)
+    Hellotext.eventEmitter.addSubscriber('push:unsubscribed', this.onUnsubscribed)
 
     this.registrationResumed = this.resumeRegistration()
   }
 
   /**
-   * Cancels pending display and removes the storage listener.
+   * Cancels pending display and removes the storage and unsubscribe listeners.
    *
    * @returns {void}
    */
   disconnect() {
     this.close()
     window.removeEventListener('storage', this.onStorage)
+    Hellotext.eventEmitter.removeSubscriber('push:unsubscribed', this.onUnsubscribed)
+  }
+
+  /**
+   * Drops a pending registration once the visitor unsubscribes, so a later page never
+   * subscribes them again without a click.
+   *
+   * @returns {void}
+   */
+  onUnsubscribed() {
+    if (this.alert) this.pendingRegistration = null
   }
 
   /**
@@ -284,7 +297,8 @@ export default class extends Controller {
     if (!acceptance) return
 
     await this.alert.push.ready?.catch(() => {})
-    if (this.alert.disposed) return
+    // The visitor may have unsubscribed in another tab meanwhile.
+    if (this.alert.disposed || !this.pendingRegistration) return
 
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
       this.pendingRegistration = null

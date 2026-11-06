@@ -1,3 +1,4 @@
+import Hellotext from '../hellotext'
 import API from '../api'
 import { Configuration } from '../core'
 
@@ -126,7 +127,9 @@ class Push {
   /**
    * Disables the server identity and removes the browser subscription.
    * Keeps the subscription when the server request fails so the caller can retry.
+   * Fires push:unsubscribed once the visitor has no subscription, including when there was none.
    *
+   * @fires push:unsubscribed
    * @returns {Promise<import('../api/response').Response|null|void>} Server response, null when
    *   no subscription exists, or no value when disposed. Rejects when a browser or network
    *   operation fails.
@@ -177,7 +180,10 @@ class Push {
     const registration = await this.getRegistration()
     const subscription = (await registration.pushManager.getSubscription()) || this.subscription
     if (this.disposed) return
-    if (!subscription) return null
+    if (!subscription) {
+      Hellotext.eventEmitter.dispatch('push:unsubscribed')
+      return null
+    }
     if (!this.owns(subscription)) {
       throw new Error('The existing Push subscription belongs to a different application')
     }
@@ -193,6 +199,7 @@ class Push {
     await subscription.unsubscribe()
     this.subscription = null
     this.clearRetryTimeout()
+    Hellotext.eventEmitter.dispatch('push:unsubscribed')
 
     return response
   }

@@ -186,6 +186,15 @@ if (Hellotext.push) {
 }
 ```
 
+Once the visitor has no subscription, including when there was none to remove, Hellotext fires
+`push:unsubscribed`:
+
+```js
+Hellotext.on('push:unsubscribed', () => {
+  console.log('Push turned off')
+})
+```
+
 ## Show a Smart Alert
 
 Enable the Smart Alert playbook in Hellotext and configure its sections. After initializing

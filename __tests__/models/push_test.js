@@ -4,6 +4,7 @@
 
 import API, { Response } from '../../src/api'
 import { Configuration } from '../../src/core'
+import Hellotext from '../../src/hellotext'
 import { Push } from '../../src/models/push'
 
 const deferred = () => {
@@ -272,6 +273,8 @@ describe('Push', () => {
   })
 
   it('preserves the browser subscription when disabling the server identity fails', async () => {
+    const unsubscribed = jest.fn()
+    Hellotext.on('push:unsubscribed', unsubscribed)
     storedSubscription = subscription
     await push.initialize()
     API.pushIdentities.destroy.mockResolvedValueOnce(responseFor(false))
@@ -280,6 +283,23 @@ describe('Push', () => {
 
     expect(subscription.unsubscribe).not.toHaveBeenCalled()
     expect(push.subscribed).toBe(true)
+    expect(unsubscribed).not.toHaveBeenCalled()
+    Hellotext.removeEventListener('push:unsubscribed', unsubscribed)
+  })
+
+  it.each([
+    ['after removing the subscription', true],
+    ['when there was no subscription to remove', false],
+  ])('fires push:unsubscribed %s', async (_case, subscribed) => {
+    const unsubscribed = jest.fn()
+    Hellotext.on('push:unsubscribed', unsubscribed)
+    if (subscribed) storedSubscription = subscription
+    await push.initialize()
+
+    await push.unsubscribe()
+
+    expect(unsubscribed).toHaveBeenCalledTimes(1)
+    Hellotext.removeEventListener('push:unsubscribed', unsubscribed)
   })
 
   it.each([

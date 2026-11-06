@@ -585,6 +585,32 @@ describe('Smart Alert interactions', () => {
     await expect(showing).resolves.toBe(false)
   })
 
+  it('drops a pending registration when the visitor unsubscribes', async () => {
+    leavePending({ section: 'homepage', page: {} })
+    Hellotext.eventEmitter.dispatch('push:unsubscribed')
+    expect(pending()).toBeNull()
+
+    Notification.permission = 'granted'
+    await reload()
+
+    expect(push.subscribe).not.toHaveBeenCalled()
+  })
+
+  it('does not resume when the visitor unsubscribes while restoration is pending', async () => {
+    let resolveReady
+    push.ready = new Promise(resolve => { resolveReady = resolve })
+    leavePending({ section: 'homepage', page: {} })
+    Notification.permission = 'granted'
+    await reload()
+
+    Hellotext.eventEmitter.dispatch('push:unsubscribed')
+    resolveReady()
+    await flush()
+
+    expect(push.subscribe).not.toHaveBeenCalled()
+    expect(pending()).toBeNull()
+  })
+
   it.each(['default', 'denied'])('drops a pending registration once permission is %s', async permission => {
     leavePending({ section: 'homepage', page: {} })
     Notification.permission = permission
