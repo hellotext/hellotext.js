@@ -670,6 +670,18 @@ describe("when the class is initialized successfully", () => {
         expect(response.succeeded).toEqual(true)
       });
 
+      it("sends nothing when the visitor refused tracking", async () => {
+        global.fetch = jest.fn()
+        Configuration.assign({ tracking: false })
+
+        try {
+          await expect(Hellotext.track("page.viewed")).resolves.toBeUndefined()
+          expect(global.fetch).not.toHaveBeenCalled()
+        } finally {
+          Configuration.assign({ tracking: true })
+        }
+      });
+
       it("records supported popup activity only after the server accepts it", async () => {
         global.fetch = jest.fn().mockResolvedValue({
           json: jest.fn().mockResolvedValue({received: "success"}),
