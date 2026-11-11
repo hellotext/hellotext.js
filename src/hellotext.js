@@ -245,6 +245,8 @@ class Hellotext {
       throw new NotInitializedError()
     }
 
+    if (Configuration.tracking === false) return
+
     const business = this.business
     const session = this.session
     const headers = {

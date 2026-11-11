@@ -11,6 +11,7 @@ import { Push } from './configuration/push'
  * Configuration for Hellotext
  * @property {Boolean} [autoGenerateSession=true] - whether to auto generate session or not
  * @property {String} [session] - session id
+ * @property {Boolean} [tracking=true] - whether events are sent, false when the visitor refused tracking
  * @property {Forms} [forms] - form configuration
  * @property {Popup} [popup] - popup configuration
  * @property {Webchat} [webchat] - webchat configuration
@@ -24,6 +25,7 @@ class Configuration {
 
   static autoGenerateSession = true
   static session = null
+  static tracking = true
 
   static forms = Forms
   static popup = Popup

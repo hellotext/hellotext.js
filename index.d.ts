@@ -11,6 +11,7 @@ export interface HellotextConfig {
   push?: false | HellotextPushConfig
   session?: string
   autoGenerateSession?: boolean
+  tracking?: boolean
 }
 
 export type HellotextWebchatMode = 'modal' | 'popover'
